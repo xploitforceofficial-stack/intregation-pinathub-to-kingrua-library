@@ -102,6 +102,11 @@ if PinatHubAdapter then
             if getgenv().VD then getgenv().VD.Destroyed = true end
         end,
     })
+    if Window and PinatHubAdapter.Notify then
+        Window.Notify = function(self, cfg)
+            return PinatHubAdapter:Notify(cfg)
+        end
+    end
 end
 if not isMobile then
     local _cursorOn = false
@@ -1227,13 +1232,16 @@ do
     end
     local function KYS_SafeNotify(title, content, duration)
         pcall(function()
+            local cfg = {
+                Title = tostring(title or "PinatHub"),
+                Content = tostring(content or ""),
+                Duration = duration or 3,
+                Type = "Info",
+            }
             if Window and Window.Notify then
-                Window:Notify({
-                    Title = title,
-                    Content = content,
-                    Duration = duration or 2,
-                    Icon = "lucide:info",
-                })
+                Window:Notify(cfg)
+            elseif PinatHubAdapter and PinatHubAdapter.Notify then
+                PinatHubAdapter:Notify(cfg)
             end
         end)
     end
@@ -2216,13 +2224,16 @@ RunService.RenderStepped:Connect(function()
 end)
 function VD_Notify(title, content, duration)
     pcall(function()
+        local cfg = {
+            Title = tostring(title or "PinatHub"),
+            Content = tostring(content or ""),
+            Duration = duration or 2.5,
+            Type = "Info",
+        }
         if Window and Window.Notify then
-            Window:Notify({
-                Title = title,
-                Content = content,
-                Duration = duration or 2,
-                Icon = "lucide:info",
-            })
+            Window:Notify(cfg)
+        elseif PinatHubAdapter and PinatHubAdapter.Notify then
+            PinatHubAdapter:Notify(cfg)
         end
     end)
 end
@@ -2336,19 +2347,28 @@ local function KYS_ToFGetTargetPosition()
         if VD.TOF_WallCheck and not KYS_ToFIsTargetVisible(originPos, targetPos, targetCharacter) then
             return nil, nil, nil, nil
         end
-        local targetVel = Vector3.new(0, 0, 0)
+        local targetVel = Vector3.zero
         local rootPart = targetCharacter and (targetCharacter:FindFirstChild("HumanoidRootPart") or torso)
-        if rootPart then targetVel = rootPart.Velocity end
+        if rootPart then
+            pcall(function()
+                targetVel = rootPart.AssemblyLinearVelocity or rootPart.Velocity or Vector3.zero
+            end)
+        end
         local directionRaw = targetPos - originPos
         local distance = directionRaw.Magnitude
         if distance < 0.1 then return nil, nil, nil, nil end
-        if distance < 5 then return directionRaw.Unit, gunObj, originPos, targetPos end
-        local travelTime = distance / 400
-        local predictedPos = targetPos + (targetVel * travelTime)
+        -- Di jarak dekat (< 12 studs), tembakan langsung instan tanpa overshoot/lead berlebih
+        if distance < 12 then
+            return directionRaw.Unit, gunObj, originPos, targetPos
+        end
+        -- Di jarak menengah & jauh, kompensasi pergerakan target
+        local bulletSpeed = 480
+        local travelTime = distance / bulletSpeed
+        local predictedPos = targetPos + (targetVel * travelTime * 0.95)
         for _ = 1, 2 do
             local newDist = (predictedPos - originPos).Magnitude
-            travelTime = newDist / 400
-            predictedPos = targetPos + (targetVel * travelTime)
+            travelTime = newDist / bulletSpeed
+            predictedPos = targetPos + (targetVel * travelTime * 0.95)
         end
         local finalDirection = predictedPos - originPos
         if finalDirection.Magnitude < 0.1 then return nil, nil, nil, nil end
@@ -3446,10 +3466,24 @@ function tapMobileParryButton()
         end)
     end
 end
-function ExecuteParry()
+function ExecuteParry(kChar)
     if State.ParryCooldown then return end
     pcall(function()
-        local parryRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("Items"):FindFirstChild("Parrying Dagger"):FindFirstChild("parry")
+        local myChar = LocalPlayer.Character
+        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        local kHRP = kChar and kChar:FindFirstChild("HumanoidRootPart")
+        if myHRP and kHRP then
+            myHRP.CFrame = CFrame.new(myHRP.Position, Vector3.new(kHRP.Position.X, myHRP.Position.Y, kHRP.Position.Z))
+        end
+        local backpack = LocalPlayer:FindFirstChild("Backpack")
+        local dagger = backpack and backpack:FindFirstChild("Parrying Dagger")
+        if dagger and myChar and myChar:FindFirstChild("Humanoid") then
+            pcall(function() myChar.Humanoid:EquipTool(dagger) end)
+        end
+        local parryRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+            and game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Items")
+            and game:GetService("ReplicatedStorage").Remotes.Items:FindFirstChild("Parrying Dagger")
+            and game:GetService("ReplicatedStorage").Remotes.Items["Parrying Dagger"]:FindFirstChild("parry")
         if parryRemote then
             for i = 1, 10 do parryRemote:FireServer() end
         end
@@ -3527,22 +3561,26 @@ function AttachParrySensor(kChar)
         local delta = myHRP.Position - kHRP.Position
         local startDistance = delta.Magnitude
         if VD.SURV_ParryAggressive then
-            local aggressiveRadius = 12
-            local detectionRadius = VD.SURV_ParryDistance + 5
+            local aggressiveRadius = math.max(14, tonumber(VD.SURV_ParryDistance) or 15)
+            local detectionRadius = aggressiveRadius + 15
             if startDistance > detectionRadius then return end
             if startDistance <= aggressiveRadius then
-                ExecuteParry()
+                ExecuteParry(kChar)
             else
                 local tracker
                 local startTime = os.clock()
                 tracker = RunService.Heartbeat:Connect(function()
-                    if os.clock() - startTime >= 1.5 or State.ParryCooldown or not myHRP or not kHRP or IsDowned(myChar) then
+                    if os.clock() - startTime >= 1.8 or State.ParryCooldown or not myHRP or not kHRP or IsDowned(myChar) then
                         if tracker then tracker:Disconnect() end
                         return
                     end
-                    local currentDist = (myHRP.Position - kHRP.Position).Magnitude
-                    if currentDist <= aggressiveRadius then
-                        ExecuteParry()
+                    local curDist = (myHRP.Position - kHRP.Position).Magnitude
+                    local kVel = kHRP.AssemblyLinearVelocity or kHRP.Velocity or Vector3.zero
+                    local mVel = myHRP.AssemblyLinearVelocity or myHRP.Velocity or Vector3.zero
+                    local relSpeed = (kVel - mVel).Magnitude
+                    local threshold = aggressiveRadius + (relSpeed * 0.08)
+                    if curDist <= threshold then
+                        ExecuteParry(kChar)
                         if tracker then tracker:Disconnect() end
                     end
                 end)
@@ -3556,9 +3594,9 @@ function AttachParrySensor(kChar)
                 local flatDirection = flatDelta.Unit
                 local kLookFlat = Vector3.new(kHRP.CFrame.LookVector.X, 0, kHRP.CFrame.LookVector.Z).Unit
                 local isFacing = kLookFlat:Dot(flatDirection)
-                if isFacing < 0.6 then return end
+                if isFacing < 0.5 then return end
             end
-            ExecuteParry()
+            ExecuteParry(kChar)
         end
     end)
 end
@@ -3622,28 +3660,40 @@ local AutoSkill = {
     InstantRotationConnection = nil,
 }
 function VD_PressSkill()
-    if isMobile then
+    local isTouch = UserInputService.TouchEnabled or isMobile
+    if isTouch then
         local btn = PlayerGui:FindFirstChild("check", true)
+        if not btn then
+            local current = PlayerGui
+            for segment in string.gmatch("Survivor-mob.Controls.action.check", "[^%.]+") do
+                current = current and current:FindFirstChild(segment)
+            end
+            btn = current
+        end
         if btn and btn:IsA("GuiObject") then
             local pos = btn.AbsolutePosition
             local size = btn.AbsoluteSize
             local inset = GuiService:GetGuiInset()
-            local x = pos.X + (size.X / 2) + inset.X
-            local y = pos.Y + (size.Y / 2) + inset.Y
-            pcall(function() VirtualInputManager:SendTouchEvent(8822, Enum.UserInputState.Begin.Value, x, y) end)
-            task.wait(0.01)
-            pcall(function() VirtualInputManager:SendTouchEvent(8822, Enum.UserInputState.End.Value, x, y) end)
+            local cx = pos.X + (size.X / 2) + inset.X
+            local cy = pos.Y + (size.Y / 2) + inset.Y
+            pcall(function()
+                VirtualInputManager:SendTouchEvent(8822, 0, cx, cy)
+                task.wait(0.01)
+                VirtualInputManager:SendTouchEvent(8822, 2, cx, cy)
+            end)
             pcall(function()
                 if firesignal and btn.MouseButton1Click then
                     firesignal(btn.MouseButton1Click)
                 end
             end)
+            return
         end
-    else
-        pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game) end)
-        task.wait(0.01)
-        pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game) end)
     end
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+        task.wait(0.01)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+    end)
 end
 function VD_GetSkillCheck()
     for _, guiName in ipairs({ "SkillCheckPromptGui", "SkillCheckPromptGui-con" }) do
@@ -3777,23 +3827,47 @@ function VD_PerfectSkillcheckUpdate()
     AutoSkill.PerfectLastLineRotation = lr
     AutoSkill.PerfectLastTick = now
 end
+local instantBusy = false
 function VD_InstantSkillcheckUpdate()
-    if AutoSkill.InstantHasClicked then return end
     local prompt = PlayerGui:FindFirstChild("SkillCheckPromptGui")
     if not prompt then
         prompt = PlayerGui:FindFirstChild("SkillCheckPromptGui-con")
     end
-    if not prompt then return end
+    if not prompt or prompt.Enabled == false then
+        instantBusy = false
+        AutoSkill.InstantHasClicked = false
+        return
+    end
     local check = prompt:FindFirstChild("Check")
-    if not check or not check.Visible then return end
+    if not check or not check.Visible then
+        instantBusy = false
+        AutoSkill.InstantHasClicked = false
+        return
+    end
     local line = check:FindFirstChild("Line")
     local goal = check:FindFirstChild("Goal")
-    if not line or not goal then return end
-    line.Rotation = goal.Rotation + 109
+    if not line or not goal then
+        instantBusy = false
+        AutoSkill.InstantHasClicked = false
+        return
+    end
+
+    if instantBusy or AutoSkill.InstantHasClicked then return end
+
+    local gr = goal.Rotation % 360
+    -- Zona (gr+104) sampai (gr+109) seperti civic hub + random offset kecil
+    local randomOffset = 104 + (math.random() * 5)
+    local microOffset = (math.random(-20, 20) / 100)
+    line.Rotation = (gr + randomOffset + microOffset) % 360
+
+    instantBusy = true
     AutoSkill.InstantHasClicked = true
+
     task.spawn(function()
         VD_PressSkill()
-        task.wait(0.2)
+        task.wait(0.05)
+        instantBusy = false
+        task.wait(0.12)
         AutoSkill.InstantHasClicked = false
     end)
 end
@@ -3809,14 +3883,15 @@ RunService.RenderStepped:Connect(function()
 end)
 function VD_SetAutoSkillcheck(state)
     VD.AutoSkillcheck = state == true
+    instantBusy = false
+    AutoSkill.InstantHasClicked = false
+    AutoSkill.WasActive = false
+    AutoSkill.PerfectWasActive = false
     if not VD.AutoSkillcheck then
         if AutoSkill.InstantRotationConnection then
             AutoSkill.InstantRotationConnection:Disconnect()
             AutoSkill.InstantRotationConnection = nil
         end
-        AutoSkill.InstantHasClicked = false
-        AutoSkill.WasActive = false
-        AutoSkill.PerfectWasActive = false
         VD_Notify("Auto Skillcheck", "Disabled", 2)
     else
         VD_Notify("Auto Skillcheck", "Enabled (" .. tostring(VD.AutoSkillcheckMode or "Normal") .. " Mode)", 2)
@@ -3945,6 +4020,7 @@ function setAutoHealAll(v)
 end
 GenBypass = {
     Enabled     = false,
+    GenBoost    = true,
     Button      = nil,
     UI          = nil,
     Cache       = {},
@@ -4001,23 +4077,37 @@ function GB_DoRepair(targetPoint)
         and ReplicatedStorage.Remotes:FindFirstChild("Generator")
         and ReplicatedStorage.Remotes.Generator:FindFirstChild("RepairEvent")
     local originalCFrame = hrp.CFrame
+    local isBoost = (GenBypass.GenBoost ~= false) or (VD.GenBoost == true)
     pcall(function()
         for _, point in pairs(GB_GetPoints(genModel)) do
             if point ~= targetPoint and point.Parent then
                 hrp.Anchored = true
                 hrp.CFrame = point.CFrame
-                task.wait(0.15)
-                pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
-                if not GB_WaitRepairing(point, 0.8) then
-                    pcall(function() if RepairEvent then RepairEvent:FireServer(point, false) end end)
-                    task.wait(0.1)
-                    hrp.CFrame = point.CFrame
+                if isBoost then
+                    task.wait(0.015)
+                    pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
+                    if not GB_WaitRepairing(point, 0.15) then
+                        pcall(function() if RepairEvent then RepairEvent:FireServer(point, false) end end)
+                        task.wait(0.01)
+                        hrp.CFrame = point.CFrame
+                        task.wait(0.015)
+                        pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
+                        GB_WaitRepairing(point, 0.1)
+                    end
+                else
                     task.wait(0.15)
                     pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
-                    GB_WaitRepairing(point, 0.5)
+                    if not GB_WaitRepairing(point, 0.8) then
+                        pcall(function() if RepairEvent then RepairEvent:FireServer(point, false) end end)
+                        task.wait(0.1)
+                        hrp.CFrame = point.CFrame
+                        task.wait(0.15)
+                        pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
+                        GB_WaitRepairing(point, 0.5)
+                    end
                 end
                 hrp.Anchored = false
-                task.wait(0.05)
+                task.wait(isBoost and 0.01 or 0.05)
             end
         end
     end)
@@ -4027,7 +4117,7 @@ function GB_DoRepair(targetPoint)
             hrp.CFrame = originalCFrame
         end
     end)
-    task.wait(0.1)
+    task.wait(isBoost and 0.02 or 0.1)
     pcall(function() if RepairEvent then RepairEvent:FireServer(targetPoint, false) end end)
 end
 function GB_GetNearestPoint()
@@ -4163,6 +4253,12 @@ end)
 function setGenBypass(v)
     GenBypass.Enabled = v
     GB_UpdateButton()
+    VD_Notify("Gen Bypass", v and "Enabled" or "Disabled", 2)
+end
+function setGenBoost(v)
+    GenBypass.GenBoost = v
+    VD.GenBoost = v
+    VD_Notify("Gen Boost", v and "Fast Teleport Active" or "Normal Speed", 2)
 end
 function setAutoCrouch(v) VD.AutoCrouch = v end
 MyersGrabData = {
@@ -4350,11 +4446,18 @@ VeilDraw.Tracer.Filled    = true
 VeilDraw.Tracer.Visible   = false
 function Veil_GetRealVelocity(part, playerName)
     if not part then return Vector3.zero end
+    local physVel = Vector3.zero
+    pcall(function()
+        physVel = part.AssemblyLinearVelocity or part.Velocity or Vector3.zero
+    end)
+    if physVel.Magnitude > 0.5 and physVel.Magnitude < 120 then
+        return physVel
+    end
     local currentPos = part.Position
     local currentTime = tick()
     if not VeilVelocityCache[playerName] then
-        VeilVelocityCache[playerName] = {lastPos = currentPos, lastTime = currentTime, velocity = Vector3.zero}
-        return Vector3.zero
+        VeilVelocityCache[playerName] = {lastPos = currentPos, lastTime = currentTime, velocity = physVel}
+        return physVel
     end
     local cache = VeilVelocityCache[playerName]
     local dt = currentTime - cache.lastTime
@@ -4510,16 +4613,21 @@ function veil_fire()
         local horizontalVel = Vector3.new(velocity.X, 0, velocity.Z)
         local speed = horizontalVel.Magnitude
         local distance = (targetPos - startPos).Magnitude
-        local timeToHit = distance / VeilConfig.SpearSpeed
+        local spearSpeed = tonumber(VeilConfig.SpearSpeed) or 165
+        local timeToHit = distance / spearSpeed
         local horizontalPrediction = Vector3.zero
-        if speed > 4 and VeilConfig.AutoPredict then
-            local factor = VeilConfig.HorizontalPredictFactor
+        if speed > 0.5 and VeilConfig.AutoPredict then
+            local factor = tonumber(VeilConfig.HorizontalPredictFactor) or 1
             horizontalPrediction = horizontalVel * timeToHit * factor
         end
         local predictedPos = targetPos + horizontalPrediction
-        local autoGravity = math.max(0, distance - 8)
-        local gravity = VeilConfig.AutoPredict and autoGravity or VeilConfig.Gravity
-        local drop = 0.5 * gravity * (timeToHit ^ 2)
+        local drop = 0
+        -- Di jarak dekat (< 15 studs), lemparan langsung tanpa drop agar tidak melayang di atas target
+        if distance > 15 then
+            local gravity = VeilConfig.AutoPredict and 28 or (tonumber(VeilConfig.Gravity) or 25)
+            drop = 0.5 * gravity * (timeToHit ^ 2)
+            drop = math.clamp(drop, 0, 3.5)
+        end
         local finalPos = predictedPos + Vector3.new(0, drop, 0)
         aimDir = (finalPos - startPos).Unit
         VeilState.lastPredictedPos = finalPos
@@ -4816,7 +4924,7 @@ if Window then
     local Tabs = {
         Survivor = Window:AddTab({ Title = "Survivor", Icon = "shield", Desc = "Survivor features" }),
         Killer = Window:AddTab({ Title = "Killer", Icon = "skull", Desc = "Killer features" }),
-        Automation = Window:AddTab({ Title = "Automation", Icon = "zap", Desc = "Automation features" }),
+        Automation = Window:AddTab({ Title = "Automation", Icon = "rbxassetid://7733920644", Desc = "Automation features" }),
         Aim = Window:AddTab({ Title = "Aim", Icon = "crosshair", Desc = "Aim assistance controls" }),
         Visual = Window:AddTab({ Title = "Visual", Icon = "eye", Desc = "Visual and ESP controls" }),
         Mapping = Window:AddTab({ Title = "Mapping", Icon = "map", Desc = "Teleport and radar controls" }),
@@ -4875,7 +4983,43 @@ if Window then
 
     local settingsSection = SettingsTab:AddSection({ Title = "Profile Manager" })
     local selectedProfile = getgenv().CurrentConfigName or "Default"
-    local profileDropdown = settingsSection:AddDropdown({
+    local configListParagraph = settingsSection:AddParagraph({
+        Title = "Config Explorer",
+        Content = "Memuat daftar konfigurasi...",
+        DefaultOpen = true,
+    })
+    local profileDropdown
+    local function updateConfigDisplay()
+        local all = GetConfigList()
+        local lines = {
+            "Profile Terpilih: <font color='#c084fc'><b>" .. tostring(selectedProfile) .. "</b></font>",
+            "",
+            "<b>Daftar File Konfigurasi:</b>"
+        }
+        for _, n in ipairs(all) do
+            local badge = (n == selectedProfile) and " <font color='#4ade80'>[Aktif]</font>" or ""
+            table.insert(lines, "• " .. n .. badge)
+        end
+        local contentText = table.concat(lines, "\n")
+        if configListParagraph then
+            if configListParagraph.SetContent then
+                configListParagraph:SetContent(contentText)
+            elseif configListParagraph.SetDesc then
+                configListParagraph:SetDesc(contentText)
+            elseif configListParagraph.Set then
+                configListParagraph:Set("Config Explorer", contentText)
+            end
+        end
+        if profileDropdown then
+            if profileDropdown.Refresh then
+                pcall(function() profileDropdown:Refresh(all) end)
+            end
+            if profileDropdown.SetValues then
+                pcall(function() profileDropdown:SetValues(all) end)
+            end
+        end
+    end
+    profileDropdown = settingsSection:AddDropdown({
         Title = "Profile",
         Values = GetConfigList(),
         Default = selectedProfile,
@@ -4883,6 +5027,7 @@ if Window then
         Callback = function(value)
             selectedProfile = type(value) == "table" and value[1] or value or "Default"
             getgenv().CurrentConfigName = selectedProfile
+            updateConfigDisplay()
         end,
     })
     settingsSection:AddInput({
@@ -4898,22 +5043,29 @@ if Window then
         Title = "Save Profile",
         Callback = function()
             KYS_SaveConfig(selectedProfile)
-            pcall(function() profileDropdown:SetValues(GetConfigList()) end)
+            updateConfigDisplay()
+            VD_Notify("Config Manager", "Profile '" .. selectedProfile .. "' berhasil disimpan!", 3)
         end,
     })
     settingsSection:AddButton({
         Title = "Load Profile",
         Callback = function()
             KYS_LoadConfig(selectedProfile)
+            updateConfigDisplay()
+            VD_Notify("Config Manager", "Profile '" .. selectedProfile .. "' berhasil dimuat!", 3)
         end,
     })
     settingsSection:AddButton({
         Title = "Delete Profile",
         Callback = function()
             KYS_DeleteConfig(selectedProfile)
-            pcall(function() profileDropdown:SetValues(GetConfigList()) end)
+            selectedProfile = "Default"
+            getgenv().CurrentConfigName = "Default"
+            updateConfigDisplay()
+            VD_Notify("Config Manager", "Profile berhasil dihapus!", 3)
         end,
     })
+    task.defer(updateConfigDisplay)
 end
 if Window then
 do 
@@ -4932,11 +5084,7 @@ do
         TextLocked = "",
         Flag = "Auto Crouch BETA",
         Callback = function(v)
-            if v and false then
-                pcall(VD_Notify, "Premium Required ✨", "Fitur Auto Crouch BETA hanya untuk pengguna Key Premium!", 5)
-                return
-            end
-            setAutoCrouch(v)
+setAutoCrouch(v)
         end
     })
     movSection:AddToggle({
@@ -5008,11 +5156,7 @@ do
         end
     })
     movSection:AddToggle({ Default = false, Name = "Invisible Not Visual", Locked = false, TextLocked = "", Flag = "Invisible Not Visual", Callback = function(v) 
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Invisible Not Visual hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.InvisibleNotVisual = v; if not v and VD_InvisibleNV.Active then pcall(VD_SetInvisibleNotVisual, false) end 
+VD.InvisibleNotVisual = v; if not v and VD_InvisibleNV.Active then pcall(VD_SetInvisibleNotVisual, false) end 
     end })
     movSection:AddSlider({
         Name = "Invisible Speed", Flag = "Invisible Speed",
@@ -5114,11 +5258,7 @@ do
     })
     spearSection:AddDivider({ Text = "Silent Aim (Veil)" })
     spearSection:AddToggle({ Default = false, Name = "Silent Aim Spear (Veil)", Locked = false, TextLocked = "", Flag = "Silent Aim Spear (Veil)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Silent Aim Spear hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VeilConfig.Enabled = v
+VeilConfig.Enabled = v
     end })
     spearSection:AddToggle({ Default = true, Name = "Show FOV Circle", Flag = "Show FOV Circle", Callback = function(v) VeilConfig.ShowFOV = v end })
     spearSection:AddToggle({ Default = true, Name = "Show Target Laser", Flag = "Show Target Laser", Callback = function(v) VeilConfig.ShowTargetLaser = v end })
@@ -5140,18 +5280,10 @@ do
         Opened    = false,
     })
     flaskSection:AddToggle({ Default = false, Name = "Silent Aim Flask (Cure)", Locked = false, TextLocked = "", Flag = "Silent Aim Flask (Cure)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Silent Aim Flask (Cure) hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_SilentAimFlask = v
+VD.KILLER_SilentAimFlask = v
     end })
     flaskSection:AddToggle({ Default = false, Name = "Flask Laser (Cure)", Locked = false, TextLocked = "", Flag = "Flask Laser (Cure)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Flask Laser (Cure) hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_FlaskLaser = v
+VD.KILLER_FlaskLaser = v
         if v then
             pcall(KYS_StartCureFlaskLaser)
         else
@@ -5180,11 +5312,7 @@ do
         TextLocked = "",
         Flag = "Silent Aim Twist Of Fate",
         Callback = function(v)
-            if v and false then
-                pcall(VD_Notify, "Premium Required ✨", "Fitur Silent Aim Twist Of Fate hanya untuk pengguna Key Premium!", 5)
-                return
-            end
-            if getgenv().KYS_SetToFSilentAim then
+if getgenv().KYS_SetToFSilentAim then
                 getgenv().KYS_SetToFSilentAim(v)
             end
         end
@@ -5196,11 +5324,7 @@ do
         TextLocked = "",
         Flag = "ToF Laser",
         Callback = function(v)
-            if v and false then
-                pcall(VD_Notify, "Premium Required ✨", "Fitur ToF Laser hanya untuk pengguna Key Premium!", 5)
-                return
-            end
-            VD.TOF_Laser = v
+VD.TOF_Laser = v
             if not v and getgenv().KYS_ToFClearLaser then
                 getgenv().KYS_ToFClearLaser()
             end
@@ -5213,11 +5337,7 @@ do
         TextLocked = "",
         Flag = "ToF Wall Check",
         Callback = function(v)
-            if v and false then
-                pcall(VD_Notify, "Premium Required ✨", "Fitur ToF Wall Check hanya untuk pengguna Key Premium!", 5)
-                return
-            end
-            VD.TOF_WallCheck = v
+VD.TOF_WallCheck = v
         end
     })
     tofSection:AddToggle({
@@ -5227,11 +5347,7 @@ do
         TextLocked = "",
         Flag = "ToF Block When Knocked",
         Callback = function(v)
-            if v and false then
-                pcall(VD_Notify, "Premium Required ✨", "Fitur ToF Block When Knocked hanya untuk pengguna Key Premium!", 5)
-                return
-            end
-            VD.TOF_BlockKnocked = v
+VD.TOF_BlockKnocked = v
         end
     })
     tofSection:AddDropdown({
@@ -5275,11 +5391,7 @@ do
         TextLocked = "",
         Flag = "Silent Aim Flashlight",
         Callback = function(v)
-            if v and false then
-                pcall(VD_Notify, "Premium Required ✨", "Fitur Silent Aim Flashlight hanya untuk pengguna Key Premium!", 5)
-                return
-            end
-            if getgenv().KYS_SetFlashlightSilentAim then
+if getgenv().KYS_SetFlashlightSilentAim then
                 getgenv().KYS_SetFlashlightSilentAim(v)
             else
                 VD.FLASH_SilentAim = v
@@ -5293,11 +5405,7 @@ do
         TextLocked = "",
         Flag = "Flashlight Laser",
         Callback = function(v)
-            if v and false then
-                pcall(VD_Notify, "Premium Required ✨", "Fitur Flashlight Laser hanya untuk pengguna Key Premium!", 5)
-                return
-            end
-            VD.FLASH_Laser = v
+VD.FLASH_Laser = v
             if not v and getgenv().KYS_ClearFlashlightLaser then
                 getgenv().KYS_ClearFlashlightLaser()
             end
@@ -5394,17 +5502,7 @@ do
             pcall(VD_ApplyWeather, v)
         end
     })
-    local infoPanelSection = VisualFeatureTabs.Lighting:AddSection({
-        Position = "Center",
-        Name = "Game Info Panel",
-        Icon      = "lucide:panel-top",
-        Box       = true,
-        BoxBorder = true,
-        Opened    = true,
-    })
-    KYS_AddMainInfoLine(infoPanelSection, "PinatHubKiller", "Killer Display", "Off")
-    KYS_AddMainInfoLine(infoPanelSection, "KillerPerks", "Spectate Killer Perks", "Off")
-    KYS_AddMainInfoLine(infoPanelSection, "PredictMap", "Predict Map", "Off")
+
     visualSection:AddToggle({ Default = false, Name = "Killer Display", Flag = "Killer Display", Callback = function(v) 
         VD.VIS_PinatHubKiller = v 
         if v then
@@ -5470,11 +5568,7 @@ do
     })
     combatSurv:AddToggle({ Default = false, Name = "Swift Vault", Flag = "SwiftVault", Callback = function(v) VD.SURV_AutoVault = v end })
     combatSurv:AddToggle({ Default = false, Name = "Swift Vault V2", Locked = false, TextLocked = "", Flag = "SURV_SwiftVaultV2", Callback = function(v) 
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Swift Vault V2 hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.SURV_FastVault = v 
+VD.SURV_FastVault = v 
         if not v then
             local char = LocalPlayer.Character
             if char then char:SetAttribute("vaultspeed", 1) end
@@ -5492,26 +5586,14 @@ do
         Callback = function(v) VD.SURV_AutoPalletDist = v end
     })
     combatSurv:AddToggle({ Default = false, Name = "Anti Knock", Locked = false, TextLocked = "", Flag = "Anti Knock", Callback = function(v) 
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Anti Knock hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.SURV_AntiKnock = v 
+VD.SURV_AntiKnock = v 
     end })
     combatSurv:AddToggle({ Default = false, Name = "Aura Heal (Self)", Flag = "Instant Heal (Self)", Callback = function(v) setInstantHealSelf(v) end })
     combatSurv:AddToggle({ Default = false, Name = "Auto Dodge Spear (Veil)", Locked = false, TextLocked = "", Flag = "Auto Dodge Spear", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Auto Dodge Spear hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.SURV_AutoDodgeSpear = v
+VD.SURV_AutoDodgeSpear = v
     end })
     combatSurv:AddToggle({ Default = false, Name = "Aura Heal All", Locked = false, TextLocked = "", Flag = "Auto Heal All", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Aura Heal All hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        setAutoHealAll(v)
+setAutoHealAll(v)
     end })
     combatSurv:AddToggle({
         Default = false, Name = "First Person Camera (Survivor)", Flag = "First Person Camera (Survivor)", Callback = function(v)
@@ -5521,11 +5603,7 @@ do
         end
     end })
     combatSurv:AddToggle({ Default = false, Name = "Auto Parry", Locked = false, TextLocked = "", Flag = "Auto Parry", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Auto Parry hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD_SetAutoParry(v)
+VD_SetAutoParry(v)
     end })
     combatSurv:AddToggle({ Default = false, Name = "Auto Parry Agresif", Flag = "Auto Parry Agresif", Callback = function(v) VD.SURV_ParryAggressive = v end })
     combatSurv:AddSlider({
@@ -5555,22 +5633,14 @@ do
         end
     })
     combatSurv:AddToggle({ Default = false, Name = "Undraggable Button (Fake Parry)", Locked = false, TextLocked = "", Flag = "Undraggable Button (Fake Parry)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Undraggable Button hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        FakeParryData.DragLocked = v
+FakeParryData.DragLocked = v
     end })
     combatSurv:AddToggle({ Default = false, Name = "Fake Generator (Press B)", Flag = "Fake Generator (Press B)", Callback = function(v) 
         VD.SURV_FakeGen = v
         if FakeGenData and FakeGenData.Button then FakeGenData.Button.Visible = v end
     end })
     combatSurv:AddToggle({ Default = false, Name = "Undraggable Button (Fake Gen)", Locked = false, TextLocked = "", Flag = "Undraggable Button (Fake Gen)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Undraggable Button hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        if FakeGenData then FakeGenData.DragLocked = v end
+if FakeGenData then FakeGenData.DragLocked = v end
     end })
 end
 local FakeParryAnimations = {
@@ -5889,8 +5959,9 @@ end)
         if char then char:SetAttribute("speedboost", 1) end
     end
     local function FP_TryBuff(name, amt, dur)
-        if FP.ActiveBuffs[name] then return end
-        if tick() - FP.LastBuffEnd < FP.CooldownTime and next(FP.ActiveBuffs) == nil then return end
+        -- Strictly only 1 active passive buff at a time! Never duplicate or stack passives
+        if next(FP.ActiveBuffs) ~= nil then return end
+        if tick() - FP.LastBuffEnd < FP.CooldownTime then return end
         FP.ActiveBuffs[name] = { amt = amt, endTime = tick() + dur }
         FP_ApplySpeedToCharacter()
         FP_EnsureHB()
@@ -5916,30 +5987,51 @@ end)
         Suffix = "s",
         Callback = function(val) FP.CooldownTime = val end
     })
+
+    local toggleFlowstate, toggleQuickRec, togglePerfLand, toggleAdrenaline
+    local updatingPerkToggle = false
+    local function disableOtherPerks(chosenPerk)
+        if updatingPerkToggle then return end
+        updatingPerkToggle = true
+        if chosenPerk ~= "Flowstate" and toggleFlowstate and toggleFlowstate.Value then
+            pcall(function() toggleFlowstate:Set(false) end)
+        end
+        if chosenPerk ~= "QuickRecovery" and toggleQuickRec and toggleQuickRec.Value then
+            pcall(function() toggleQuickRec:Set(false) end)
+        end
+        if chosenPerk ~= "PerfectLanding" and togglePerfLand and togglePerfLand.Value then
+            pcall(function() togglePerfLand:Set(false) end)
+        end
+        if chosenPerk ~= "AdrenalineRush" and toggleAdrenaline and toggleAdrenaline.Value then
+            pcall(function() toggleAdrenaline:Set(false) end)
+        end
+        updatingPerkToggle = false
+    end
+
     local flowstateOn = false
-    fakePerkSection:AddToggle({
+    toggleFlowstate = fakePerkSection:AddToggle({
         Name = "Flowstate",
         Locked = false,
         TextLocked = "",
         Flag = "FP_Flowstate",
         Default = false,
         Callback = function(val)
-            if val and false then
-                pcall(VD_Notify, "Premium Required ??", "Fitur Fake Perks hanya untuk pengguna Key Premium!", 5)
-                return
-            end
             flowstateOn = val
             local char = FP_Char()
-            if char then
-                char:SetAttribute("Flowstate", val)
+            if char and char:GetAttribute("Flowstate") ~= nil then
+                pcall(function() char:SetAttribute("Flowstate", nil) end)
             end
             if val then
+                disableOtherPerks("Flowstate")
                 local r = ReplicatedStorage:FindFirstChild("Remotes")
                 local w = r and r:FindFirstChild("Window")
                 local p = r and r:FindFirstChild("Pallet")
+                local vaultDebounce = false
                 local function onVaultAction()
-                    if not flowstateOn then return end
+                    if not flowstateOn or vaultDebounce then return end
+                    vaultDebounce = true
                     task.delay(0.5, function()
+                        vaultDebounce = false
                         if flowstateOn then
                             FP_TryBuff("Flowstate", 5, 3)
                         end
@@ -5967,7 +6059,9 @@ end)
                 hookChar(LocalPlayer.Character)
                 FP_Reg("Flowstate", LocalPlayer.CharacterAdded:Connect(function(c)
                     if flowstateOn then
-                        c:SetAttribute("Flowstate", true)
+                        if c:GetAttribute("Flowstate") ~= nil then
+                            pcall(function() c:SetAttribute("Flowstate", nil) end)
+                        end
                         hookChar(c)
                     end
                 end))
@@ -5976,27 +6070,30 @@ end)
                 FP_Clean("Flowstate")
                 FP.ActiveBuffs["Flowstate"] = nil
                 local c = FP_Char()
-                if c then c:SetAttribute("Flowstate", false) end
+                if c and c:GetAttribute("Flowstate") ~= nil then
+                    pcall(function() c:SetAttribute("Flowstate", nil) end)
+                end
                 VD_Notify("Fake Perks", "Flowstate OFF", 3)
             end
         end
     })
+
     local quickRecOn = false
-    fakePerkSection:AddToggle({
+    toggleQuickRec = fakePerkSection:AddToggle({
         Name = "Quick Recovery",
         Locked = false,
         TextLocked = "",
         Flag = "FP_QuickRecovery",
         Default = false,
         Callback = function(val)
-            if val and false then
-                pcall(VD_Notify, "Premium Required ??", "Fitur Fake Perks hanya untuk pengguna Key Premium!", 5)
-                return
-            end
             quickRecOn = val
             if val then
+                disableOtherPerks("QuickRecovery")
+                local healDebounce = false
                 local function onHealed()
-                    if not quickRecOn then return end
+                    if not quickRecOn or healDebounce then return end
+                    healDebounce = true
+                    task.delay(0.5, function() healDebounce = false end)
                     FP_TryBuff("QuickRecovery", 6, 3)
                 end
                 local r = ReplicatedStorage:FindFirstChild("Remotes")
@@ -6043,20 +6140,19 @@ end)
             end
         end
     })
+
     local perfLandOn = false
-    fakePerkSection:AddToggle({
+    togglePerfLand = fakePerkSection:AddToggle({
         Name = "Perfect Landing",
         Locked = false,
         TextLocked = "",
         Flag = "FP_PerfectLanding",
         Default = false,
         Callback = function(val)
-            if val and false then
-                pcall(VD_Notify, "Premium Required ??", "Fitur Fake Perks hanya untuk pengguna Key Premium!", 5)
-                return
-            end
             perfLandOn = val
             if val then
+                disableOtherPerks("PerfectLanding")
+                local landingDebounce = false
                 local function hookFall(c)
                     if not c then return end
                     local hum = c:FindFirstChildOfClass("Humanoid")
@@ -6072,7 +6168,9 @@ end)
                         if wasFalling and (new == Enum.HumanoidStateType.Landed or new == Enum.HumanoidStateType.Running) then
                             local fallTime = tick() - fallStart
                             wasFalling = false
-                            if fallTime >= 0.25 then
+                            if fallTime >= 0.25 and not landingDebounce then
+                                landingDebounce = true
+                                task.delay(0.5, function() landingDebounce = false end)
                                 FP_TryBuff("PerfectLanding", 8, 3)
                             end
                         end
@@ -6089,20 +6187,19 @@ end)
             end
         end
     })
+
     local adrenalineOn = false
-    fakePerkSection:AddToggle({
+    toggleAdrenaline = fakePerkSection:AddToggle({
         Name = "Adrenaline Rush",
         Locked = false,
         TextLocked = "",
         Flag = "FP_AdrenalineRush",
         Default = false,
         Callback = function(val)
-            if val and false then
-                pcall(VD_Notify, "Premium Required ??", "Fitur Fake Perks hanya untuk pengguna Key Premium!", 5)
-                return
-            end
             adrenalineOn = val
             if val then
+                disableOtherPerks("AdrenalineRush")
+                local damageDebounce = false
                 local function hookDamage(c)
                     if not c then return end
                     local hum = c:FindFirstChildOfClass("Humanoid")
@@ -6110,7 +6207,9 @@ end)
                     local lastHP = hum.Health
                     local conn = hum.HealthChanged:Connect(function(newHP)
                         if not adrenalineOn then return end
-                        if newHP < lastHP and newHP <= 50 and newHP > 0 then
+                        if newHP < lastHP and newHP <= 50 and newHP > 0 and not damageDebounce then
+                            damageDebounce = true
+                            task.delay(1, function() damageDebounce = false end)
                             FP_TryBuff("AdrenalineRush", 4, 5)
                         end
                         lastHP = newHP
@@ -6166,11 +6265,7 @@ do
         Opened    = false,
     })
     abilityKiller:AddToggle({ Default = false, Name = "Infinite Abyssal Burst (Abyss)", Locked = false, TextLocked = "", Flag = "Infinite Abyssal Burst (Abyss)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Infinite Abyssal Burst (Abyss) hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_BypassCooldown = v
+VD.KILLER_BypassCooldown = v
         if v then
             KYS_StartAbyssCooldownBypass()
         else
@@ -6178,11 +6273,7 @@ do
         end
     end })
     abilityKiller:AddToggle({ Default = false, Name = "Infinite Skill (Hidden)", Locked = false, TextLocked = "", Flag = "Infinite Skill (Hidden)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Infinite Skill (Hidden) hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_BypassLeap = v
+VD.KILLER_BypassLeap = v
         if v then
             pcall(KYS_StartHiddenCooldownBypass)
         else
@@ -6190,11 +6281,7 @@ do
         end
     end })
     abilityKiller:AddToggle({ Default = false, Name = "Infinite Frenzy (Jeff)", Locked = false, TextLocked = "", Flag = "Infinite Frenzy (Jeff)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Infinite Frenzy (Jeff) hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_InfFrenzy = v
+VD.KILLER_InfFrenzy = v
         if v then
             pcall(KYS_StartJeffCooldownBypass)
         else
@@ -6202,11 +6289,7 @@ do
         end
     end })
     abilityKiller:AddToggle({ Default = false, Name = "Infinite Lake Mist (Jason)", Locked = false, TextLocked = "", Flag = "Infinite Lake Mist (Jason)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Infinite Lake Mist (Jason) hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_InfLakeMist = v
+VD.KILLER_InfLakeMist = v
         if v then
             pcall(KYS_StartSlasherCooldownBypass)
         else
@@ -6214,11 +6297,7 @@ do
         end
     end })
     abilityKiller:AddToggle({ Default = false, Name = "Infinite Pursuit (Jason)", Locked = false, TextLocked = "", Flag = "Infinite Pursuit (Jason)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Infinite Pursuit (Jason) hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_InfPursuit = v
+VD.KILLER_InfPursuit = v
         if v then
             pcall(KYS_StartSlasherCooldownBypass)
         else
@@ -6226,26 +6305,14 @@ do
         end
     end })
     abilityKiller:AddToggle({ Default = false, Name = "Infinite Grab (Myers)", Locked = false, TextLocked = "", Flag = "Infinite Grab (Myers)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Infinite Grab (Myers) hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        setMyersGrab(v)
+setMyersGrab(v)
     end })
     abilityKiller:AddToggle({ Default = false, Name = "Fake Attack (Counter Parry)", Locked = false, TextLocked = "", Flag = "Fake Attack (Counter Parry)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Fake Attack hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_FakeAttack = v
+VD.KILLER_FakeAttack = v
         pcall(KYS_ToggleFakeAttack, v)
     end })
     abilityKiller:AddToggle({ Default = false, Name = "Undraggable Button (Inf Grab)", Locked = false, TextLocked = "", Flag = "Undraggable Button (Inf Grab)", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Undraggable Button hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        setMyersDragLocked(v)
+setMyersDragLocked(v)
     end })
     pcall(function()
         local customMaskedMasks = {"Richard", "Tony", "Brandon", "Jake", "Richter", "Graham", "Alex"}
@@ -6272,11 +6339,7 @@ do
             Locked = false,
             TextLocked = "",
             Callback = function()
-                if false then
-                    pcall(VD_Notify, "Premium Required ✨", "Fitur Custom Masked hanya untuk pengguna Key Premium!", 5)
-                    return
-                end
-                pcall(KYS_ApplyCustomMasked, VD.KILLER_CustomMasked)
+pcall(KYS_ApplyCustomMasked, VD.KILLER_CustomMasked)
             end
         })
         abilityKiller:AddButton({
@@ -6284,11 +6347,7 @@ do
             Locked = false,
             TextLocked = "",
             Callback = function()
-                if false then
-                    pcall(VD_Notify, "Premium Required ✨", "Fitur Custom Masked hanya untuk pengguna Key Premium!", 5)
-                    return
-                end
-                local mask = customMaskedMasks[math.random(1, #customMaskedMasks)]
+local mask = customMaskedMasks[math.random(1, #customMaskedMasks)]
                 VD.KILLER_CustomMasked = mask
                 pcall(KYS_ApplyCustomMasked, mask)
             end
@@ -6306,25 +6365,13 @@ do
     utilKiller:AddToggle({ Default = false, Name = "Destroy Pallets", Flag = "Destroy Pallets", Callback = function(v) VD.KILLER_DestroyPallets = v end })
     utilKiller:AddToggle({ Default = false, Name = "Auto Kick Generator", Flag = "Auto Kick Generator", Callback = function(v) VD.KILLER_AutoBreakGene = v end })
     utilKiller:AddToggle({ Default = false, Name = "Block All Vaults", Locked = false, TextLocked = "", Flag = "Block All Vaults", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Block All Vaults hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_BlockVaults = v
+VD.KILLER_BlockVaults = v
     end })
     utilKiller:AddToggle({ Default = false, Name = "Auto Drop All Pallets", Locked = false, TextLocked = "", Flag = "Auto Drop All Pallets", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Auto Drop All Pallets hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_BlockPallets = v
+VD.KILLER_BlockPallets = v
     end })
     utilKiller:AddToggle({ Default = false, Name = "Break All Pallet", Locked = false, TextLocked = "", Flag = "Break All Pallet", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Break All Pallet hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.KILLER_BlockPalletDrop = v
+VD.KILLER_BlockPalletDrop = v
     end })
     utilKiller:AddToggle({
         Default = false,
@@ -6372,11 +6419,7 @@ do
     })
     escapeSurv:AddToggle({ Default = false, Name = "Bypass Gate", Flag = "Bypass Gate", Callback = function(v) VD.BypassGate = v; if not v then pcall(VD_RestoreGateParts) end end })
     escapeSurv:AddToggle({ Default = false, Name = "Beat Survivor (auto exit)", Locked = false, TextLocked = "", Flag = "Beat Survivor (auto exit)", Callback = function(v) 
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Beat Survivor hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.BEAT_Survivor = v 
+VD.BEAT_Survivor = v 
     end })
     escapeSurv:AddToggle({ Default = false, Name = "Flee Killer", Flag = "Flee Killer", Callback = function(v) VD.SURV_FleeKiller = v end })
     escapeSurv:AddSlider({
@@ -6396,11 +6439,7 @@ do
     })
     genAuto:AddToggle({ Default = false, Name = "Auto Skillcheck", Flag = "Auto Skillcheck", Callback = function(v) VD_SetAutoSkillcheck(v) end })
     genAuto:AddToggle({ Default = false, Name = "Hide Skillcheck UI", Flag = "Hide Skillcheck UI", Callback = function(v) VD.HideSkillUI = v end })
-    genAuto:AddToggle({ Default = false, Name = "Boost Gen Bypass", Locked = false, TextLocked = "", Flag = "Boost Gen Bypass", Callback = function(v)
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Boost Gen Bypass hanya untuk pengguna Key Premium!", 5)
-            return
-        end
+    genAuto:AddToggle({ Default = false, Name = "Gen Bypass", Flag = "Gen Bypass", Callback = function(v)
         setGenBypass(v)
     end })
     genAuto:AddDropdown({
@@ -6412,11 +6451,7 @@ do
         Multi = false,
         Callback = function(option)
             if type(option) == "table" then option = option[1] end
-            if option == "Instant" and false then
-                pcall(VD_Notify, "Premium Required ✨", "Opsi Instant hanya untuk pengguna Key Premium!", 5)
-                return
-            end
-            VD.AutoSkillcheckMode = option or "Normal"
+VD.AutoSkillcheckMode = option or "Normal"
             if VD.AutoSkillcheckMode ~= "Instant" and AutoSkill.InstantRotationConnection then
                 AutoSkill.InstantRotationConnection:Disconnect()
                 AutoSkill.InstantRotationConnection = nil
@@ -6436,11 +6471,7 @@ do
         Opened    = false,
     })
     flingSection:AddToggle({ Default = false, Name = "Enable Fling", Locked = false, TextLocked = "", Flag = "Enable Fling", Callback = function(v) 
-        if v and false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Fling hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        VD.FLING_Enabled = v 
+VD.FLING_Enabled = v 
     end })
     flingSection:AddSlider({
         Name = "Fling Strength", Flag = "Fling Strength",
@@ -6451,18 +6482,10 @@ do
         end
     })
     flingSection:AddButton({ Name = "Fling Nearest", Locked = false, TextLocked = "", Callback = function() 
-        if false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Fling hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        pcall(function() KYS_FlingNearest() end) 
+pcall(function() KYS_FlingNearest() end) 
     end })
     flingSection:AddButton({ Name = "Fling All", Locked = false, TextLocked = "", Callback = function() 
-        if false then
-            pcall(VD_Notify, "Premium Required ✨", "Fitur Fling hanya untuk pengguna Key Premium!", 5)
-            return
-        end
-        pcall(KYS_FlingAll) 
+pcall(KYS_FlingAll) 
     end })
 end
 local SelectedAnim = "rbxassetid://83229063951016"
@@ -7304,6 +7327,7 @@ local VD_InvisibleNV = {
     Seat = nil,
     Weld = nil,
     OriginalSpeed = nil,
+    Highlight = nil,
     Position = Vector3.new(-25.95, 84, 3537.55),
 }
 function VD_SetCharacterTransparency(character, transparency)
@@ -7346,6 +7370,25 @@ function VD_SetInvisibleNotVisual(state)
         task.wait()
         seat.CFrame = savedCFrame
         VD_SetCharacterTransparency(char, 0.5)
+        
+        -- Highlight local character so player clearly sees their position while invisible
+        local hl = VD_InvisibleNV.Highlight
+        if not hl or not hl.Parent then
+            hl = Instance.new("Highlight")
+            hl.Name = "PinatHub_InvisibleHighlight"
+            hl.FillColor = Color3.fromRGB(168, 85, 247)
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+            hl.FillTransparency = 0.35
+            hl.OutlineTransparency = 0
+            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            hl.Adornee = char
+            hl.Parent = char
+            VD_InvisibleNV.Highlight = hl
+        else
+            hl.Adornee = char
+            hl.Enabled = true
+        end
+
         hum.WalkSpeed = VD.InvisibleSpeed or 16
     else
         VD.InvisibleNotVisual = false
@@ -7355,6 +7398,10 @@ function VD_SetInvisibleNotVisual(state)
         end
         VD_InvisibleNV.Seat = nil
         VD_InvisibleNV.Weld = nil
+        if VD_InvisibleNV.Highlight and VD_InvisibleNV.Highlight.Parent then
+            pcall(function() VD_InvisibleNV.Highlight:Destroy() end)
+        end
+        VD_InvisibleNV.Highlight = nil
         VD_SetCharacterTransparency(char, 0)
         if VD_InvisibleNV.OriginalSpeed then
             hum.WalkSpeed = VD_InvisibleNV.OriginalSpeed
@@ -7816,6 +7863,10 @@ LocalPlayer.CharacterRemoving:Connect(function()
     if VD_InvisibleNV.Seat and VD_InvisibleNV.Seat.Parent then
         pcall(function() VD_InvisibleNV.Seat:Destroy() end)
     end
+    if VD_InvisibleNV.Highlight and VD_InvisibleNV.Highlight.Parent then
+        pcall(function() VD_InvisibleNV.Highlight:Destroy() end)
+    end
+    VD_InvisibleNV.Highlight = nil
     VD_InvisibleNV.Active = false
     VD_InvisibleNV.Seat = nil
     VD_InvisibleNV.Weld = nil
@@ -10073,13 +10124,57 @@ getgenv().PinatHub_KillerGui = nil
 getgenv().PinatHub_KillerRunning = false
 function SetupPinatHubKillerIndicator()
     if getgenv().PinatHub_KillerGui then pcall(function() getgenv().PinatHub_KillerGui:Destroy() end) end
-    getgenv().PinatHub_KillerGui = nil
-    KYS_SetMainInfoPanelText("PinatHubKiller", "Killer Display", "Waiting...")
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "PinatHub_KillerGui"
+    sg.ResetOnSpawn = false
+    local parent = (gethui and gethui()) or LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
+    pcall(function() sg.Parent = parent end)
+
+    local frame = Instance.new("Frame")
+    frame.Name = "KillerFrame"
+    frame.Size = UDim2.new(0, 160, 0, 44)
+    frame.Position = UDim2.new(0.02, 0, 0.16, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(18, 16, 24)
+    frame.BackgroundTransparency = 0.15
+    frame.BorderSizePixel = 0
+    frame.Parent = sg
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 7)
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(168, 85, 247)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.35
+
+    local titleLabel = Instance.new("TextLabel", frame)
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -12, 0, 14)
+    titleLabel.Position = UDim2.new(0, 8, 0, 5)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "NEXT ROUND KILLER"
+    titleLabel.TextColor3 = Color3.fromRGB(216, 180, 254)
+    titleLabel.TextSize = 10
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local valueLabel = Instance.new("TextLabel", frame)
+    valueLabel.Name = "Value"
+    valueLabel.Size = UDim2.new(1, -12, 0, 18)
+    valueLabel.Position = UDim2.new(0, 8, 0, 20)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Font = Enum.Font.Gotham
+    valueLabel.Text = "Waiting for data..."
+    valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    valueLabel.TextSize = 12
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+    valueLabel.TextTruncate = Enum.TextTruncate.AtEnd
+
+    pcall(function() KYS_MakeDraggable(frame) end)
+    getgenv().PinatHub_KillerGui = sg
+    return valueLabel
 end
 function StartPinatHubKiller()
     if getgenv().PinatHub_KillerRunning then return end
     getgenv().PinatHub_KillerRunning = true
-    SetupPinatHubKillerIndicator()
+    local valLabel = SetupPinatHubKillerIndicator()
     task.spawn(function()
         local _genv = getgenv()
         while _genv.VD and _genv.VD.VIS_PinatHubKiller and _genv.PinatHub_KillerRunning do
@@ -10091,10 +10186,12 @@ function StartPinatHubKiller()
                 return (a:GetAttribute("KillerChance") or 0) > (b:GetAttribute("KillerChance") or 0)
             end)
             local nk = playersList[1]
+            local killerText = "Killer: None"
             if nk then
-                KYS_SetMainInfoPanelText("PinatHubKiller", "Killer Display", "Killer: " .. (nk == LocalPlayer and "YOU" or nk.DisplayName or nk.Name))
-            else
-                KYS_SetMainInfoPanelText("PinatHubKiller", "Killer Display", "Killer: None")
+                killerText = "Killer: " .. (nk == LocalPlayer and "YOU" or (nk.DisplayName and nk.DisplayName ~= "" and nk.DisplayName or nk.Name))
+            end
+            if valLabel and valLabel.Parent then
+                valLabel.Text = killerText
             end
             task.wait(2)
         end
@@ -10106,7 +10203,6 @@ function StopPinatHubKiller()
         pcall(function() getgenv().PinatHub_KillerGui:Destroy() end)
         getgenv().PinatHub_KillerGui = nil
     end
-    KYS_SetMainInfoPanelText("PinatHubKiller", "Killer Display", "Off")
 end
 if getgenv().KYS_SpectatorCounterGui then
     pcall(function() getgenv().KYS_SpectatorCounterGui:Destroy() end)
@@ -10114,80 +10210,177 @@ end
 getgenv().KYS_SpectatorCounterGui = nil
 getgenv().KYS_SpectatorCounterRunning = false
 function SetupSpectatorCounter()
-    if getgenv().KYS_SpectatorCounterGui then pcall(function() getgenv().KYS_SpectatorCounterGui:Destroy() end) end
+    if getgenv().KYS_SpectatorCounterGui then
+        pcall(function() getgenv().KYS_SpectatorCounterGui:Destroy() end)
+    end
     local sg = Instance.new("ScreenGui")
     sg.Name = "KYS_SpectatorCounterGui"
     sg.ResetOnSpawn = false
+    local parent = (gethui and gethui()) or LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
+    pcall(function() sg.Parent = parent end)
+
     local frame = Instance.new("Frame")
-    frame.Name = "CounterFrame"
-    frame.Size = UDim2.new(0, 88, 0, 28)
-    frame.Position = UDim2.new(0.02, 0, 0.1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-    frame.BackgroundTransparency = 0.18
+    frame.Name = "SpectatorMainFrame"
+    frame.Size = UDim2.new(0, 185, 0, 0)
+    frame.AutomaticSize = Enum.AutomaticSize.Y
+    frame.Position = UDim2.new(0.02, 0, 0.08, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(18, 16, 24)
+    frame.BackgroundTransparency = 0.15
     frame.BorderSizePixel = 0
     frame.Parent = sg
-    KYS_MakeDraggable(frame)
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 9)
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(125, 125, 125)
+
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 7)
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(168, 85, 247)
     stroke.Thickness = 1
     stroke.Transparency = 0.35
-    stroke.Parent = frame
-    local layout = Instance.new("UIListLayout")
-    layout.FillDirection = Enum.FillDirection.Horizontal
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.VerticalAlignment = Enum.VerticalAlignment.Center
-    layout.Padding = UDim.new(0, 8)
-    layout.Parent = frame
-    local icon = Instance.new("ImageLabel")
+
+    local pad = Instance.new("UIPadding", frame)
+    pad.PaddingTop = UDim.new(0, 6)
+    pad.PaddingBottom = UDim.new(0, 6)
+    pad.PaddingLeft = UDim.new(0, 8)
+    pad.PaddingRight = UDim.new(0, 8)
+
+    local mainLayout = Instance.new("UIListLayout", frame)
+    mainLayout.FillDirection = Enum.FillDirection.Vertical
+    mainLayout.Padding = UDim.new(0, 4)
+    mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    -- Header
+    local header = Instance.new("Frame", frame)
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 18)
+    header.BackgroundTransparency = 1
+    header.LayoutOrder = 1
+
+    local hLayout = Instance.new("UIListLayout", header)
+    hLayout.FillDirection = Enum.FillDirection.Horizontal
+    hLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    hLayout.Padding = UDim.new(0, 6)
+    hLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local icon = Instance.new("ImageLabel", header)
     icon.Name = "Icon"
-    icon.Size = UDim2.new(0, 18, 0, 18)
+    icon.Size = UDim2.new(0, 14, 0, 14)
     icon.BackgroundTransparency = 1
     icon.Image = "rbxassetid://104442518163067"
     icon.ImageColor3 = Color3.fromRGB(205, 185, 255)
-    icon.Parent = frame
-    local label = Instance.new("TextLabel")
-    label.Name = "SpectatorCount"
-    label.Size = UDim2.new(0, 42, 0, 28)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBold
-    label.Text = "0"
-    label.TextColor3 = Color3.fromRGB(240, 240, 240)
-    label.TextSize = 15
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    local pg = GetSafeGuiParent()
-    if pg then
-        local oldGui = pg:FindFirstChild("KYS_SpectatorCounterGui")
-        if oldGui then pcall(function() oldGui:Destroy() end) end
-        sg.Parent = pg
-    else
-        task.spawn(function()
-            local pgui = LocalPlayer:WaitForChild("PlayerGui", 10)
-            if pgui then sg.Parent = pgui end
-        end)
-    end
+    icon.LayoutOrder = 1
+
+    local title = Instance.new("TextLabel", header)
+    title.Name = "Title"
+    title.Size = UDim2.new(0, 0, 1, 0)
+    title.AutomaticSize = Enum.AutomaticSize.X
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.Text = "SPECTATORS"
+    title.TextColor3 = Color3.fromRGB(216, 180, 254)
+    title.TextSize = 10
+    title.LayoutOrder = 2
+
+    local countBadge = Instance.new("TextLabel", header)
+    countBadge.Name = "CountBadge"
+    countBadge.Size = UDim2.new(0, 0, 1, 0)
+    countBadge.AutomaticSize = Enum.AutomaticSize.X
+    countBadge.BackgroundTransparency = 1
+    countBadge.Font = Enum.Font.GothamBold
+    countBadge.Text = "(0)"
+    countBadge.TextColor3 = Color3.fromRGB(255, 204, 80)
+    countBadge.TextSize = 10
+    countBadge.LayoutOrder = 3
+
+    -- List container for spectators
+    local listContainer = Instance.new("Frame", frame)
+    listContainer.Name = "ListContainer"
+    listContainer.Size = UDim2.new(1, 0, 0, 0)
+    listContainer.AutomaticSize = Enum.AutomaticSize.Y
+    listContainer.BackgroundTransparency = 1
+    listContainer.LayoutOrder = 2
+
+    local listLayout = Instance.new("UIListLayout", listContainer)
+    listLayout.FillDirection = Enum.FillDirection.Vertical
+    listLayout.Padding = UDim.new(0, 4)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    pcall(function() KYS_MakeDraggable(frame) end)
     getgenv().KYS_SpectatorCounterGui = sg
+    return countBadge, listContainer
 end
 function StartSpectatorCounter()
     if getgenv().KYS_SpectatorCounterRunning then return end
     getgenv().KYS_SpectatorCounterRunning = true
-    SetupSpectatorCounter()
+    local countBadge, listContainer = SetupSpectatorCounter()
     task.spawn(function()
         local _genv = getgenv()
         while _genv.VD and _genv.VD.VIS_SpectatorCounter and _genv.KYS_SpectatorCounterRunning and getgenv().KYS_SpectatorCounterGui do
             local sg = getgenv().KYS_SpectatorCounterGui
             if not sg or not sg.Parent then break end
-            local count = 0
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Team and player.Team.Name == "Spectator" then
-                    count = count + 1
+
+            local spectators = {}
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then
+                    local teamName = p.Team and p.Team.Name:lower()
+                    if teamName and (teamName:find("spect") or teamName:find("ghost")) then
+                        table.insert(spectators, p)
+                    end
                 end
             end
-            local label = sg:FindFirstChild("SpectatorCount", true)
-            if label then
-                label.Text = tostring(count)
+
+            if countBadge and countBadge.Parent then
+                countBadge.Text = "(" .. tostring(#spectators) .. ")"
             end
+
+            if listContainer and listContainer.Parent then
+                for _, child in ipairs(listContainer:GetChildren()) do
+                    if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
+                        child:Destroy()
+                    end
+                end
+
+                if #spectators == 0 then
+                    local noneLabel = Instance.new("TextLabel", listContainer)
+                    noneLabel.Name = "NoneLabel"
+                    noneLabel.Size = UDim2.new(1, 0, 0, 14)
+                    noneLabel.BackgroundTransparency = 1
+                    noneLabel.Font = Enum.Font.Gotham
+                    noneLabel.Text = "No spectators"
+                    noneLabel.TextColor3 = Color3.fromRGB(130, 130, 140)
+                    noneLabel.TextSize = 10
+                    noneLabel.TextXAlignment = Enum.TextXAlignment.Left
+                else
+                    for _, p in ipairs(spectators) do
+                        local item = Instance.new("Frame", listContainer)
+                        item.Name = "Spectator_" .. tostring(p.UserId)
+                        item.Size = UDim2.new(1, 0, 0, 24)
+                        item.BackgroundColor3 = Color3.fromRGB(28, 26, 36)
+                        item.BackgroundTransparency = 0.45
+                        item.BorderSizePixel = 0
+                        Instance.new("UICorner", item).CornerRadius = UDim.new(0, 5)
+
+                        local avatar = Instance.new("ImageLabel", item)
+                        avatar.Name = "Avatar"
+                        avatar.Size = UDim2.new(0, 18, 0, 18)
+                        avatar.Position = UDim2.new(0, 3, 0.5, -9)
+                        avatar.BackgroundTransparency = 1
+                        avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(p.UserId) .. "&w=48&h=48&filters=0"
+                        Instance.new("UICorner", avatar).CornerRadius = UDim.new(1, 0)
+
+                        local nameLabel = Instance.new("TextLabel", item)
+                        nameLabel.Name = "NameLabel"
+                        nameLabel.Size = UDim2.new(1, -28, 1, 0)
+                        nameLabel.Position = UDim2.new(0, 25, 0, 0)
+                        nameLabel.BackgroundTransparency = 1
+                        nameLabel.Font = Enum.Font.GothamSemibold
+                        local dName = p.DisplayName and p.DisplayName ~= "" and p.DisplayName or p.Name
+                        nameLabel.Text = dName .. " (@" .. p.Name .. ")"
+                        nameLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+                        nameLabel.TextSize = 10
+                        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+                        nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+                    end
+                end
+            end
+
             task.wait(1)
         end
     end)
@@ -10375,18 +10568,65 @@ local function KYS_BuildKillerPerksText()
 end
 local function SetupKillerPerksDisplay()
     if getgenv().KYS_KillerPerksGui then pcall(function() getgenv().KYS_KillerPerksGui:Destroy() end) end
-    getgenv().KYS_KillerPerksGui = nil
-    KYS_SetMainInfoPanelText("KillerPerks", "Spectate Killer Perks", "Waiting for perk data...")
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "PinatHub_KillerPerksGui"
+    sg.ResetOnSpawn = false
+    local parent = (gethui and gethui()) or LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
+    pcall(function() sg.Parent = parent end)
+
+    local frame = Instance.new("Frame")
+    frame.Name = "KillerPerksFrame"
+    frame.Size = UDim2.new(0, 190, 0, 95)
+    frame.Position = UDim2.new(0.02, 0, 0.25, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(18, 16, 24)
+    frame.BackgroundTransparency = 0.15
+    frame.BorderSizePixel = 0
+    frame.Parent = sg
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 7)
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(168, 85, 247)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.35
+
+    local titleLabel = Instance.new("TextLabel", frame)
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -12, 0, 14)
+    titleLabel.Position = UDim2.new(0, 8, 0, 5)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "KILLER PERKS DISPLAY"
+    titleLabel.TextColor3 = Color3.fromRGB(216, 180, 254)
+    titleLabel.TextSize = 10
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local valueLabel = Instance.new("TextLabel", frame)
+    valueLabel.Name = "Value"
+    valueLabel.Size = UDim2.new(1, -12, 1, -22)
+    valueLabel.Position = UDim2.new(0, 8, 0, 20)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Font = Enum.Font.Gotham
+    valueLabel.Text = "Waiting for perk data..."
+    valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    valueLabel.TextSize = 11
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+    valueLabel.TextYAlignment = Enum.TextYAlignment.Top
+    valueLabel.RichText = true
+
+    pcall(function() KYS_MakeDraggable(frame) end)
+    getgenv().KYS_KillerPerksGui = sg
+    return valueLabel
 end
 function StartKillerPerksDisplay()
     if getgenv().KYS_KillerPerksRunning then return end
     getgenv().KYS_KillerPerksRunning = true
-    SetupKillerPerksDisplay()
+    local valLabel = SetupKillerPerksDisplay()
     task.spawn(function()
         local _genv = getgenv()
         while _genv.VD and _genv.VD.VIS_KillerPerks and _genv.KYS_KillerPerksRunning do
             local text = KYS_BuildKillerPerksText()
-            KYS_SetMainInfoPanelText("KillerPerks", "Spectate Killer Perks", text)
+            if valLabel and valLabel.Parent then
+                valLabel.Text = text
+            end
             task.wait(1)
         end
     end)
@@ -10397,7 +10637,6 @@ function StopKillerPerksDisplay()
         pcall(function() getgenv().KYS_KillerPerksGui:Destroy() end)
         getgenv().KYS_KillerPerksGui = nil
     end
-    KYS_SetMainInfoPanelText("KillerPerks", "Spectate Killer Perks", "Off")
 end
 end 
 do 
@@ -10514,8 +10753,53 @@ local function KYS_PredictMapText()
 end
 local function SetupPredictMapGui()
     if getgenv().KYS_PredictMapGui then pcall(function() getgenv().KYS_PredictMapGui:Destroy() end) end
-    getgenv().KYS_PredictMapGui = nil
-    KYS_SetMainInfoPanelText("PredictMap", "Predict Map", KYS_PredictMapText())
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "PinatHub_PredictMapGui"
+    sg.ResetOnSpawn = false
+    local parent = (gethui and gethui()) or LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
+    pcall(function() sg.Parent = parent end)
+
+    local frame = Instance.new("Frame")
+    frame.Name = "PredictMapFrame"
+    frame.Size = UDim2.new(0, 180, 0, 52)
+    frame.Position = UDim2.new(0.02, 0, 0.38, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(18, 16, 24)
+    frame.BackgroundTransparency = 0.15
+    frame.BorderSizePixel = 0
+    frame.Parent = sg
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 7)
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(168, 85, 247)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.35
+
+    local titleLabel = Instance.new("TextLabel", frame)
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -12, 0, 14)
+    titleLabel.Position = UDim2.new(0, 8, 0, 5)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "PREDICT MAP"
+    titleLabel.TextColor3 = Color3.fromRGB(216, 180, 254)
+    titleLabel.TextSize = 10
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local valueLabel = Instance.new("TextLabel", frame)
+    valueLabel.Name = "Value"
+    valueLabel.Size = UDim2.new(1, -12, 1, -22)
+    valueLabel.Position = UDim2.new(0, 8, 0, 20)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Font = Enum.Font.Gotham
+    valueLabel.Text = KYS_PredictMapText()
+    valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    valueLabel.TextSize = 11
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+    valueLabel.TextYAlignment = Enum.TextYAlignment.Top
+    valueLabel.RichText = true
+
+    pcall(function() KYS_MakeDraggable(frame) end)
+    getgenv().KYS_PredictMapGui = sg
+    return valueLabel
 end
 local function KYS_BindPredictMapEvents()
     local conns = getgenv().KYS_PredictMapConnections
@@ -10554,17 +10838,20 @@ end
 function StartPredictMap()
     if getgenv().KYS_PredictMapRunning then return end
     getgenv().KYS_PredictMapRunning = true
-    SetupPredictMapGui()
+    local valLabel = SetupPredictMapGui()
     KYS_BindPredictMapEvents()
     task.spawn(function()
-        while VD and VD.VIS_PredictMap and getgenv().KYS_PredictMapRunning do
+        local _genv = getgenv()
+        while _genv.VD and _genv.VD.VIS_PredictMap and _genv.KYS_PredictMapRunning do
             local currentName, currentDesc = KYS_ReadCurrentWorkspaceMap()
             if currentName then
                 KYS_SetPredictedMap(currentName, currentDesc, "Confirmed")
             else
                 pcall(KYS_TryPredictMapRemote)
             end
-            KYS_SetMainInfoPanelText("PredictMap", "Predict Map", KYS_PredictMapText())
+            if valLabel and valLabel.Parent then
+                valLabel.Text = KYS_PredictMapText()
+            end
             task.wait(1)
         end
     end)
@@ -10581,7 +10868,6 @@ function StopPredictMap()
         end
     end
     getgenv().KYS_PredictMapConnections = {}
-    KYS_SetMainInfoPanelText("PredictMap", "Predict Map", "Off")
 end
 end 
 getgenv().KYS_OriginalFOV          = nil
@@ -11252,32 +11538,3 @@ end)
 end)();
 end
 __PinatHub_Init_Main__()
-local function PinatHub_UnlockPremium()
-    local oldNotify = VD_Notify
-    VD_Notify = function(title, content, duration)
-        if content and tostring(content):find("Premium") then return end
-        if oldNotify then oldNotify(title, content, duration) end
-    end
-    local mt = getrawmetatable(game)
-    if mt then
-        local oldIndex = mt.__index
-        local oldNewIndex = mt.__newindex
-        local blocked = { Locked = true, TextLocked = true }
-        setreadonly(mt, false)
-        mt.__index = function(t, k)
-            if blocked[k] and type(t) == "table" and t.Name and t.Name:find("Premium") then
-                return nil
-            end
-            return oldIndex(t, k)
-        end
-        mt.__newindex = function(t, k, v)
-            if blocked[k] and type(t) == "table" then
-                return 
-            end
-            return oldNewIndex(t, k, v)
-        end
-        setreadonly(mt, true)
-    end
-    print("[PinatHub HUB] Premium features unlocked.")
-end
-task.spawn(PinatHub_UnlockPremium)
