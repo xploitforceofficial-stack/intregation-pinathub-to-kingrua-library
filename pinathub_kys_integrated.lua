@@ -2733,6 +2733,18 @@ local function KYS_ToFEnsureInputs()
     if not KYS_ToFState.InputBegan then
         KYS_ToFState.InputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if gameProcessed then return end
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode == Enum.KeyCode.K then
+                    KYS_ToFSetTargetMode("Killer", true)
+                    return
+                elseif input.KeyCode == Enum.KeyCode.L then
+                    KYS_ToFSetTargetMode("Survivors", true)
+                    return
+                elseif input.KeyCode == Enum.KeyCode.J then
+                    KYS_ToFSetTargetMode("Zombie", true)
+                    return
+                end
+            end
             local keyCode = KYS_ToFKeyCodes[VD.TOF_Key or "None"]
             if keyCode and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == keyCode then
                 KYS_SetToFSilentAim(not VD.TOF_SilentAim)
@@ -2747,15 +2759,6 @@ local function KYS_ToFEnsureInputs()
                 end
                 KYS_ToFDoShoot()
                 return
-            end
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                if input.KeyCode == Enum.KeyCode.K then
-                    KYS_ToFSetTargetMode("Killer", true)
-                elseif input.KeyCode == Enum.KeyCode.J then
-                    KYS_ToFSetTargetMode("Survivors", true)
-                elseif input.KeyCode == Enum.KeyCode.L then
-                    KYS_ToFSetTargetMode("Zombie", true)
-                end
             end
         end)
     end
@@ -5155,9 +5158,18 @@ setAutoCrouch(v)
             VD.MoonwalkBoostPower = v
         end
     })
-    movSection:AddToggle({ Default = false, Name = "Invisible Not Visual", Locked = false, TextLocked = "", Flag = "Invisible Not Visual", Callback = function(v) 
-VD.InvisibleNotVisual = v; if not v and VD_InvisibleNV.Active then pcall(VD_SetInvisibleNotVisual, false) end 
-    end })
+    movSection:AddToggle({
+        Default = false,
+        Name = "Invisible Not Visual",
+        Flag = "Invisible Not Visual",
+        Keybind = Enum.KeyCode.X,
+        Callback = function(v)
+            VD.InvisibleNotVisual = v
+            if not v and VD_InvisibleNV.Active then
+                pcall(VD_SetInvisibleNotVisual, false)
+            end
+        end
+    })
     movSection:AddSlider({
         Name = "Invisible Speed", Flag = "Invisible Speed",
         Min = 1, Max = 999, Default = 5,
@@ -7330,11 +7342,53 @@ local VD_InvisibleNV = {
     Highlight = nil,
     Position = Vector3.new(-25.95, 84, 3537.55),
 }
+local VD_CharOriginalTransparency = {}
+local function IsHiddenCapsuleOrHitbox(part)
+    if not part or not part:IsA("BasePart") then return false end
+    if part.Name == "HumanoidRootPart" then return true end
+    local lower = part.Name:lower()
+    if lower:find("cylinder") or lower:find("capsule") or lower:find("hitbox") 
+       or lower:find("collision") or lower:find("root") or lower:find("bounding")
+       or lower:find("detector") then
+        return true
+    end
+    if part:IsA("Part") and part.Shape == Enum.PartType.Cylinder then
+        return true
+    end
+    if part:FindFirstChildOfClass("CylinderMesh") then
+        return true
+    end
+    return false
+end
 function VD_SetCharacterTransparency(character, transparency)
+    if not character then return end
     for _, descendant in ipairs(character:GetDescendants()) do
-        if (descendant:IsA("BasePart") or descendant:IsA("Decal")) and descendant.Name ~= "HumanoidRootPart" then
-            pcall(function() descendant.Transparency = transparency end)
+        if descendant:IsA("BasePart") or descendant:IsA("Decal") then
+            if IsHiddenCapsuleOrHitbox(descendant) then
+                pcall(function() descendant.Transparency = 1 end)
+            else
+                if transparency > 0 then
+                    if VD_CharOriginalTransparency[descendant] == nil then
+                        VD_CharOriginalTransparency[descendant] = descendant.Transparency
+                    end
+                    if (VD_CharOriginalTransparency[descendant] or 0) >= 0.9 then
+                        pcall(function() descendant.Transparency = 1 end)
+                    else
+                        pcall(function() descendant.Transparency = transparency end)
+                    end
+                else
+                    local orig = VD_CharOriginalTransparency[descendant]
+                    if orig ~= nil and orig >= 0.9 then
+                        pcall(function() descendant.Transparency = 1 end)
+                    else
+                        pcall(function() descendant.Transparency = orig or 0 end)
+                    end
+                end
+            end
         end
+    end
+    if transparency == 0 then
+        VD_CharOriginalTransparency = {}
     end
 end
 function VD_SetInvisibleNotVisual(state)
@@ -7403,12 +7457,28 @@ function VD_SetInvisibleNotVisual(state)
         end
         VD_InvisibleNV.Highlight = nil
         VD_SetCharacterTransparency(char, 0)
+        pcall(function()
+            for _, descendant in ipairs(char:GetDescendants()) do
+                if descendant:IsA("BasePart") and IsHiddenCapsuleOrHitbox(descendant) then
+                    descendant.Transparency = 1
+                end
+            end
+        end)
         if VD_InvisibleNV.OriginalSpeed then
             hum.WalkSpeed = VD_InvisibleNV.OriginalSpeed
         end
         VD_InvisibleNV.OriginalSpeed = nil
     end
 end
+pcall(function()
+    if LocalPlayer.Character then
+        for _, descendant in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if descendant:IsA("BasePart") and IsHiddenCapsuleOrHitbox(descendant) then
+                descendant.Transparency = 1
+            end
+        end
+    end
+end)
 local VD_OriginalLungeBoost = nil
 function VD_UpdateInfiniteLunge()
     local char = LocalPlayer.Character
