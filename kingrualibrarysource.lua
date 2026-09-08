@@ -73,8 +73,10 @@ local TabIcons = {
 	["youtube"] = "rbxassetid://10747374938",
 	["globe"] = "rbxassetid://10723404337",
 	["clipboard-check"] = "rbxassetid://10709783474",
-	["zap"] = "rbxassetid://10747361761",
-	["lightning"] = "rbxassetid://10747361761",
+	["zap"] = "rbxassetid://7733920644",
+	["lightning"] = "rbxassetid://7733920644",
+	["automation"] = "rbxassetid://7733920644",
+	["bolt"] = "rbxassetid://7733920644",
 	["sparkles"] = "rbxassetid://10734973351",
 	["star"] = "rbxassetid://10734973351",
 	["box"] = "rbxassetid://10734954201",
@@ -108,6 +110,8 @@ local TabIcons = {
 	Info = "rbxassetid://10723406988",            -- Help / Info circle
 	Survivor = "rbxassetid://10734975692",        -- Swords
 	Killer = "rbxassetid://10734962068",          -- Skull
+	Automation = "rbxassetid://7733920644",      -- Zap / Bolt
+	["Automation"] = "rbxassetid://7733920644",
 	ESP = "rbxassetid://10723346959",             -- Eye
 	Visuals = "rbxassetid://10723346959",         -- Eye
 	Teleport = "rbxassetid://7733992789",         -- Official Roblox Creator Store Map-Pin
@@ -974,7 +978,7 @@ function Library:NewWindow(ConfigWindow)
 		return pill, pText
 	end
 
-	-- Executor Badge Only (VD | Premium Removed)
+	-- Executor Badge Only
 	local currentExecutor = DetectExecutor()
 	local execPill, execText = CreatePillBadge("Executor: " .. currentExecutor, 1)
 	execText.RichText = true
