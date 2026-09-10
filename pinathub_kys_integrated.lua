@@ -9,6 +9,7 @@ local Workspace         = game:GetService("Workspace")
 local Teams             = game:GetService("Teams")
 local GuiService        = game:GetService("GuiService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local CollectionService = game:GetService("CollectionService")
 local LocalPlayer       = Players.LocalPlayer
 local Camera            = Workspace.CurrentCamera
 local Character, Humanoid, Root
@@ -102,9 +103,12 @@ if PinatHubAdapter then
             if getgenv().VD then getgenv().VD.Destroyed = true end
         end,
     })
-    if Window and PinatHubAdapter.Notify then
-        Window.Notify = function(self, cfg)
-            return PinatHubAdapter:Notify(cfg)
+    if Window then
+        Window.ConfigElements = Window.ConfigElements or {}
+        if PinatHubAdapter.Notify then
+            Window.Notify = function(self, cfg)
+                return PinatHubAdapter:Notify(cfg)
+            end
         end
     end
 end
@@ -173,6 +177,218 @@ function clamp(v, min, max)
     return math.max(min, math.min(max, v))
 end
 getgenv().VD = getgenv().VD or {
+    SURV_AlwaysFastVault     = false,
+    SURV_NoclipVaultsPallets = false,
+    SURV_RemoteDropPallet    = false,
+    SURV_AutoFleeKiller      = false,
+    SURV_AutoFarm            = false,
+    SURV_AutoFarmStatus      = "IDLE",
+    KILLER_AntiWiggle        = false,
+    KILLER_AutoFarm          = false,
+    KILLER_AutoFarmStatus    = "IDLE",
+    VIS_DesyncGhost          = false,
+    VIS_DesyncGhostColor     = "Cyan",
+    VIS_DesyncGhostTransparency = 0.5,
+    VIS_DesyncGhostAlwaysOnTop  = true,
+    MOVE_FakeLag             = false,
+    MOVE_FakeLagMs           = 200,
+    AIM_SilentAimBoxHighlight = true,
+    AIM_SilentAimBoxColor    = "Cyan",
+    SURV_MoonwalkDisableOnVault = true,
+    SURV_ReverseMoonwalk     = false,
+    SURV_MoonwalkMovementBased = false,
+    SURV_MoonwalkSwaySpeed   = 14,
+    SURV_MoonwalkSwayAmplitude = 0.28,
+    SURV_MoonwalkShaking     = 0.05,
+    SURV_ParryFacingCheck    = true,
+    SURV_ParryPingCompensation = true,
+    SURV_FrenzyParry         = true,
+    SURV_IgnoreAbysswalkerLunge = true,
+    VIS_BloodESP             = false,
+    ESP_PositionY = 0,
+    ESP_SurvivorHealthState = true,
+    ESP_SurvivorCensorNames = false,
+    ESP_GenAlertThresholdEnabled = true,
+    AIM_RevolverPredictionEnabled = true,
+    KILLER_ParryRangeViewInRange = false,
+    SURV_PerfectHitRate = 100,
+    SURV_ConfigProfile = "Default",
+
+    -- BATCH 1: Aim & Weapon Systems
+    AIM_AimAssistEnabled     = false,
+    AIM_AimAssistFOV         = 150,
+    AIM_AimAssistKey         = "MouseButton2",
+    AIM_AimAssistMode        = "Hold",
+    AIM_AimAssistPrediction  = true,
+    AIM_AimAssistPriority    = "Nearest",
+    AIM_AimAssistShowFOV     = true,
+    AIM_AimAssistSmoothness  = 0.2,
+    AIM_AimAssistTargetPart  = "UpperTorso",
+    AIM_AimAssistTargetTeam  = "Both",
+    AIM_BypassToFRestrictions = false,
+    AIM_RevolverAimbotEnabled = false,
+    AIM_RevolverKey          = "MouseButton2",
+    AIM_RevolverTargetPart   = "UpperTorso",
+    AIM_RevolverPriority     = "Nearest",
+    AIM_RevolverSmoothness   = 0,
+    AIM_RevolverRadius       = 150,
+    AIM_RevolverOffsetX      = 12,
+    AIM_RevolverOffsetY      = 5,
+    AIM_RevolverShowFOV      = false,
+    AIM_RevolverShowCrosshair = false,
+    AIM_RevolverCrosshairStyle = "Classic",
+    AIM_RevolverPrediction   = true,
+    AIM_RevolverBulletVelocity = 800,
+    AIM_RevolverAutofarm     = false,
+    AIM_RevolverSilentAimEnabled = false,
+    AIM_RevolverSilentPriority = "Nearest",
+    AIM_RevolverSilentFOV    = 200,
+    AIM_RevolverSilentShowFOV = true,
+    AIM_RevolverSilentFOVColor = "Cyan",
+    AIM_RevolverSilentTarget = "Both Teams",
+    AIM_RevolverSilentHighlight = true,
+    AIM_RevolverSilentHighlightColor = "Cyan",
+    AIM_SpearAimbotEnabled   = false,
+    AIM_SpearKey             = "MouseButton2",
+    AIM_SpearPredictionOffset = 0.05,
+    AIM_SpearPriority        = "Nearest",
+    AIM_SpearRadius          = 150,
+    AIM_SpearSmoothness      = 0.05,
+    AIM_SpearTargetPart      = "UpperTorso",
+    AIM_SpearTrajectory      = false,
+    AIM_SpearTrajectoryColor = "Cyan",
+    AIM_SpearTrajectoryNoclip = false,
+
+    -- BATCH 2: ESP & Visual Tracking
+    ESP_DistanceFade         = false,
+    ESP_DistanceFadeGates    = true,
+    ESP_DistanceFadeGenerators = true,
+    ESP_DistanceFadeHooks    = true,
+    ESP_DistanceFadeMap      = true,
+    ESP_DistanceFadePallets  = true,
+    ESP_DistanceFadePlayers  = true,
+    ESP_DistanceFadeSCPs     = true,
+    ESP_DistanceFadeTracers  = true,
+    ESP_DistanceFadeVaults   = true,
+    ESP_FadeStart            = 50,
+    ESP_FadeMax              = 200,
+    ESP_FadeDuration         = 1.0,
+    ESP_FillColorMode        = "Role Color",
+    ESP_FillColor            = Color3.fromRGB(255, 255, 255),
+    ESP_OutlineColorMode     = "Role Color",
+    ESP_OutlineColor         = Color3.fromRGB(255, 255, 255),
+    ESP_TextColorMode        = "Role Color",
+    ESP_TextColor            = Color3.fromRGB(255, 255, 255),
+    ESP_TextOutlineColor     = Color3.fromRGB(0, 0, 0),
+    ESP_Font                 = "Gotham",
+    ESP_Style                = "Default",
+    ESP_Range                = 999999,
+    ESP_TracersEnabled       = false,
+    ESP_TracerTarget         = "Both",
+    ESP_TracerStyle          = "Line",
+    ESP_TracerOrigin         = "Bottom",
+    ESP_TracerColorMode      = "Role Color",
+    ESP_BloodNoText          = false,
+    ESP_BloodShowDistance    = true,
+    ESP_GateNoText           = false,
+    ESP_GateShowDistance     = true,
+    ESP_GateShowProgress     = true,
+    ESP_GenAlertThreshold    = 90,
+    ESP_GenAlertEnabled      = true,
+    ESP_GenNoText            = false,
+    ESP_GenShowDistance      = true,
+    ESP_GenShowETA           = true,
+    ESP_GenShowProgress      = true,
+    ESP_GenShowRepairSpeed   = true,
+    ESP_GenShowRepairingCount = true,
+    ESP_HookNoText           = false,
+    ESP_HookShowDistance     = true,
+    ESP_PalletNoText         = false,
+    ESP_PalletShowDistance   = true,
+    ESP_SCPNoText            = false,
+    ESP_SCPShowDistance      = true,
+    ESP_VaultNoText          = false,
+    ESP_VaultShowDistance    = true,
+
+    -- BATCH 3: Survivor Automations
+    SURV_CountSpeedPerks     = true,
+    SURV_FlowstatePerk       = false,
+    SURV_FlowstateCooldown   = 15,
+    SURV_HideFlowstateUI     = false,
+    SURV_NoSkillChecks       = false,
+    SURV_SkillCheckSpeedVal  = 1.0,
+    SURV_BlockPallets        = false,
+    SURV_BlockVaults         = false,
+
+    -- BATCH 4: Killer Automations
+    KILLER_ConfigProfile     = "None",
+    KILLER_ParryDelay        = 0,
+    KILLER_ParryViewInRange  = false,
+    KILLER_ParryUseItem      = false,
+    KILLER_StalkerAutoDodge  = false,
+    KILLER_StalkerAutoDodgeDist = 18,
+    KILLER_StalkerInfiniteCorrupt = false,
+    KILLER_StalkerKillGrab   = false,
+    KILLER_StalkerNoCooldown = false,
+    KILLER_StalkerStalkWhileMoving = false,
+
+    -- BATCH 5: DBD Immersion
+    DBD_EmoteWheelEnabled    = false,
+    DBD_EmoteWheelKey        = "F",
+    DBD_HudEnabled           = false,
+    DBD_SoundsEnabled        = false,
+    DBD_SoundsVolume         = 1.0,
+    DBD_CustomGenSoundEnabled = false,
+    DBD_CustomGenSoundId     = "rbxassetid://124429695332529",
+    DBD_CustomGenSoundVolume = 1.0,
+    DBD_WalkWhileEmoting     = true,
+
+    -- BATCH 6: Visual & Camera
+    VIS_AtmosphereDensity    = 0.3,
+    VIS_CinematicDOF         = false,
+    VIS_RTXGraphics          = false,
+    VIS_CustomBgEnabled      = false,
+    VIS_CustomBgAssetId      = "",
+    VIS_CustomBgOverlay      = 40,
+    VIS_CustomBgScaleType    = "Crop",
+    VIS_CustomBloomEnabled   = false,
+    VIS_BloomIntensity       = 0.8,
+    VIS_BloomSize            = 24,
+    VIS_BloomThreshold       = 0.85,
+    VIS_CustomFogEnabled     = false,
+    VIS_CustomFogColor       = Color3.fromRGB(120, 160, 200),
+    VIS_CustomFogStart       = 0,
+    VIS_CustomFogEnd         = 800,
+    VIS_CustomLightingEnabled = false,
+    VIS_CustomLightingColor  = Color3.fromRGB(255, 255, 255),
+    VIS_SunRaysEnabled       = false,
+    VIS_SunRaysIntensity     = 0.1,
+    VIS_GraphicsTint         = "Default",
+    VIS_InfiniteZoom         = false,
+    VIS_KillerThirdPerson    = false,
+    VIS_RainbowCharacter     = false,
+    VIS_RainbowCharacterMode = "Highlight",
+    VIS_TimeOfDayPreset      = "Default",
+    VIS_VisualPreset         = "Default",
+
+    -- BATCH 8: UI / Telemetry / Profiles
+    UI_AutoFarmAFKTotal      = false,
+    UI_AutoServerHopEscape   = false,
+    UI_DisableAllNotifications = false,
+    UI_ShowToggleNotifications = true,
+    UI_HideLivePlayersMode   = false,
+    UI_ShowInfoBanner        = false,
+    UI_InfoBannerShowFPS     = true,
+    UI_InfoBannerShowKiller  = true,
+    UI_InfoBannerShowMap     = true,
+    UI_InfoBannerShowPerks   = true,
+    UI_InfoBannerShowPing    = true,
+    UI_ModifierTeamFilter    = "Both",
+    UI_SelectedPerk1         = "None",
+    UI_SelectedPerk2         = "None",
+    UI_SelectedPerk3         = "None",
+    UI_SelectedPerkLoadout   = "None",
+    UI_TopBarColor           = Color3.fromRGB(168, 85, 247),
     AutoSkillcheck        = false,
     AutoSkillcheckMode    = "Normal",
     HideSkillUI           = false,
@@ -247,6 +463,13 @@ getgenv().VD = getgenv().VD or {
     NoCutscene            = false,
     CAM_FOVEnabled        = false,
     CAM_FOV               = 90,
+    CAM_StretchEnabled    = false,
+    CAM_StretchFactor     = 0.70,
+    AntiKingScourge       = true,
+    NoFallSlowdown        = false,
+    NoTurnPenalty         = false,
+    AutoExitGateLever     = false,
+    DisablePlayerCollision = false,
     CAM_ThirdPerson       = false,
     CAM_ShiftLock         = false,
     CAM_InfinityZoom      = false,
@@ -302,6 +525,8 @@ getgenv().VD = getgenv().VD or {
     SURV_AutoDodgeSpear   = false
 }
 local VD = getgenv().VD
+local VD_InvisibleNV = nil
+local VD_SetInvisibleNotVisual = nil
 local CrosshairGui = nil
 function clearCrosshair()
     if CrosshairGui then
@@ -537,7 +762,25 @@ function KYS_SaveConfig(name)
     local path = ConfigFolderName .. "/" .. name .. ".json"
     pcall(function()
         if writefile then
-            writefile(path, HttpService:JSONEncode(VD))
+            -- Serialize VD table, converting non-JSON types to storable form
+            local saveData = {}
+            for k, v in pairs(VD) do
+                local t = typeof(v)
+                if t == "Color3" then
+                    -- Color3 cannot be JSON-encoded directly, store as table
+                    saveData[k] = { __type = "Color3", R = v.R, G = v.G, B = v.B }
+                elseif t == "boolean" or t == "number" or t == "string" then
+                    saveData[k] = v
+                elseif t == "nil" then
+                    -- skip nil values
+                else
+                    -- Try encoding; skip if it fails
+                    local ok, encoded = pcall(HttpService.JSONEncode, HttpService, v)
+                    if ok then saveData[k] = v end
+                end
+            end
+            writefile(path, HttpService:JSONEncode(saveData))
+            print("[Config] Saved to:", path)
         end
     end)
 end
@@ -579,6 +822,13 @@ local VD_To_Flag = {
     Speed = "Speed Hack",
     CAM_FOV = "Camera FOV",
     CAM_FOVEnabled = "Enable Camera FOV override",
+    CAM_StretchEnabled = "Stretch Resolution (POV / FOV)",
+    CAM_StretchFactor = "Stretch Resolution Scale",
+    AntiKingScourge = "Anti King's Scourge (Auto Fallback)",
+    NoFallSlowdown = "No Fall Slowdown",
+    NoTurnPenalty = "No Turn Penalty (Smooth 360)",
+    AutoExitGateLever = "Auto Open Exit Gate",
+    DisablePlayerCollision = "Ghost Mode (Disable Collision)",
     FLING_Strength = "Fling Strength",
     Noclip = "Noclip",
     Moonwalk = "Moonwalk",
@@ -645,22 +895,68 @@ function KYS_LoadConfig(name)
     name = (name and name ~= "") and name or getgenv().CurrentConfigName
     if not name or name == "" then name = "Default" end
     local path = ConfigFolderName .. "/" .. name .. ".json"
-    pcall(function()
-        if readfile and isfile and isfile(path) then
-            local data = HttpService:JSONDecode(readfile(path))
-            for key, value in pairs(data) do
-                VD[key] = value
-                local flagName = VD_To_Flag[key]
-                if flagName and Window and Window.ConfigElements and Window.ConfigElements[flagName] then
-                    pcall(function()
-                        local elem = Window.ConfigElements[flagName]
-                        if elem.Set then elem:Set(value) end
-                    end)
-                end
+    if not (readfile and isfile and isfile(path)) then
+        warn("[Config] File not found:", path)
+        return
+    end
+    local ok, data = pcall(function()
+        return HttpService:JSONDecode(readfile(path))
+    end)
+    if not ok or type(data) ~= "table" then
+        warn("[Config] Failed to parse config:", path)
+        return
+    end
+
+    -- Step 1: Apply all values to VD table
+    for key, value in pairs(data) do
+        -- Restore serialized Color3
+        if type(value) == "table" and value.__type == "Color3" then
+            value = Color3.new(
+                tonumber(value.R) or 1,
+                tonumber(value.G) or 1,
+                tonumber(value.B) or 1
+            )
+        end
+        VD[key] = value
+    end
+
+    -- Step 2: Sync UI elements (visual only - updates toggle/slider states in UI)
+    for key, value in pairs(data) do
+        -- Restore Color3 for UI as well
+        local uiValue = value
+        if type(value) == "table" and value.__type == "Color3" then
+            uiValue = Color3.new(
+                tonumber(value.R) or 1,
+                tonumber(value.G) or 1,
+                tonumber(value.B) or 1
+            )
+        end
+        local flagName = VD_To_Flag[key]
+        if flagName and Window and Window.ConfigElements then
+            local elem = Window.ConfigElements[flagName]
+            if elem then
+                pcall(function()
+                    if type(elem.Set) == "function" then
+                        elem:Set(uiValue)
+                    end
+                end)
             end
-            if getgenv().KYS_SyncLoadedFeatures then pcall(getgenv().KYS_SyncLoadedFeatures) end
+        end
+    end
+
+    -- Step 3: Activate all features whose state was loaded
+    -- Use task.defer so all VD values are set before sync
+    task.defer(function()
+        if getgenv().KYS_SyncLoadedFeatures then
+            pcall(getgenv().KYS_SyncLoadedFeatures)
         end
     end)
+
+    print("[Config] Loaded:", name, "- Keys loaded:", (function()
+        local n = 0
+        for _ in pairs(data) do n = n + 1 end
+        return n
+    end)())
 end
 function KYS_DeleteConfig(name)
     name = (name and name ~= "") and name or getgenv().CurrentConfigName
@@ -1291,10 +1587,15 @@ do
     end
     local function KYS_EnsureHighlight(name, adornee, color, isPlayer)
         if not (adornee and KYS_Alive(adornee)) then return nil end
+        if adornee == LP.Character and not isPlayer then return nil end
         local folder = KYS_GetESPFolder()
         KYS_ClearPrefix(name, name)
         local hl = folder:FindFirstChild(name)
         if not hl then
+            local count = #folder:GetChildren()
+            if count >= 24 and not isPlayer then
+                return nil
+            end
             hl = Instance.new("Highlight")
             hl.Name = name
             hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
@@ -1636,6 +1937,8 @@ do
             local lower = obj.Name:lower()
             if lower:find("scp") or lower:find("zombie") then
                 KYS_EnsureWorldEntry("SCPZombie", obj)
+            elseif lower:find("blood") then
+                KYS_EnsureWorldEntry("Blood", obj)
             end
             return
         end
@@ -1737,6 +2040,7 @@ do
         if cat == "Window" then return KYS_ESPState.WindowESP, KYS_ESPState.WindowColor end
         if cat == "Palletwrong" then return KYS_ESPState.PalletESP, KYS_ESPState.PalletColor end
         if cat == "SCPZombie" then return KYS_ESPState.SCPZombieESP, KYS_ESPState.SCPZombieColor end
+        if cat == "Blood" then return KYS_ESPState.BloodESP, KYS_ESPState.BloodColor or Color3.fromRGB(180, 0, 0) end
         return false, Color3.new(1, 1, 1)
     end
     local function KYS_UpdateWorldTag(cat, model, part, color)
@@ -1863,7 +2167,7 @@ do
     getgenv().KYS_AddVisualESPControls = function(VisualTabRef)
         if not VisualTabRef or KYS_ControlsAdded then return end
         KYS_ControlsAdded = true
-        local settingsSection = VisualTabRef:AddSection({
+        local espSettingsSection = VisualTabRef:AddSection({
             Position = "Center",
             Name = "Highlight ESP Settings",
             Icon = "solar:settings-bold",
@@ -1871,7 +2175,7 @@ do
             BoxBorder = true,
             Opened = false,
         })
-        settingsSection:AddSlider({
+        espSettingsSection:AddSlider({
             Name = "ESP Fill Transparency",
             Flag = "KYS ESP Fill Transparency",
             Min = 0,
@@ -1883,7 +2187,7 @@ do
                 KYS_RefreshAllPlayers()
             end,
         })
-        settingsSection:AddSlider({
+        espSettingsSection:AddSlider({
             Name = "ESP Outline Transparency",
             Flag = "KYS ESP Outline Transparency",
             Min = 0,
@@ -1895,7 +2199,7 @@ do
                 KYS_RefreshAllPlayers()
             end,
         })
-        settingsSection:AddSlider({
+        espSettingsSection:AddSlider({
             Name = "ESP Text Size",
             Flag = "KYS ESP Text Size",
             Min = 8,
@@ -2057,6 +2361,16 @@ do
         worldSection:AddColorPicker({ Name = "Gate Color", Flag = "KYS Gate Color", Default = KYS_ESPState.GateColor, Callback = function(color) KYS_ESPState.GateColor = color end })
         worldSection:AddColorPicker({ Name = "Window Color", Flag = "KYS Window Color", Default = KYS_ESPState.WindowColor, Callback = function(color) KYS_ESPState.WindowColor = color end })
         worldSection:AddColorPicker({ Name = "Pallet Color", Flag = "KYS Pallet Color", Default = KYS_ESPState.PalletColor, Callback = function(color) KYS_ESPState.PalletColor = color end })
+        worldSection:AddToggle({
+            Name = "Blood ESP",
+            Flag = "KYS Blood ESP",
+            Default = false,
+            Callback = function(state)
+                KYS_ESPState.BloodESP = state
+                if KYS_ESPState.WorldMasterESP and KYS_AnyWorldEnabled() then KYS_StartWorldLoop() else KYS_ClearAllWorldESP() end
+            end,
+        })
+        worldSection:AddColorPicker({ Name = "Blood Color", Flag = "KYS Blood Color", Default = Color3.fromRGB(180, 0, 0), Callback = function(color) KYS_ESPState.BloodColor = color end })
         worldSection:AddColorPicker({ Name = "SCP / Zombie Color", Flag = "KYS SCP Zombie Color", Default = KYS_ESPState.SCPZombieColor, Callback = function(color) KYS_ESPState.SCPZombieColor = color end })
     end
     for _, player in ipairs(Players:GetPlayers()) do
@@ -2246,6 +2560,7 @@ local KYS_ToFState = {
     InputEnded = nil,
     TouchInput = nil,
     IsAiming = false,
+    RMBHeld = false,    -- Right Mouse Button held = aiming/laser active
     SavedUIPos = UDim2.new(0.5, -120, 0, 110),
     SCPCache = {},
     SCPCacheTimer = 0,
@@ -2733,6 +3048,8 @@ local function KYS_ToFEnsureInputs()
     if not KYS_ToFState.InputBegan then
         KYS_ToFState.InputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if gameProcessed then return end
+
+            -- Keyboard shortcut to toggle ToF on/off
             if input.UserInputType == Enum.UserInputType.Keyboard then
                 if input.KeyCode == Enum.KeyCode.K then
                     KYS_ToFSetTargetMode("Killer", true)
@@ -2750,25 +3067,56 @@ local function KYS_ToFEnsureInputs()
                 KYS_SetToFSilentAim(not VD.TOF_SilentAim)
                 return
             end
+
             if not VD.TOF_SilentAim then return end
-            if input.UserInputType == Enum.UserInputType.MouseButton1
-            or (input.UserInputType == Enum.UserInputType.Touch and KYS_ToFIsTouchOnShootButton(input)) then
+
+            -- RIGHT CLICK (MouseButton2): Activate aiming + show laser
+            -- This is the "AIM MODE" gate — without holding RMB, left click does nothing
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                KYS_ToFState.RMBHeld = true
                 KYS_ToFState.IsAiming = true
-                if input.UserInputType == Enum.UserInputType.Touch then
-                    KYS_ToFState.TouchInput = input
-                end
+                return
+            end
+
+            -- Mobile: touch on attack button acts as the RMB equivalent + shoot
+            if input.UserInputType == Enum.UserInputType.Touch and KYS_ToFIsTouchOnShootButton(input) then
+                KYS_ToFState.RMBHeld = true
+                KYS_ToFState.IsAiming = true
+                KYS_ToFState.TouchInput = input
                 KYS_ToFDoShoot()
+                return
+            end
+
+            -- LEFT CLICK (MouseButton1): Fire shot ONLY if RMB is currently held
+            -- This prevents accidental shots while doing generators or other actions
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if KYS_ToFState.RMBHeld then
+                    KYS_ToFDoShoot()
+                end
                 return
             end
         end)
     end
     if not KYS_ToFState.InputEnded then
         KYS_ToFState.InputEnded = UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1
-            or (input.UserInputType == Enum.UserInputType.Touch and input == KYS_ToFState.TouchInput) then
+            -- RIGHT CLICK released: stop aiming, hide laser
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                KYS_ToFState.RMBHeld = false
                 KYS_ToFState.IsAiming = false
-                if input == KYS_ToFState.TouchInput then KYS_ToFState.TouchInput = nil end
-                if KYS_ToFState.LaserBeam then KYS_ToFState.LaserBeam.Transparency = 1 end
+                if KYS_ToFState.LaserBeam then
+                    pcall(function() KYS_ToFState.LaserBeam.Transparency = 1 end)
+                end
+                return
+            end
+            -- Mobile touch released
+            if input.UserInputType == Enum.UserInputType.Touch and input == KYS_ToFState.TouchInput then
+                KYS_ToFState.RMBHeld = false
+                KYS_ToFState.IsAiming = false
+                KYS_ToFState.TouchInput = nil
+                if KYS_ToFState.LaserBeam then
+                    pcall(function() KYS_ToFState.LaserBeam.Transparency = 1 end)
+                end
+                return
             end
         end)
     end
@@ -3538,20 +3886,39 @@ function AttachParrySensor(kChar)
     animator.AnimationPlayed:Connect(function(track)
         local animId = track.Animation and track.Animation.AnimationId or ""
         local id = animId:match("%d+")
-        if id == "80411309607666" and VD.AutoCrouch then
-            local myChar = LocalPlayer.Character
-            if IsDowned(myChar) then return end
-            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-            local kHRP = kChar:FindFirstChild("HumanoidRootPart")
-            if myHRP and kHRP then
-                local dist = (myHRP.Position - kHRP.Position).Magnitude
-                if dist <= 40 then
-                    TriggerCrouch()
+        if id == "80411309607666" then
+            if VD.SURV_IgnoreAbysswalkerLunge then return end
+            if VD.AutoCrouch then
+                local myChar = LocalPlayer.Character
+                if IsDowned(myChar) then return end
+                local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                local kHRP = kChar:FindFirstChild("HumanoidRootPart")
+                if myHRP and kHRP then
+                    local dist = (myHRP.Position - kHRP.Position).Magnitude
+                    if dist <= 40 then
+                        TriggerCrouch()
+                    end
                 end
+                return
             end
-            return 
         end
+
+        -- Frenzy Killer bypass:
+        if VD.SURV_FrenzyParry then
+            local kp = Players:GetPlayerFromCharacter(kChar)
+            if (kChar:GetAttribute("Frenzy") == true) or (kp and kp:GetAttribute("Frenzy") == true) then
+                return
+            end
+        end
+
         local attackName = VD_ATTACK_ANIMS[animId]
+        if not attackName then
+            local pri = track.Priority
+            local isActionPri = (pri == Enum.AnimationPriority.Action or pri == Enum.AnimationPriority.Action2 or pri == Enum.AnimationPriority.Action3 or pri == Enum.AnimationPriority.Action4)
+            if not track.Looped and isActionPri then
+                attackName = "UniversalAction_" .. tostring(id)
+            end
+        end
         if not attackName then return end
         if not VD.SURV_AutoParry then return end
         if State.ParryCooldown then return end 
@@ -3563,11 +3930,31 @@ function AttachParrySensor(kChar)
         if not myHRP or not kHRP then return end
         local delta = myHRP.Position - kHRP.Position
         local startDistance = delta.Magnitude
+
+        local baseDistance = tonumber(VD.SURV_ParryDistance) or 8.5
+        local pingComp = 0
+        if VD.SURV_ParryPingCompensation then
+            local ping = 80
+            pcall(function() ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue() end)
+            pingComp = ping * 0.015
+        end
+        local effectiveDistance = baseDistance + pingComp
+
         if VD.SURV_ParryAggressive then
-            local aggressiveRadius = math.max(14, tonumber(VD.SURV_ParryDistance) or 15)
+            local aggressiveRadius = math.max(14, effectiveDistance)
             local detectionRadius = aggressiveRadius + 15
             if startDistance > detectionRadius then return end
             if startDistance <= aggressiveRadius then
+                if VD.SURV_ParryFacingCheck then
+                    local myPosFlat = Vector3.new(myHRP.Position.X, 0, myHRP.Position.Z)
+                    local kPosFlat = Vector3.new(kHRP.Position.X, 0, kHRP.Position.Z)
+                    local flatDelta = myPosFlat - kPosFlat
+                    if flatDelta.Magnitude > 0 then
+                        local flatDirection = flatDelta.Unit
+                        local kLookFlat = Vector3.new(kHRP.CFrame.LookVector.X, 0, kHRP.CFrame.LookVector.Z).Unit
+                        if kLookFlat:Dot(flatDirection) < 0.25 then return end
+                    end
+                end
                 ExecuteParry(kChar)
             else
                 local tracker
@@ -3583,26 +3970,70 @@ function AttachParrySensor(kChar)
                     local relSpeed = (kVel - mVel).Magnitude
                     local threshold = aggressiveRadius + (relSpeed * 0.08)
                     if curDist <= threshold then
+                        if VD.SURV_ParryFacingCheck then
+                            local myPosFlat = Vector3.new(myHRP.Position.X, 0, myHRP.Position.Z)
+                            local kPosFlat = Vector3.new(kHRP.Position.X, 0, kHRP.Position.Z)
+                            local flatDelta = myPosFlat - kPosFlat
+                            if flatDelta.Magnitude > 0 then
+                                local flatDirection = flatDelta.Unit
+                                local kLookFlat = Vector3.new(kHRP.CFrame.LookVector.X, 0, kHRP.CFrame.LookVector.Z).Unit
+                                if kLookFlat:Dot(flatDirection) < 0.25 then return end
+                            end
+                        end
                         ExecuteParry(kChar)
                         if tracker then tracker:Disconnect() end
                     end
                 end)
             end
         else
-            if startDistance > VD.SURV_ParryDistance then return end
-            local myPosFlat = Vector3.new(myHRP.Position.X, 0, myHRP.Position.Z)
-            local kPosFlat = Vector3.new(kHRP.Position.X, 0, kHRP.Position.Z)
-            local flatDelta = myPosFlat - kPosFlat
-            if flatDelta.Magnitude > 0 then
-                local flatDirection = flatDelta.Unit
-                local kLookFlat = Vector3.new(kHRP.CFrame.LookVector.X, 0, kHRP.CFrame.LookVector.Z).Unit
-                local isFacing = kLookFlat:Dot(flatDirection)
-                if isFacing < 0.5 then return end
+            if startDistance > effectiveDistance then return end
+            if VD.SURV_ParryFacingCheck then
+                local myPosFlat = Vector3.new(myHRP.Position.X, 0, myHRP.Position.Z)
+                local kPosFlat = Vector3.new(kHRP.Position.X, 0, kHRP.Position.Z)
+                local flatDelta = myPosFlat - kPosFlat
+                if flatDelta.Magnitude > 0 then
+                    local flatDirection = flatDelta.Unit
+                    local kLookFlat = Vector3.new(kHRP.CFrame.LookVector.X, 0, kHRP.CFrame.LookVector.Z).Unit
+                    local isFacing = kLookFlat:Dot(flatDirection)
+                    if isFacing < 0.25 then return end
+                end
             end
             ExecuteParry(kChar)
         end
     end)
 end
+
+-- Physical Hitbox and Weapon Trail Auto-Parry Listener:
+Workspace.DescendantAdded:Connect(function(part)
+    if not VD.SURV_AutoParry or State.ParryCooldown then return end
+    if not part:IsA("BasePart") then return end
+    local pName = part.Name:lower()
+    if VD.SURV_IgnoreAbysswalkerLunge and pName:find("slashhitboxdebug") then return end
+    local isHitbox = part.Name:match("^WallHitboxCollider_%d+$") or pName:find("hitbox") or pName:find("collider") or pName:find("swing") or pName:find("slash") or pName:find("attack")
+    if not isHitbox then return end
+    local myChar = LocalPlayer.Character
+    if myChar and part:IsDescendantOf(myChar) then return end
+    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP or IsDowned(myChar) then return end
+    local dist = (part.Position - myHRP.Position).Magnitude
+    local effectiveDist = math.max(13, (tonumber(VD.SURV_ParryDistance) or 8.5) + 4)
+    if dist <= effectiveDist then
+        local targetKiller = nil
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Team and p.Team.Name == "Killer" and p.Character then
+                local kHRP = p.Character:FindFirstChild("HumanoidRootPart")
+                if kHRP and (part.Position - kHRP.Position).Magnitude < 18 then
+                    targetKiller = p.Character
+                    break
+                end
+            end
+        end
+        if targetKiller then
+            ExecuteParry(targetKiller)
+        end
+    end
+end)
+
 function TryAttach(p)
     if p ~= player and IsKiller(p) and p.Character then 
         AttachParrySensor(p.Character) 
@@ -3698,18 +4129,20 @@ function VD_PressSkill()
         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
     end)
 end
+local KYS_CachedSkillPrompt = nil
 function VD_GetSkillCheck()
-    for _, guiName in ipairs({ "SkillCheckPromptGui", "SkillCheckPromptGui-con" }) do
-        local gui = PlayerGui:FindFirstChild(guiName, true)
-        if gui then
-            local check = gui:FindFirstChild("Check", true)
-            if check and check.Visible then
-                local line = check:FindFirstChild("Line", true)
-                local goal = check:FindFirstChild("Goal", true)
-                if line and goal then return line, goal end
-            end
-        end
+    if not (KYS_CachedSkillPrompt and KYS_CachedSkillPrompt.Parent) then
+        KYS_CachedSkillPrompt = PlayerGui:FindFirstChild("SkillCheckPromptGui")
+            or PlayerGui:FindFirstChild("SkillCheckPromptGui-con")
     end
+    local gui = KYS_CachedSkillPrompt
+    if not gui or not gui.Enabled then return nil, nil end
+    local check = gui:FindFirstChild("Check")
+    if not check or not check.Visible then return nil, nil end
+    local line = check:FindFirstChild("Line")
+    local goal = check:FindFirstChild("Goal")
+    if line and goal then return line, goal end
+    return nil, nil
 end
 function VD_AngularDelta(from, to)
     local d = to - from
@@ -3830,6 +4263,397 @@ function VD_PerfectSkillcheckUpdate()
     AutoSkill.PerfectLastLineRotation = lr
     AutoSkill.PerfectLastTick = now
 end
+-- === KING'S SCOURGE DETECTION & AUTO FALLBACK ENGINE ===
+local KYS_KingScourgeActive = false
+local KYS_KingScourgeEndTime = 0
+local KYS_UserPreScourgeSkillMode = nil
+local KYS_LastScourgeNotifyTick = 0
+
+local function VD_IsRepairingGenerator()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    local inter = char:FindFirstChild("CheckInterractable")
+    if inter and inter:GetAttribute("isRepairing") == true then
+        return true
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp and hrp.Anchored then
+        local pgui = LocalPlayer:FindFirstChild("PlayerGui")
+        if pgui and (pgui:FindFirstChild("SkillCheckPromptGui") or pgui:FindFirstChild("SkillCheckPromptGui-con")) then
+            return true
+        end
+    end
+    return false
+end
+
+local KYS_CurrentRepairGen = nil
+local KYS_CachedKillerScourge = nil
+local KYS_LastKillerScourgeCheck = 0
+
+local function VD_GetCurrentRepairingGenProgress()
+    if not VD_IsRepairingGenerator() then
+        KYS_CurrentRepairGen = nil
+        return nil, nil
+    end
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil, nil end
+
+    -- 1. Fast check: currently cached generator (O(1) memory lookup)
+    if KYS_CurrentRepairGen and KYS_CurrentRepairGen.Parent then
+        local pivot = (KYS_CurrentRepairGen:IsA("Model") and KYS_CurrentRepairGen:GetPivot().Position) or KYS_CurrentRepairGen.Position
+        if (pivot - hrp.Position).Magnitude < 16 then
+            local p = tonumber(KYS_CurrentRepairGen:GetAttribute("RepairProgress"))
+                or tonumber(KYS_CurrentRepairGen:GetAttribute("repairProgress"))
+                or tonumber(KYS_CurrentRepairGen:GetAttribute("ProgressRepair"))
+                or tonumber(KYS_CurrentRepairGen:GetAttribute("Progress"))
+                or 0
+            if p >= 0 and p <= 1.001 then p = p * 100 end
+            return p, KYS_CurrentRepairGen
+        end
+    end
+
+    -- 2. Fast check: KYS_Cache.Generators (only 7 generators in memory)
+    if KYS_Cache and KYS_Cache.Generators then
+        for _, entry in ipairs(KYS_Cache.Generators) do
+            local gen = entry.model or entry.part
+            if gen and gen.Parent then
+                local pivot = (entry.part and entry.part.Position)
+                    or (gen:IsA("Model") and gen:GetPivot().Position)
+                    or gen.Position
+                if (pivot - hrp.Position).Magnitude < 16 then
+                    KYS_CurrentRepairGen = gen
+                    local p = tonumber(gen:GetAttribute("RepairProgress"))
+                        or tonumber(gen:GetAttribute("repairProgress"))
+                        or tonumber(gen:GetAttribute("ProgressRepair"))
+                        or tonumber(gen:GetAttribute("Progress"))
+                        or 0
+                    if p >= 0 and p <= 1.001 then p = p * 100 end
+                    return p, gen
+                end
+            end
+        end
+    end
+
+    -- 3. Fast fallback: CollectionService tagged generators (no workspace scan)
+    local CS = CollectionService or (game and game:GetService("CollectionService"))
+    if CS then
+        for _, gen in ipairs(CS:GetTagged("Generator")) do
+            if gen and gen.Parent then
+                local pivot = gen:IsA("Model") and gen:GetPivot().Position or gen.Position
+                if (pivot - hrp.Position).Magnitude < 16 then
+                    KYS_CurrentRepairGen = gen
+                    local p = tonumber(gen:GetAttribute("RepairProgress"))
+                        or tonumber(gen:GetAttribute("repairProgress"))
+                        or tonumber(gen:GetAttribute("ProgressRepair"))
+                        or tonumber(gen:GetAttribute("Progress"))
+                        or 0
+                    if p >= 0 and p <= 1.001 then p = p * 100 end
+                    return p, gen
+                end
+            end
+        end
+    end
+
+    return nil, nil
+end
+
+local function KYS_KillerHasKingScourge()
+    local now = os.clock()
+    if KYS_CachedKillerScourge ~= nil and (now - KYS_LastKillerScourgeCheck) < 3.0 then
+        return KYS_CachedKillerScourge
+    end
+    KYS_LastKillerScourgeCheck = now
+    for _, player in ipairs(Players:GetPlayers()) do
+        local teamName = player.Team and player.Team.Name
+        if teamName and teamName:lower():find("killer") then
+            local char = player.Character
+            if char then
+                if char.GetAttributes then
+                    for k, v in pairs(char:GetAttributes()) do
+                        local lk = tostring(k):lower()
+                        local lv = tostring(v):lower()
+                        if lk:find("scourge") or lv:find("scourge") then
+                            KYS_CachedKillerScourge = true
+                            return true
+                        end
+                    end
+                end
+                for _, child in ipairs(char:GetChildren()) do
+                    local n = child.Name:lower()
+                    if n:find("scourge") or n:find("kingscourge") then
+                        KYS_CachedKillerScourge = true
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    KYS_CachedKillerScourge = false
+    return false
+end
+
+function VD_IsKingScourgeActive()
+    -- Only active if actively repairing a generator AND progress is at or above 89.5%!
+    local isRep = VD_IsRepairingGenerator()
+    if not isRep then
+        return false
+    end
+    local prog, gen = VD_GetCurrentRepairingGenProgress()
+    if not prog or prog < 89.5 or prog >= 100 then
+        return false
+    end
+
+    if KYS_KingScourgeActive and os.clock() < KYS_KingScourgeEndTime then
+        return true
+    end
+    if KYS_KillerHasKingScourge() then
+        return true
+    end
+    local CS = CollectionService or (game and game:GetService("CollectionService"))
+    if gen then
+        if gen.GetAttributes then
+            for k, v in pairs(gen:GetAttributes()) do
+                local s = tostring(k):lower() .. tostring(v):lower()
+                if s:find("scourge") or s:find("kingscourge") then
+                    return true
+                end
+            end
+        end
+        if CS and (CS:HasTag(gen, "KingScourge") or CS:HasTag(gen, "Scourged")) then
+            return true
+        end
+    end
+    local char = LocalPlayer.Character
+    if char then
+        if char.GetAttributes then
+            for k, v in pairs(char:GetAttributes()) do
+                local s = tostring(k):lower() .. tostring(v):lower()
+                if s:find("scourge") or s:find("kingscourge") then
+                    return true
+                end
+            end
+        end
+        if CS and (CS:HasTag(char, "KingScourge") or CS:HasTag(char, "KingsScourge") or CS:HasTag(char, "Scourged")) then
+            return true
+        end
+    end
+    return false
+end
+
+function KYS_SetKingScourgeActive(active, duration, reason)
+    if active then
+        local prog = VD_GetCurrentRepairingGenProgress()
+        -- Strictly guard: only activate Scourge protection if generator progress has reached 89.5%!
+        if prog and prog >= 89.5 and prog < 100 then
+            KYS_KingScourgeActive = true
+            KYS_KingScourgeEndTime = os.clock() + (duration or 20)
+            if VD.AutoSkillcheck and VD.AutoSkillcheckMode == "Instant" then
+                if not KYS_UserPreScourgeSkillMode then
+                    KYS_UserPreScourgeSkillMode = VD.AutoSkillcheckMode
+                end
+                VD.AutoSkillcheckMode = "Normal"
+            end
+        end
+    else
+        if KYS_KingScourgeActive then
+            KYS_KingScourgeActive = false
+            KYS_KingScourgeEndTime = 0
+            if KYS_UserPreScourgeSkillMode then
+                local restored = KYS_UserPreScourgeSkillMode
+                VD.AutoSkillcheckMode = restored
+                KYS_UserPreScourgeSkillMode = nil
+            end
+        end
+    end
+end
+
+-- Generator 90% Progress Monitor Loop (Integrated into Auto Skillcheck silently)
+task.spawn(function()
+    while true do
+        task.wait(0.15)
+        if VD.AutoSkillcheck then
+            local isRep = VD_IsRepairingGenerator()
+            if isRep then
+                local prog, gen = VD_GetCurrentRepairingGenProgress()
+                if prog and prog >= 89.5 and prog < 100 then
+                    -- Reached 90% progress threshold! Trigger Scourge protection automatically
+                    if KYS_KillerHasKingScourge() or VD_IsKingScourgeActive() then
+                        if not KYS_KingScourgeActive then
+                            KYS_SetKingScourgeActive(true, 25, "Generator mencapai 90%!")
+                        end
+                    end
+                elseif prog and prog >= 100 then
+                    -- Generator 100% completed! Restore mode immediately
+                    if KYS_KingScourgeActive then
+                        KYS_SetKingScourgeActive(false)
+                    end
+                elseif prog and prog < 89.5 then
+                    -- Generator kicked below 90%
+                    if KYS_KingScourgeActive and os.clock() >= KYS_KingScourgeEndTime then
+                        KYS_SetKingScourgeActive(false)
+                    end
+                end
+            else
+                -- Not repairing: if timer expired, restore
+                if KYS_KingScourgeActive and os.clock() >= KYS_KingScourgeEndTime then
+                    KYS_SetKingScourgeActive(false)
+                end
+            end
+        end
+    end
+end)
+
+local function KYS_SetupKingScourgeRemoteHook()
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    if not remotes then return end
+    for _, remote in ipairs(remotes:GetDescendants()) do
+        if remote:IsA("RemoteEvent") then
+            local rName = remote.Name:lower()
+            if rName:find("scourge") or rName:find("kingscourge") then
+                pcall(function()
+                    remote.OnClientEvent:Connect(function(...)
+                        local args = { ... }
+                        local detectedScourge = true
+                        local isEnd = false
+                        for _, a in ipairs(args) do
+                            local sa = tostring(a):lower()
+                            if a == false or sa:find("end") or sa:find("stop") or sa:find("complete") then
+                                isEnd = true
+                            end
+                        end
+                        if detectedScourge then
+                            if isEnd then
+                                KYS_SetKingScourgeActive(false)
+                            else
+                                local prog = VD_GetCurrentRepairingGenProgress()
+                                if prog and prog >= 89.5 then
+                                    KYS_SetKingScourgeActive(true, 20, "Remote King's Scourge terdeteksi!")
+                                end
+                            end
+                        end
+                    end)
+                end)
+            end
+        end
+    end
+    local genFolder = remotes:FindFirstChild("Generator")
+    local failEvent = genFolder and genFolder:FindFirstChild("SkillCheckFailEvent")
+    if failEvent and failEvent:IsA("RemoteEvent") then
+        pcall(function()
+            failEvent.OnClientEvent:Connect(function(...)
+                local prog = VD_GetCurrentRepairingGenProgress()
+                if prog and prog >= 89.5 and KYS_KillerHasKingScourge() then
+                    KYS_SetKingScourgeActive(true, 15, "Perk King's Scourge aktif!")
+                end
+            end)
+        end)
+    end
+end
+task.spawn(KYS_SetupKingScourgeRemoteHook)
+
+-- === NEW MODULE FEATURES HELPER FUNCTIONS ===
+function VD_SetCollisionDisabled(enabled)
+    VD.DisablePlayerCollision = enabled == true
+    pcall(function()
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local col = remotes and remotes:FindFirstChild("Collision")
+        if col then
+            if enabled then
+                local dis = col:FindFirstChild("DisableCollision")
+                if dis then dis:FireServer() end
+            else
+                local en = col:FindFirstChild("EnableCollision")
+                if en then en:FireServer() end
+            end
+        end
+    end)
+    pcall(function()
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                    part.CanCollide = not enabled
+                end
+            end
+        end
+    end)
+end
+
+local function VD_InitNoFallSlowdown()
+    RunService.Heartbeat:Connect(function()
+        if not VD.NoFallSlowdown then return end
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hum or hum.Health <= 50 then return end
+        if hum.FloorMaterial ~= Enum.Material.Air then
+            local targetSpeed = VD.Speed and VD.SpeedValue or 16
+            if hum.WalkSpeed < targetSpeed and not (char:GetAttribute("Crouching")) and not (char:GetAttribute("IsBeingHealed")) then
+                hum.WalkSpeed = targetSpeed
+            end
+            local inter = char:FindFirstChild("CheckInterractable")
+            if inter and inter:GetAttribute("isSlowedFromFall") == true then
+                pcall(function() inter:SetAttribute("isSlowedFromFall", false) end)
+            end
+        end
+    end)
+end
+task.spawn(VD_InitNoFallSlowdown)
+
+local function VD_InitNoTurnPenalty()
+    RunService.RenderStepped:Connect(function()
+        if not VD.NoTurnPenalty then return end
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hum or not hrp or hum.Health <= 50 then return end
+        if hum.MoveDirection.Magnitude > 0.05 then
+            hum.AutoRotate = true
+            local currentVel = hrp.AssemblyLinearVelocity
+            local currentHVel = Vector3.new(currentVel.X, 0, currentVel.Z)
+            local targetSpeed = hum.WalkSpeed
+            if currentHVel.Magnitude > 0 and currentHVel.Magnitude < targetSpeed * 0.95 then
+                local newHVel = hum.MoveDirection.Unit * targetSpeed
+                hrp.AssemblyLinearVelocity = Vector3.new(newHVel.X, currentVel.Y, newHVel.Z)
+            end
+        end
+    end)
+end
+task.spawn(VD_InitNoTurnPenalty)
+
+local function VD_InitAutoExitGate()
+    task.spawn(function()
+        while true do
+            task.wait(0.5)
+            if VD.AutoExitGateLever then
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if not hrp then return end
+                    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+                    local exit = remotes and remotes:FindFirstChild("Exit")
+                    local leverEvent = exit and exit:FindFirstChild("LeverEvent")
+                    if leverEvent and KYS_Cache and KYS_Cache.Gates then
+                        for _, entry in ipairs(KYS_Cache.Gates) do
+                            local gate = entry.model or entry.part
+                            if gate and gate.Parent then
+                                local lPt = gate:FindFirstChild("ExitPoint", true)
+                                    or gate:FindFirstChild("Lever", true)
+                                    or entry.part
+                                if lPt and lPt:IsA("BasePart") and (lPt.Position - hrp.Position).Magnitude < 18 then
+                                    leverEvent:FireServer(lPt, true)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+end
+task.spawn(VD_InitAutoExitGate)
+
 local instantBusy = false
 function VD_InstantSkillcheckUpdate()
     local prompt = PlayerGui:FindFirstChild("SkillCheckPromptGui")
@@ -3855,6 +4679,12 @@ function VD_InstantSkillcheckUpdate()
         return
     end
 
+    -- Fast safety check: If King's Scourge is active, fall back to Normal skillcheck instantly (0 CPU cost)
+    if KYS_KingScourgeActive then
+        VD_NormalSkillcheckUpdate()
+        return
+    end
+
     if instantBusy or AutoSkill.InstantHasClicked then return end
 
     local gr = goal.Rotation % 360
@@ -3876,9 +4706,16 @@ function VD_InstantSkillcheckUpdate()
 end
 RunService.RenderStepped:Connect(function()
     if not VD.AutoSkillcheck then return end
-    if VD.AutoSkillcheckMode == "Perfect" then
+    if KYS_KingScourgeActive and os.clock() >= KYS_KingScourgeEndTime then
+        KYS_SetKingScourgeActive(false)
+    end
+    local activeMode = VD.AutoSkillcheckMode
+    if KYS_KingScourgeActive and activeMode == "Instant" then
+        activeMode = "Normal"
+    end
+    if activeMode == "Perfect" then
         VD_PerfectSkillcheckUpdate()
-    elseif VD.AutoSkillcheckMode == "Instant" then
+    elseif activeMode == "Instant" then
         VD_InstantSkillcheckUpdate()
     else
         VD_NormalSkillcheckUpdate()
@@ -4032,8 +4869,17 @@ GenBypass = {
     HotkeyCode  = Enum.KeyCode.G,
 }
 function GB_GetAllGenerators()
+    local gens = {}
+    if KYS_Cache and KYS_Cache.Generators and #KYS_Cache.Generators > 0 then
+        for _, entry in ipairs(KYS_Cache.Generators) do
+            if entry.model and entry.model:IsA("Model") and entry.model.Parent then
+                table.insert(gens, entry.model)
+            end
+        end
+        if #gens > 0 then return gens end
+    end
     local now = tick()
-    if now - GenBypass.CacheTimer < 5 then return GenBypass.Cache end
+    if now - GenBypass.CacheTimer < 8 and #GenBypass.Cache > 0 then return GenBypass.Cache end
     GenBypass.Cache = {}
     GenBypass.CacheTimer = now
     local mapFolder = workspace:FindFirstChild("Map")
@@ -4080,48 +4926,40 @@ function GB_DoRepair(targetPoint)
         and ReplicatedStorage.Remotes:FindFirstChild("Generator")
         and ReplicatedStorage.Remotes.Generator:FindFirstChild("RepairEvent")
     local originalCFrame = hrp.CFrame
-    local isBoost = (GenBypass.GenBoost ~= false) or (VD.GenBoost == true)
-    pcall(function()
-        for _, point in pairs(GB_GetPoints(genModel)) do
-            if point ~= targetPoint and point.Parent then
-                hrp.Anchored = true
-                hrp.CFrame = point.CFrame
-                if isBoost then
-                    task.wait(0.015)
+    
+    -- Run asynchronously in task.spawn so the main thread / input never drops FPS
+    task.spawn(function()
+        pcall(function()
+            local points = GB_GetPoints(genModel)
+            for _, point in ipairs(points) do
+                if point ~= targetPoint and point.Parent then
+                    hrp.Anchored = true
+                    hrp.CFrame = point.CFrame
+                    -- Stable pacing: 0.12s hop to allow server synchronization and prevent FPS drop
+                    task.wait(0.12)
                     pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
-                    if not GB_WaitRepairing(point, 0.15) then
+                    if not GB_WaitRepairing(point, 0.4) then
                         pcall(function() if RepairEvent then RepairEvent:FireServer(point, false) end end)
-                        task.wait(0.01)
+                        task.wait(0.08)
                         hrp.CFrame = point.CFrame
-                        task.wait(0.015)
-                        pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
-                        GB_WaitRepairing(point, 0.1)
-                    end
-                else
-                    task.wait(0.15)
-                    pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
-                    if not GB_WaitRepairing(point, 0.8) then
-                        pcall(function() if RepairEvent then RepairEvent:FireServer(point, false) end end)
                         task.wait(0.1)
-                        hrp.CFrame = point.CFrame
-                        task.wait(0.15)
                         pcall(function() if RepairEvent then RepairEvent:FireServer(point, true) end end)
-                        GB_WaitRepairing(point, 0.5)
+                        GB_WaitRepairing(point, 0.3)
                     end
+                    hrp.Anchored = false
+                    task.wait(0.06)
                 end
-                hrp.Anchored = false
-                task.wait(isBoost and 0.01 or 0.05)
             end
-        end
+        end)
+        pcall(function()
+            if hrp and hrp.Parent then
+                hrp.Anchored = false
+                hrp.CFrame = originalCFrame
+            end
+        end)
+        task.wait(0.1)
+        pcall(function() if RepairEvent then RepairEvent:FireServer(targetPoint, false) end end)
     end)
-    pcall(function()
-        if hrp and hrp.Parent then
-            hrp.Anchored = false
-            hrp.CFrame = originalCFrame
-        end
-    end)
-    task.wait(isBoost and 0.02 or 0.1)
-    pcall(function() if RepairEvent then RepairEvent:FireServer(targetPoint, false) end end)
 end
 function GB_GetNearestPoint()
     local character = LocalPlayer.Character
@@ -4474,6 +5312,183 @@ function Veil_GetRealVelocity(part, playerName)
     cache.lastTime = currentTime
     return cache.velocity
 end
+-- ====================================================================
+-- ADVANCED BALLISTIC SOLVER & PING COMPENSATION (Otherscript Integrated)
+-- ====================================================================
+local VD_VelocityHistory = {}
+
+function getSmoothedVelocity(target, rawVel, part)
+    local entry = VD_VelocityHistory[target]
+    local now = tick()
+    local computedVel = rawVel
+    if part and typeof(part) == "Instance" and part:IsA("BasePart") then
+        if entry and entry.lastPos and ((now - entry.time) > 0.001 and (now - entry.time) < 0.5) then
+            local dt = now - entry.time
+            computedVel = (part.Position - entry.lastPos) / dt
+        end
+    end
+    if rawVel.Magnitude < 0.5 and computedVel.Magnitude < 0.5 then
+        if not entry then
+            entry = {}
+            VD_VelocityHistory[target] = entry
+        end
+        entry.velocity = Vector3.zero
+        entry.time = now
+        entry.lastPos = (part and typeof(part) == "Instance" and part:IsA("BasePart")) and part.Position or nil
+        return Vector3.zero
+    end
+    if computedVel.Magnitude > 60 then computedVel = rawVel end
+    if rawVel.Magnitude > 60 then rawVel = (computedVel.Magnitude <= 60) and computedVel or Vector3.zero end
+    local blended = rawVel:Lerp(computedVel, 0.5)
+    if blended.Magnitude > 40 then blended = blended.Unit * 40 end
+    if not entry or (now - entry.time > 0.5) then
+        if not entry then
+            entry = {}
+            VD_VelocityHistory[target] = entry
+        end
+        entry.velocity = blended
+        entry.time = now
+        entry.lastPos = (part and typeof(part) == "Instance" and part:IsA("BasePart")) and part.Position or nil
+        return blended
+    end
+    local smoothed = entry.velocity:Lerp(blended, 0.2)
+    if smoothed.Magnitude < 0.2 then
+        smoothed = Vector3.zero
+    elseif smoothed.Magnitude > 40 then
+        smoothed = smoothed.Unit * 40
+    end
+    entry.velocity = smoothed
+    entry.time = now
+    entry.lastPos = (part and typeof(part) == "Instance" and part:IsA("BasePart")) and part.Position or nil
+    return smoothed
+end
+
+function solveProjectileAim(origin, targetPos, targetVel, targetAcc, projSpeed, gravity)
+    targetAcc = targetAcc or Vector3.zero
+    projSpeed = (projSpeed and projSpeed > 0) and projSpeed or 165
+    gravity = gravity or 28
+    local t = (targetPos - origin).Magnitude / projSpeed
+    local predPos = targetPos
+    for iter = 1, 3 do
+        predPos = (targetPos + (targetVel * t)) + (0.5 * targetAcc) * (t ^ 2)
+        local delta = predPos - origin
+        local horizDist = Vector3.new(delta.X, 0, delta.Z).Magnitude
+        local dy = delta.Y
+        if gravity == 0 then
+            t = delta.Magnitude / projSpeed
+        else
+            local A = 0.25 * (gravity ^ 2)
+            local B = dy * gravity - (projSpeed ^ 2)
+            local C = (horizDist ^ 2) + (dy ^ 2)
+            local disc = (B ^ 2) - (4 * A * C)
+            if disc >= 0 then
+                local t1 = (-B - math.sqrt(disc)) / (2 * A)
+                local t2 = (-B + math.sqrt(disc)) / (2 * A)
+                local cand = -1
+                if t1 > 0 and t2 > 0 then
+                    cand = math.min(t1, t2)
+                elseif t1 > 0 then
+                    cand = t1
+                elseif t2 > 0 then
+                    cand = t2
+                end
+                if cand > 0 then
+                    t = math.sqrt(cand)
+                else
+                    t = delta.Magnitude / projSpeed
+                end
+            else
+                t = delta.Magnitude / projSpeed
+                break
+            end
+        end
+    end
+    local aimDelta = predPos - origin
+    local gravVec = Vector3.new(0, -gravity, 0)
+    local launchVel = (aimDelta - ((0.5 * gravVec) * (t ^ 2))) / t
+    return launchVel.Unit, predPos
+end
+
+function prioritizeSilentAimTargets(list, priority, maxDist)
+    if not list or #list == 0 then return nil end
+    maxDist = math.max(maxDist or 150, 1)
+    priority = priority or "Nearest"
+    if priority == "Furthest" then
+        table.sort(list, function(a, b)
+            if math.abs(a.dist - b.dist) > 0.01 then return a.dist > b.dist end
+            return a.health < b.health
+        end)
+    elseif priority == "Injured" then
+        table.sort(list, function(a, b)
+            if math.abs(a.health - b.health) > 0.01 then return a.health < b.health end
+            return a.dist < b.dist
+        end)
+    elseif priority == "Healed" then
+        table.sort(list, function(a, b)
+            if math.abs(a.health - b.health) > 0.01 then return a.health > b.health end
+            return a.dist < b.dist
+        end)
+    elseif priority == "NearestInjured" then
+        table.sort(list, function(a, b)
+            local ndA = a.dist / maxDist
+            local ndB = b.dist / maxDist
+            local mhA = math.max(a.maxHealth or 100, 1)
+            local mhB = math.max(b.maxHealth or 100, 1)
+            local hA = math.clamp(a.health / mhA, 0, 1)
+            local hB = math.clamp(b.health / mhB, 0, 1)
+            local sA = 0.5 * ndA + 0.5 * hA
+            local sB = 0.5 * ndB + 0.5 * hB
+            if math.abs(sA - sB) > 0.001 then return sA < sB end
+            return a.dist < b.dist
+        end)
+    elseif priority == "NearestHealed" then
+        table.sort(list, function(a, b)
+            local ndA = a.dist / maxDist
+            local ndB = b.dist / maxDist
+            local mhA = math.max(a.maxHealth or 100, 1)
+            local mhB = math.max(b.maxHealth or 100, 1)
+            local hA = math.clamp(a.health / mhA, 0, 1)
+            local hB = math.clamp(b.health / mhB, 0, 1)
+            local sA = 0.5 * ndA + 0.5 * (1 - hA)
+            local sB = 0.5 * ndB + 0.5 * (1 - hB)
+            if math.abs(sA - sB) > 0.001 then return sA < sB end
+            return a.dist < b.dist
+        end)
+    elseif priority == "FurthestInjured" then
+        table.sort(list, function(a, b)
+            local ndA = a.dist / maxDist
+            local ndB = b.dist / maxDist
+            local mhA = math.max(a.maxHealth or 100, 1)
+            local mhB = math.max(b.maxHealth or 100, 1)
+            local hA = math.clamp(a.health / mhA, 0, 1)
+            local hB = math.clamp(b.health / mhB, 0, 1)
+            local sA = 0.5 * (1 - ndA) + 0.5 * hA
+            local sB = 0.5 * (1 - ndB) + 0.5 * hB
+            if math.abs(sA - sB) > 0.001 then return sA < sB end
+            return a.dist > b.dist
+        end)
+    elseif priority == "FurthestHealed" then
+        table.sort(list, function(a, b)
+            local ndA = a.dist / maxDist
+            local ndB = b.dist / maxDist
+            local mhA = math.max(a.maxHealth or 100, 1)
+            local mhB = math.max(b.maxHealth or 100, 1)
+            local hA = math.clamp(a.health / mhA, 0, 1)
+            local hB = math.clamp(b.health / mhB, 0, 1)
+            local sA = 0.5 * (1 - ndA) + 0.5 * (1 - hA)
+            local sB = 0.5 * (1 - ndB) + 0.5 * (1 - hB)
+            if math.abs(sA - sB) > 0.001 then return sA < sB end
+            return a.dist > b.dist
+        end)
+    else
+        table.sort(list, function(a, b)
+            if math.abs(a.dist - b.dist) > 0.01 then return a.dist < b.dist end
+            return a.health < b.health
+        end)
+    end
+    return list[1]
+end
+
 function veil_getTargetPart(char)
     if VeilConfig.TargetPart == "Head" then
         return char:FindFirstChild("Head")
@@ -4483,38 +5498,238 @@ function veil_getTargetPart(char)
         return char:FindFirstChild("Torso")
             or char:FindFirstChild("UpperTorso")
             or char:FindFirstChild("HumanoidRootPart")
+            or (char.PrimaryPart)
     end
 end
-function veil_getClosestSurvivor()
+
+function getSilentAimTarget(weaponType)
     local myChar = LocalPlayer.Character
-    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil end
-    local cam      = workspace.CurrentCamera
-    local center   = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-    local bestDist = VeilConfig.FOV
-    local bestTarget = nil
+    local cam = workspace.CurrentCamera
+    if not cam or not myChar then return nil, nil, nil end
+    local center = cam.ViewportSize / 2
+    local isSpear = (weaponType == "Spear")
+    
+    local fovRadius = isSpear and (tonumber(VeilConfig.FOV) or 240) or (tonumber(VD.AIM_RevolverSilentFOV) or 200)
+    local targetMode = isSpear and (VD.SPEAR_TargetMode or "Survivors") or (VD.TOF_TargetMode or "Both Teams")
+    local priority = isSpear and (VD.SPEAR_Priority or "Nearest") or (VD.AIM_RevolverPriority or "Nearest")
+    
+    local candidates = {}
     for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-        if p ~= LocalPlayer and p.Team and p.Team.Name == "Survivors" and p.Character then
+        if p ~= LocalPlayer and p.Character and p.Character:IsA("Model") then
             local char = p.Character
-            local hum  = char:FindFirstChildOfClass("Humanoid")
-            local part = veil_getTargetPart(char)
-            if hum and hum.Health > 0 and part then
-                local dist3D = (part.Position - myRoot.Position).Magnitude
-                if dist3D <= VeilConfig.MaxDist then
-                    local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
-                    if onScreen then
+            local isKiller = (p:GetAttribute("Role") == "Killer" or p:GetAttribute("IsKiller") == true or char:GetAttribute("Role") == "Killer" or char:GetAttribute("IsKiller") == true)
+            local teamName = p.Team and p.Team.Name or ""
+            
+            local eligible = false
+            if targetMode == "Both Teams" then
+                eligible = true
+            elseif targetMode == "Killer" then
+                eligible = isKiller or (teamName == "Killer")
+            elseif targetMode == "Survivors" then
+                eligible = (not isKiller) or (teamName == "Survivors")
+            elseif targetMode == "Zombie" then
+                eligible = (teamName == "Zombie" or char.Name:lower():find("zombie") ~= nil)
+            else
+                eligible = true
+            end
+            
+            if eligible then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                local targetPart = (VeilConfig.TargetPart == "Head" and char:FindFirstChild("Head"))
+                    or (VeilConfig.TargetPart == "Root" and char:FindFirstChild("HumanoidRootPart"))
+                    or char:FindFirstChild("UpperTorso")
+                    or char:FindFirstChild("Torso")
+                    or char:FindFirstChild("HumanoidRootPart")
+                    or char.PrimaryPart
+                
+                if targetPart and hum and hum.Health > 0 then
+                    local screenPos, onScreen = cam:WorldToViewportPoint(targetPart.Position)
+                    if onScreen and screenPos.Z > 0 then
                         local dist2D = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
-                        if dist2D < bestDist then
-                            bestDist   = dist2D
-                            bestTarget = { Player = p, Part = part }
+                        if dist2D <= fovRadius then
+                            table.insert(candidates, {
+                                player = p,
+                                character = char,
+                                part = targetPart,
+                                dist = dist2D,
+                                health = hum.Health,
+                                maxHealth = hum.MaxHealth or 100,
+                            })
                         end
                     end
                 end
             end
         end
     end
-    return bestTarget
+    local best = prioritizeSilentAimTargets(candidates, priority, fovRadius)
+    if best then
+        return best.character, best.part, best.player
+    end
+    return nil, nil, nil
 end
+
+function veil_getClosestSurvivor()
+    local char, part, player = getSilentAimTarget("Spear")
+    if char and part then
+        return { Character = char, Part = part, Player = player }
+    end
+    return nil
+end
+
+-- ====================================================================
+-- 2D CORNER BOUNDING BOX MILITARY HUD (From Otherscript)
+-- ====================================================================
+local VD_SilentAimHUD = {
+    gui = nil,
+    frame = nil,
+    corners = {},
+}
+
+local VD_HighlightColors = {
+    Cyan = Color3.fromRGB(0, 240, 255),
+    Red = Color3.fromRGB(255, 50, 50),
+    Green = Color3.fromRGB(50, 255, 50),
+    Yellow = Color3.fromRGB(255, 255, 50),
+    Purple = Color3.fromRGB(170, 80, 255),
+    Orange = Color3.fromRGB(255, 125, 0),
+    Pink = Color3.fromRGB(255, 100, 200),
+    White = Color3.fromRGB(255, 255, 255),
+    Blue = Color3.fromRGB(0, 100, 255),
+}
+
+function setupTargetBoxGui()
+    if VD_SilentAimHUD.gui and VD_SilentAimHUD.gui.Parent then return end
+    local guiParent = LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "VD_SilentAimTargetGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.DisplayOrder = 999
+    screenGui.Parent = guiParent
+    VD_SilentAimHUD.gui = screenGui
+    
+    local targetBox = Instance.new("Frame")
+    targetBox.Name = "TargetBox"
+    targetBox.BackgroundTransparency = 1
+    targetBox.BorderSizePixel = 0
+    targetBox.Visible = false
+    targetBox.Parent = screenGui
+    VD_SilentAimHUD.frame = targetBox
+    
+    local cornerLen = 14
+    local cornerThickness = 2.5
+    local function makeCorner(name, anchor, pos, size)
+        local c = Instance.new("Frame")
+        c.Name = name
+        c.AnchorPoint = anchor
+        c.Position = pos
+        c.Size = size
+        c.BorderSizePixel = 0
+        c.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        c.Parent = targetBox
+        return c
+    end
+    
+    VD_SilentAimHUD.corners = {
+        TL_H = makeCorner("TL_H", Vector2.new(0, 0), UDim2.new(0, -1, 0, -1), UDim2.new(0, cornerLen, 0, cornerThickness)),
+        TL_V = makeCorner("TL_V", Vector2.new(0, 0), UDim2.new(0, -1, 0, -1), UDim2.new(0, cornerThickness, 0, cornerLen)),
+        TR_H = makeCorner("TR_H", Vector2.new(1, 0), UDim2.new(1, 1, 0, -1), UDim2.new(0, cornerLen, 0, cornerThickness)),
+        TR_V = makeCorner("TR_V", Vector2.new(1, 0), UDim2.new(1, 1, 0, -1), UDim2.new(0, cornerThickness, 0, cornerLen)),
+        BL_H = makeCorner("BL_H", Vector2.new(0, 1), UDim2.new(0, -1, 1, 1), UDim2.new(0, cornerLen, 0, cornerThickness)),
+        BL_V = makeCorner("BL_V", Vector2.new(0, 1), UDim2.new(0, -1, 1, 1), UDim2.new(0, cornerThickness, 0, cornerLen)),
+        BR_H = makeCorner("BR_H", Vector2.new(1, 1), UDim2.new(1, 1, 1, 1), UDim2.new(0, cornerLen, 0, cornerThickness)),
+        BR_V = makeCorner("BR_V", Vector2.new(1, 1), UDim2.new(1, 1, 1, 1), UDim2.new(0, cornerThickness, 0, cornerLen)),
+    }
+end
+
+function get2DBoundingBox(char)
+    local cam = workspace.CurrentCamera
+    if not cam or not char then return nil end
+    local head = char:FindFirstChild("Head")
+    local root = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
+    if not root then return nil end
+    local topPos = head and (head.Position + Vector3.new(0, 0.7, 0)) or (root.Position + Vector3.new(0, 2.2, 0))
+    local btmPos = root.Position - Vector3.new(0, 2.8, 0)
+    local topScreen, topVis = cam:WorldToViewportPoint(topPos)
+    local btmScreen, btmVis = cam:WorldToViewportPoint(btmPos)
+    local rootScreen, rootVis = cam:WorldToViewportPoint(root.Position)
+    if not rootVis or rootScreen.Z <= 0 then return nil end
+    local height = math.abs(btmScreen.Y - topScreen.Y)
+    local width = math.clamp(height * 0.6, 12, 350)
+    if height < 6 then return nil end
+    return rootScreen.X - (width / 2), topScreen.Y, width, height
+end
+
+function updateSilentAimTargetHighlight()
+    local spearActive = (VeilConfig.Enabled or VD.SPEAR_SilentAim or VD.AIM_SpearSilentAimEnabled) and (VD.AIM_SilentAimBoxHighlight ~= false)
+    local revolverActive = (VD.AIM_RevolverSilentAimEnabled or VD.TOF_SilentAim) and (VD.AIM_RevolverSilentHighlight ~= false)
+    if not spearActive and not revolverActive then
+        if VD_SilentAimHUD.frame and VD_SilentAimHUD.frame.Visible then
+            VD_SilentAimHUD.frame.Visible = false
+        end
+        return
+    end
+    setupTargetBoxGui()
+    local targetChar, targetPart, weapon = nil, nil, nil
+    if spearActive then
+        targetChar, targetPart = getSilentAimTarget("Spear")
+        if targetChar then weapon = "Spear" end
+    end
+    if not targetChar and revolverActive then
+        targetChar, targetPart = getSilentAimTarget("Revolver")
+        if targetChar then weapon = "Revolver" end
+    end
+    if targetChar and VD_SilentAimHUD.frame then
+        local x, y, w, h = get2DBoundingBox(targetChar)
+        if x and y and w and h then
+            local colorName = (weapon == "Spear") and (VD.AIM_SilentAimBoxColor or "Red") or (VD.AIM_RevolverSilentHighlightColor or "Cyan")
+            local color = VD_HighlightColors[colorName] or (weapon == "Spear" and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 240, 255))
+            VD_SilentAimHUD.frame.Position = UDim2.new(0, x, 0, y)
+            VD_SilentAimHUD.frame.Size = UDim2.new(0, w, 0, h)
+            VD_SilentAimHUD.frame.BackgroundTransparency = 1
+            local armLen = math.clamp(math.floor(w * 0.25), 6, 16)
+            local corners = VD_SilentAimHUD.corners
+            if corners.TL_H then corners.TL_H.Size = UDim2.new(0, armLen, 0, 2.5) end
+            if corners.TR_H then corners.TR_H.Size = UDim2.new(0, armLen, 0, 2.5) end
+            if corners.BL_H then corners.BL_H.Size = UDim2.new(0, armLen, 0, 2.5) end
+            if corners.BR_H then corners.BR_H.Size = UDim2.new(0, armLen, 0, 2.5) end
+            if corners.TL_V then corners.TL_V.Size = UDim2.new(0, 2.5, 0, armLen) end
+            if corners.TR_V then corners.TR_V.Size = UDim2.new(0, 2.5, 0, armLen) end
+            if corners.BL_V then corners.BL_V.Size = UDim2.new(0, 2.5, 0, armLen) end
+            if corners.BR_V then corners.BR_V.Size = UDim2.new(0, 2.5, 0, armLen) end
+            for _, frame in pairs(corners) do
+                if frame then
+                    frame.BackgroundColor3 = color
+                    frame.BackgroundTransparency = 0
+                end
+            end
+            VD_SilentAimHUD.frame.Visible = true
+            return
+        end
+    end
+    if VD_SilentAimHUD.frame and VD_SilentAimHUD.frame.Visible then
+        VD_SilentAimHUD.frame.Visible = false
+    end
+end
+
+-- ====================================================================
+-- REVOLVER DRAWING FOV CIRCLE
+-- ====================================================================
+local VD_RevolverFOVCircle = nil
+pcall(function()
+    if Drawing and Drawing.new then
+        VD_RevolverFOVCircle = Drawing.new("Circle")
+        VD_RevolverFOVCircle.Visible = false
+        VD_RevolverFOVCircle.Thickness = 1.5
+        VD_RevolverFOVCircle.Color = Color3.fromRGB(0, 240, 255)
+        VD_RevolverFOVCircle.Filled = false
+        VD_RevolverFOVCircle.Transparency = 0.85
+    end
+end)
+
+-- ====================================================================
+-- HOOK IN-FLIGHT FIRESHERVER (Veil Spear & Revolver Twist of Fate)
+-- ====================================================================
 function veil_setupInterceptor()
     if VeilState.remoteHooked then return end
     task.spawn(function()
@@ -4556,9 +5771,59 @@ function veil_setupInterceptor()
                         end
                     end
                     if method == "FireServer" then
-                        if self.Name == "Spearthrow" and VeilConfig.Enabled then
-                            return nil
+                        if (self.Name == "VaultEvent" or self.Name == "PalletSlideEvent") and VD.SURV_AlwaysFastVault then
+                            args[2] = true
+                            return oldNamecall(self, unpack(args))
                         end
+                        
+                        -- [UPGRADE] Spear Silent Aim (Veil) - In-Flight Interception
+                        if self.Name == "Spearthrow" then
+                            local parent = self.Parent
+                            if parent and (parent.Name == "Veil" or (parent.Parent and parent.Parent.Name == "Killers")) then
+                                if VeilConfig.Enabled or VD.SPEAR_SilentAim or VD.AIM_SpearSilentAimEnabled then
+                                    local targetChar, targetPart, targetPlayer = getSilentAimTarget("Spear")
+                                    if targetChar and targetPart then
+                                        local myChar = LocalPlayer.Character
+                                        local headPart = myChar and (myChar:FindFirstChild("Head") or myChar:FindFirstChild("HumanoidRootPart"))
+                                        local origin = args[3] or (headPart and headPart.CFrame:PointToWorldSpace(Vector3.new(1.35, 0.34, -2.51))) or (headPart and headPart.Position) or workspace.CurrentCamera.CFrame.Position
+                                        local targetPos = targetPart.Position
+                                        local rawVel = targetPart.AssemblyLinearVelocity or targetPart.Velocity or Vector3.zero
+                                        local targetVel = getSmoothedVelocity(targetPlayer or targetChar, rawVel, targetPart)
+                                        local speed = tonumber(args[2]) or tonumber(VeilConfig.SpearSpeed) or 165
+                                        local gravity = (myChar and myChar:GetAttribute("special") == true) and 18 or (tonumber(VeilConfig.Gravity) or 28)
+                                        local aimDir, predPos = solveProjectileAim(origin, targetPos, targetVel, Vector3.zero, speed, gravity)
+                                        if aimDir then
+                                            args[1] = aimDir
+                                            VeilState.lastPredictedPos = predPos
+                                        end
+                                    end
+                                end
+                                return oldNamecall(self, unpack(args))
+                            end
+                        end
+                        
+                        -- [UPGRADE] Revolver Silent Aim (Twist of Fate) - In-Flight Interception
+                        if self.Name == "Fire" or self.Name == "Shoot" then
+                            local parent = self.Parent
+                            local parentName = parent and parent.Name:lower() or ""
+                            if parentName:find("twist") or parentName:find("fate") or parentName:find("revolver") or self.Name == "Fire" then
+                                if VD.AIM_RevolverSilentAimEnabled or VD.TOF_SilentAim then
+                                    local targetChar, targetPart = getSilentAimTarget("Revolver")
+                                    if targetChar and targetPart then
+                                        local cam = workspace.CurrentCamera
+                                        local origin = cam and cam.CFrame.Position or (LocalPlayer.Character and LocalPlayer.Character:GetPivot().Position)
+                                        local aimDir = (targetPart.Position - origin).Unit
+                                        if #args >= 2 then
+                                            args[2] = aimDir
+                                        else
+                                            args[1] = aimDir
+                                        end
+                                    end
+                                end
+                                return oldNamecall(self, unpack(args))
+                            end
+                        end
+                        
                         if VD.KILLER_InfLakeMist and self.Name == "LakeMist" then
                             local a1 = args[1]
                             if a1 == false then
@@ -4598,6 +5863,7 @@ function veil_setupInterceptor()
     end)
 end
 veil_setupInterceptor()
+
 function veil_fire()
     if VeilState.attackCooldown then return end
     VeilState.attackCooldown = true
@@ -4606,34 +5872,17 @@ function veil_fire()
     local startPart = myChar and (myChar:FindFirstChild("Head") or myChar:FindFirstChild("HumanoidRootPart"))
     if not startPart then return end
     local startPos   = startPart.Position
-    local targetInfo = veil_getClosestSurvivor()
+    local targetChar, targetPart, targetPlayer = getSilentAimTarget("Spear")
     local aimDir
-    if targetInfo and targetInfo.Part then
-        local targetPart = targetInfo.Part
-        local targetPlayer = targetInfo.Player
+    if targetChar and targetPart then
         local targetPos = targetPart.Position
-        local velocity = Veil_GetRealVelocity(targetPart, targetPlayer.Name)
-        local horizontalVel = Vector3.new(velocity.X, 0, velocity.Z)
-        local speed = horizontalVel.Magnitude
-        local distance = (targetPos - startPos).Magnitude
+        local rawVel = targetPart.AssemblyLinearVelocity or targetPart.Velocity or Vector3.zero
+        local velocity = getSmoothedVelocity(targetPlayer or targetChar, rawVel, targetPart)
         local spearSpeed = tonumber(VeilConfig.SpearSpeed) or 165
-        local timeToHit = distance / spearSpeed
-        local horizontalPrediction = Vector3.zero
-        if speed > 0.5 and VeilConfig.AutoPredict then
-            local factor = tonumber(VeilConfig.HorizontalPredictFactor) or 1
-            horizontalPrediction = horizontalVel * timeToHit * factor
-        end
-        local predictedPos = targetPos + horizontalPrediction
-        local drop = 0
-        -- Di jarak dekat (< 15 studs), lemparan langsung tanpa drop agar tidak melayang di atas target
-        if distance > 15 then
-            local gravity = VeilConfig.AutoPredict and 28 or (tonumber(VeilConfig.Gravity) or 25)
-            drop = 0.5 * gravity * (timeToHit ^ 2)
-            drop = math.clamp(drop, 0, 3.5)
-        end
-        local finalPos = predictedPos + Vector3.new(0, drop, 0)
-        aimDir = (finalPos - startPos).Unit
-        VeilState.lastPredictedPos = finalPos
+        local gravity = (myChar and myChar:GetAttribute("special") == true) and 18 or (tonumber(VeilConfig.Gravity) or 28)
+        local solvedDir, predPos = solveProjectileAim(startPos, targetPos, velocity, Vector3.zero, spearSpeed, gravity)
+        aimDir = solvedDir or (targetPos - startPos).Unit
+        VeilState.lastPredictedPos = predPos or targetPos
     else
         aimDir = workspace.CurrentCamera.CFrame.LookVector
         VeilState.lastPredictedPos = nil
@@ -4645,7 +5894,7 @@ function veil_fire()
             if killers then
                 local veil = killers:FindFirstChild("Veil")
                 if veil and veil:FindFirstChild("Spearthrow") then
-                    veil.Spearthrow:FireServer(aimDir, VeilConfig.SpearSpeed, startPos)
+                    veil.Spearthrow:FireServer(aimDir, tonumber(VeilConfig.SpearSpeed) or 165, startPos)
                 end
             end
         end
@@ -4659,6 +5908,7 @@ function veil_fire()
         end)
     end
 end
+
 game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
     local isTouch = input.UserInputType == Enum.UserInputType.Touch
     if gp and not isTouch then return end
@@ -4691,6 +5941,7 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
         end
     end
 end)
+
 game:GetService("UserInputService").InputEnded:Connect(function(input, gp)
     if VeilState.chargingSpear
     and (input == VeilState.touchInput or input.UserInputType == Enum.UserInputType.MouseButton1) then
@@ -4699,17 +5950,39 @@ game:GetService("UserInputService").InputEnded:Connect(function(input, gp)
         veil_fire()
     end
 end)
+
 game:GetService("RunService").RenderStepped:Connect(function()
     local cam         = workspace.CurrentCamera
     local myChar      = LocalPlayer.Character
     local isSpearMode = myChar and myChar:GetAttribute("spearmode") == true
-    if VeilConfig.Enabled and VeilConfig.ShowFOV and isSpearMode then
+    
+    -- Spear FOV Circle
+    if VeilConfig.Enabled and VeilConfig.ShowFOV and isSpearMode and cam then
         VeilDraw.FOVCircle.Visible  = true
-        VeilDraw.FOVCircle.Radius   = VeilConfig.FOV
+        VeilDraw.FOVCircle.Radius   = tonumber(VeilConfig.FOV) or 150
         VeilDraw.FOVCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
     else
         VeilDraw.FOVCircle.Visible = false
     end
+    
+    -- Revolver FOV Circle
+    if VD_RevolverFOVCircle then
+        local revolverEnabled = (VD.AIM_RevolverSilentAimEnabled or VD.TOF_SilentAim)
+        if revolverEnabled and cam then
+            local fovRad = tonumber(VD.AIM_RevolverSilentFOV) or 200
+            local colName = VD.AIM_RevolverSilentHighlightColor or "Cyan"
+            VD_RevolverFOVCircle.Visible = true
+            VD_RevolverFOVCircle.Radius = fovRad
+            VD_RevolverFOVCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+            VD_RevolverFOVCircle.Color = VD_HighlightColors[colName] or Color3.fromRGB(0, 240, 255)
+        else
+            VD_RevolverFOVCircle.Visible = false
+        end
+    end
+    
+    -- Realtime Target Highlight & 2D Military Corner Box HUD
+    pcall(updateSilentAimTargetHighlight)
+    
     if VeilState.chargingSpear and VeilConfig.Enabled and isSpearMode then
         local target = veil_getClosestSurvivor()
         if target and target.Part and target.Part.Parent then
@@ -4751,7 +6024,7 @@ game:GetService("RunService").RenderStepped:Connect(function()
         VeilDraw.Highlight.Parent = nil
         if getgenv().KYS_SpearLaserPart then getgenv().KYS_SpearLaserPart.Transparency = 1 end
     end
-    if VeilConfig.Enabled and isSpearMode and VeilState.lastPredictedPos then
+    if VeilConfig.Enabled and isSpearMode and VeilState.lastPredictedPos and cam then
         local screenPos, onScreen = cam:WorldToViewportPoint(VeilState.lastPredictedPos)
         local viewport = cam.ViewportSize
         local center = Vector2.new(viewport.X / 2, viewport.Y / 2)
@@ -4782,7 +6055,7 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 local Main, ESPTab, MapTab, FOVTab
-local SurvivorTab, KillerTab, GeneratorTab, FlingTab, SettingsTab, ResetTab
+local SurvivorTab, KillerTab, GeneratorTab, FlingTab, SettingsTab, ResetTab, settingsSection
 local VisualTab, MainTab, AimTab, MappingTab, PlayerTab
 local VisualFeatureTabs, MainFeatureTabs, MainKillerFeatureTabs, AimFeatureTabs, MappingFeatureTabs, PlayerFeatureTabs, PlayerMiscFeatureTabs
 local KYS_MainInfoPanel = {
@@ -4896,13 +6169,75 @@ if Window then
                     if (methodName == "AddDivider" or methodName == "AddSeperator") and type(config) == "table" then
                         config = config.Text or config.Title or config.Name
                     end
+                    local sliderDecimals = nil
                     if type(config) == "table" then
                         config = normalizeControlConfig(config)
                         if methodName == "AddToggle" or methodName == "AddToggleSlider" then
                             config.HasKeybind = true
                         end
+                        if methodName == "AddSlider" then
+                            local function countDec(val)
+                                if not val then return 0 end
+                                local s = tostring(val)
+                                local dot = s:find("%.")
+                                return dot and (#s - dot) or 0
+                            end
+                            if type(config.Decimals) == "number" and config.Decimals >= 0 then
+                                sliderDecimals = math.min(math.floor(config.Decimals), 6)
+                            elseif type(config.Precision) == "number" and config.Precision >= 0 then
+                                sliderDecimals = math.min(math.floor(config.Precision), 6)
+                            else
+                                local incDec = countDec(config.Increment)
+                                if incDec > 0 then
+                                    sliderDecimals = math.min(incDec, 6)
+                                else
+                                    local minDec = countDec(config.Min)
+                                    local defDec = countDec(config.Default)
+                                    local maxDec = math.max(minDec, defDec)
+                                    if maxDec > 0 then sliderDecimals = math.min(maxDec, 6) end
+                                end
+                            end
+                            if sliderDecimals and sliderDecimals > 0 then
+                                config.Decimals = sliderDecimals
+                                config.Precision = sliderDecimals
+                            end
+
+                            local origCb = config.Callback
+                            if type(origCb) == "function" then
+                                local dec = sliderDecimals or 0
+                                config.Callback = function(val)
+                                    local num = tonumber(val)
+                                    if num and dec > 0 then
+                                        num = tonumber(string.format("%." .. dec .. "f", num)) or num
+                                    elseif num and dec == 0 then
+                                        num = math.floor(num + 0.5)
+                                    end
+                                    return origCb(num or val)
+                                end
+                            end
+                        end
                     end
-                    return method(section, config, ...)
+                    local widget = method(section, config, ...)
+                    if type(config) == "table" then
+                        local flag = config.Flag or config.Name or config.Title
+                        if flag and Window and Window.ConfigElements then
+                            Window.ConfigElements[flag] = widget
+                        end
+                        if methodName == "AddSlider" and type(widget) == "table" and type(widget.Set) == "function" then
+                            local origSet = widget.Set
+                            local dec = sliderDecimals or config.Decimals or 0
+                            widget.Set = function(self, val)
+                                local num = tonumber(val)
+                                if num and dec > 0 then
+                                    num = tonumber(string.format("%." .. dec .. "f", num)) or num
+                                elseif num and dec == 0 then
+                                    num = math.floor(num + 0.5)
+                                end
+                                return origSet(self, num or val)
+                            end
+                        end
+                    end
+                    return widget
                 end
             end
         })
@@ -4984,7 +6319,7 @@ if Window then
     PlayerTab = makeTabAdapter(Tabs.Player)
     SettingsTab = makeTabAdapter(Tabs.Settings)
 
-    local settingsSection = SettingsTab:AddSection({ Title = "Profile Manager" })
+    settingsSection = SettingsTab:AddSection({ Title = "Profile Manager" })
     local selectedProfile = getgenv().CurrentConfigName or "Default"
     local configListParagraph = settingsSection:AddParagraph({
         Title = "Config Explorer",
@@ -5072,6 +6407,21 @@ if Window then
 end
 if Window then
 do 
+    
+    -- BATCH 8: Info Banner & Escape Automations
+    if not settingsSection and SettingsTab then
+        settingsSection = SettingsTab:AddSection({ Title = "Profile & Preferences" })
+    end
+    if settingsSection then
+        settingsSection:AddToggle({ Default = false, Name = "Display Info Banner (Top HUD)", Flag = "UI_ShowInfoBanner", Callback = function(v) VD.UI_ShowInfoBanner = v; pcall(VD_UpdateInfoBanner) end })
+        settingsSection:AddToggle({ Default = true, Name = "Banner: Display Map Info", Flag = "UI_InfoBannerShowMap", Callback = function(v) VD.UI_InfoBannerShowMap = v end })
+        settingsSection:AddToggle({ Default = true, Name = "Banner: Display Killer Info", Flag = "UI_InfoBannerShowKiller", Callback = function(v) VD.UI_InfoBannerShowKiller = v end })
+        settingsSection:AddToggle({ Default = true, Name = "Banner: Display FPS", Flag = "UI_InfoBannerShowFPS", Callback = function(v) VD.UI_InfoBannerShowFPS = v end })
+        settingsSection:AddToggle({ Default = true, Name = "Banner: Display Ping", Flag = "UI_InfoBannerShowPing", Callback = function(v) VD.UI_InfoBannerShowPing = v end })
+        settingsSection:AddToggle({ Default = false, Name = "Auto Server Hop on Killer Escape (< 18 studs)", Flag = "UI_AutoServerHopEscape", Callback = function(v) VD.UI_AutoServerHopEscape = v end })
+        settingsSection:AddToggle({ Default = false, Name = "Disable All Notifications Completely", Flag = "UI_DisableAllNotifications", Callback = function(v) VD.UI_DisableAllNotifications = v end })
+    end
+
     local movSection = PlayerFeatureTabs.Movement:AddSection({
         Position = "Center",
         Name = "Movement",
@@ -5130,6 +6480,27 @@ setAutoCrouch(v)
     })
     movSection:AddToggle({ Default = false, Name = "Infinite Jump", Flag = "Infinite Jump", Callback = function(v) VD.InfiniteJump = v end })
     movSection:AddToggle({ Default = false, Name = "Anti Fall Damage", Flag = "Anti Fall Damage", Callback = function(v) VD.AntiFallDamage = v end })
+    movSection:AddToggle({ Default = false, Name = "No Fall Slowdown", Flag = "No Fall Slowdown", Callback = function(v) 
+        VD.NoFallSlowdown = v 
+        if v then
+            VD_Notify("No Fall Slowdown", "Fall stun & speed penalty removed", 2)
+        end
+    end })
+    movSection:AddToggle({ Default = false, Name = "No Turn Penalty (Smooth 360)", Flag = "No Turn Penalty", Callback = function(v) 
+        VD.NoTurnPenalty = v 
+        if v then
+            VD_Notify("No Turn Penalty", "Full movement speed maintained while turning", 2)
+        end
+    end })
+    movSection:AddToggle({ Default = false, Name = "Ghost Mode (Disable Collision)", Flag = "Disable Collision", Callback = function(v) 
+        VD.DisablePlayerCollision = v 
+        pcall(VD_SetCollisionDisabled, v)
+        if v then
+            VD_Notify("Ghost Mode", "Player & Killer collision disabled", 2)
+        else
+            VD_Notify("Ghost Mode", "Collision restored", 2)
+        end
+    end })
     movSection:AddToggle({ Default = false, Name = "Noclip", Flag = "Noclip", Callback = function(v) 
         VD.Noclip = v 
         if not v and getgenv().VD_DisableNoclip then pcall(getgenv().VD_DisableNoclip) end
@@ -5151,6 +6522,27 @@ setAutoCrouch(v)
             VD.MoonwalkZigzagSpeed = v
         end
     })
+    movSection:AddToggle({ Default = true, Name = "Disable Moonwalk Near Vaults", Flag = "SURV_MoonwalkDisableOnVault", Callback = function(v) VD.SURV_MoonwalkDisableOnVault = v end })
+    movSection:AddToggle({ Default = false, Name = "Reverse Moonwalk (180)", Flag = "SURV_ReverseMoonwalk", Callback = function(v) VD.SURV_ReverseMoonwalk = v end })
+    movSection:AddToggle({ Default = false, Name = "Movement-Based Moonwalk", Flag = "SURV_MoonwalkMovementBased", Callback = function(v) VD.SURV_MoonwalkMovementBased = v end })
+    movSection:AddToggle({ Default = false, Name = "Desync Server Visual Ghost", Flag = "VIS_DesyncGhost", Callback = function(v) VD.VIS_DesyncGhost = v end })
+    movSection:AddDropdown({
+        Name = "Ghost Color", Flag = "VIS_DesyncGhostColor",
+        Values = { "Cyan", "Red", "Green", "Purple", "Yellow", "White" },
+        Default = "Cyan", Multi = false,
+        Callback = function(v) if type(v) == "table" then v = v[1] end; VD.VIS_DesyncGhostColor = v or "Cyan" end
+    })
+    movSection:AddSlider({
+        Name = "Ghost Transparency", Flag = "VIS_DesyncGhostTransparency",
+        Min = 0.1, Max = 0.9, Default = 0.5, Increment = 0.05,
+        Callback = function(v) VD.VIS_DesyncGhostTransparency = v end
+    })
+    movSection:AddToggle({ Default = false, Name = "Fake Lag (Pulse Lag)", Flag = "MOVE_FakeLag", Callback = function(v) VD.MOVE_FakeLag = v end })
+    movSection:AddSlider({
+        Name = "Fake Lag Interval (ms)", Flag = "MOVE_FakeLagMs",
+        Min = 50, Max = 1000, Default = 200, Increment = 10,
+        Callback = function(v) VD.MOVE_FakeLagMs = v end
+    })
     movSection:AddSlider({
         Name = "Moonwalk Boost Power", Flag = "Moonwalk Boost Power",
         Min = 1, Max = 2, Default = 1.08, Increment = 0.01,
@@ -5165,18 +6557,15 @@ setAutoCrouch(v)
         Keybind = Enum.KeyCode.X,
         Callback = function(v)
             VD.InvisibleNotVisual = v
-            if not v and VD_InvisibleNV.Active then
-                pcall(VD_SetInvisibleNotVisual, false)
-            end
+            task.spawn(function()
+                local fn = VD_SetInvisibleNotVisual or (getgenv and getgenv().VD_SetInvisibleNotVisual) or VD_UpdateInvisibleNotVisual
+                if fn then
+                    pcall(fn, v)
+                end
+            end)
         end
     })
-    movSection:AddSlider({
-        Name = "Invisible Speed", Flag = "Invisible Speed",
-        Min = 1, Max = 999, Default = 5,
-        Callback = function(v)
-            VD.InvisibleSpeed = v
-        end
-    })
+
     movSection:AddToggle({ Default = false, Name = "Anti AFK", Flag = "Anti AFK", Callback = function(v) VD.AntiAFK = v end })
 end
 do 
@@ -5215,6 +6604,16 @@ do
     })
     aimbotSection:AddToggle({ Default = false, Name = "Visibility Check", Flag = "Visibility Check", Callback = function(v) VD.AIM_VisCheck = v end })
     aimbotSection:AddToggle({ Default = false, Name = "Prediction", Flag = "Prediction", Callback = function(v) VD.AIM_Predict = v end })
+    
+    -- BATCH 1: General AimAssist Controls
+    aimbotSection:AddToggle({ Default = false, Name = "Enable AimAssist (Universal)", Flag = "AIM_AimAssistEnabled", Callback = function(v) VD.AIM_AimAssistEnabled = v end })
+    aimbotSection:AddSlider({ Name = "AimAssist FOV", Flag = "AIM_AimAssistFOV", Min = 30, Max = 400, Default = 150, Increment = 5, Callback = function(v) VD.AIM_AimAssistFOV = v end })
+    aimbotSection:AddSlider({ Name = "AimAssist Smoothness", Flag = "AIM_AimAssistSmoothness", Min = 0, Max = 0.9, Default = 0.2, Increment = 0.05, Callback = function(v) VD.AIM_AimAssistSmoothness = v end })
+    aimbotSection:AddDropdown({ Name = "AimAssist Target Team", Flag = "AIM_AimAssistTargetTeam", Values = { "Both", "Killer", "Survivors" }, Default = "Both", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.AIM_AimAssistTargetTeam = v or "Both" end })
+    aimbotSection:AddDropdown({ Name = "AimAssist Target Part", Flag = "AIM_AimAssistTargetPart", Values = { "UpperTorso", "Head", "HumanoidRootPart" }, Default = "UpperTorso", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.AIM_AimAssistTargetPart = v or "UpperTorso" end })
+    aimbotSection:AddToggle({ Default = true, Name = "AimAssist Prediction", Flag = "AIM_AimAssistPrediction", Callback = function(v) VD.AIM_AimAssistPrediction = v end })
+    aimbotSection:AddToggle({ Default = true, Name = "Show AimAssist FOV Circle", Flag = "AIM_AimAssistShowFOV", Callback = function(v) VD.AIM_AimAssistShowFOV = v end })
+
     local crosshairSection = AimFeatureTabs.Aimbot:AddSection({
         Position = "Center",
         Name = "Advanced Crosshair",
@@ -5283,6 +6682,14 @@ VeilConfig.Enabled = v
         if type(v) == "table" then v = v[1] end
         VeilConfig.TargetPart = v
     end })
+    
+    -- BATCH 1: Spear Aimbot & Trajectory Controls
+    spearSection:AddToggle({ Default = false, Name = "Enable Spear Aimbot", Flag = "AIM_SpearAimbotEnabled", Callback = function(v) VD.AIM_SpearAimbotEnabled = v end })
+    spearSection:AddSlider({ Name = "Spear Aimbot Radius", Flag = "AIM_SpearRadius", Min = 50, Max = 350, Default = 150, Increment = 5, Callback = function(v) VD.AIM_SpearRadius = v end })
+    spearSection:AddSlider({ Name = "Spear Prediction Offset", Flag = "AIM_SpearPredictionOffset", Min = 0, Max = 0.25, Default = 0.05, Increment = 0.01, Callback = function(v) VD.AIM_SpearPredictionOffset = v end })
+    spearSection:AddToggle({ Default = false, Name = "Veil Spear Trajectory", Flag = "AIM_SpearTrajectory", Callback = function(v) VD.AIM_SpearTrajectory = v end })
+    spearSection:AddToggle({ Default = false, Name = "Trajectory Noclip", Flag = "AIM_SpearTrajectoryNoclip", Callback = function(v) VD.AIM_SpearTrajectoryNoclip = v end })
+
     local flaskSection = AimFeatureTabs.Spear:AddSection({
         Position = "Center",
         Name = "Silent Aim Flask (Cure)",
@@ -5327,6 +6734,27 @@ VD.KILLER_FlaskLaser = v
 if getgenv().KYS_SetToFSilentAim then
                 getgenv().KYS_SetToFSilentAim(v)
             end
+        end
+    })
+    tofSection:AddToggle({
+        Default = true,
+        Name = "Tactical Target Corner-Box HUD",
+        Locked = false,
+        TextLocked = "",
+        Flag = "AIM_SilentAimBoxHighlight",
+        Callback = function(v)
+            VD.AIM_SilentAimBoxHighlight = v
+        end
+    })
+    tofSection:AddDropdown({
+        Name = "Target Box Color",
+        Flag = "AIM_SilentAimBoxColor",
+        Values = { "Cyan", "Red", "Yellow", "Green" },
+        Default = "Cyan",
+        Multi = false,
+        Callback = function(v)
+            if type(v) == "table" then v = v[1] end
+            VD.AIM_SilentAimBoxColor = v or "Cyan"
         end
     })
     tofSection:AddToggle({
@@ -5388,6 +6816,24 @@ VD.TOF_BlockKnocked = v
             VD.TOF_Key = v or "None"
         end
     })
+    
+    -- BATCH 1: Revolver Aimbot, Silent Aim & Autofarm Controls
+    
+    tofSection:AddToggle({ Default = true, Name = "Revolver Prediction Enabled", Flag = "RevolverAimbot.PredictionEnabled", Callback = function(v) VD.AIM_RevolverPrediction = v end })
+    tofSection:AddToggle({ Default = true, Name = "Revolver Target Highlight", Flag = "RevolverSilentAim.TargetHighlightEnabled", Callback = function(v) VD.AIM_RevolverSilentHighlight = v end })
+    tofSection:AddDropdown({ Name = "Revolver Highlight Color", Flag = "RevolverSilentAim.TargetHighlightColor", Values = { "Cyan", "Red", "Yellow", "Green" }, Default = "Cyan", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.AIM_RevolverSilentHighlightColor = v or "Cyan" end })
+    spearSection:AddToggle({ Default = true, Name = "Spear Target Highlight", Flag = "SpearSilentAim.TargetHighlightEnabled", Callback = function(v) VD.AIM_SilentAimBoxHighlight = v end })
+    spearSection:AddDropdown({ Name = "Spear Highlight Color", Flag = "SpearSilentAim.TargetHighlightColor", Values = { "Cyan", "Red", "Yellow", "Green" }, Default = "Red", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.AIM_SilentAimBoxColor = v or "Red" end })
+
+    tofSection:AddToggle({ Default = false, Name = "Bypass ToF Restrictions", Flag = "AIM_BypassToFRestrictions", Callback = function(v) VD.AIM_BypassToFRestrictions = v end })
+    tofSection:AddToggle({ Default = false, Name = "Revolver Aimbot", Flag = "AIM_RevolverAimbotEnabled", Callback = function(v) VD.AIM_RevolverAimbotEnabled = v end })
+    tofSection:AddSlider({ Name = "Revolver Bullet Velocity", Flag = "AIM_RevolverBulletVelocity", Min = 300, Max = 1500, Default = 800, Increment = 50, Callback = function(v) VD.AIM_RevolverBulletVelocity = v end })
+    tofSection:AddSlider({ Name = "Revolver Offset X (H-Calib)", Flag = "AIM_RevolverOffsetX", Min = -30, Max = 30, Default = 12, Increment = 1, Callback = function(v) VD.AIM_RevolverOffsetX = v end })
+    tofSection:AddSlider({ Name = "Revolver Offset Y (V-Calib)", Flag = "AIM_RevolverOffsetY", Min = -30, Max = 30, Default = 5, Increment = 1, Callback = function(v) VD.AIM_RevolverOffsetY = v end })
+    tofSection:AddToggle({ Default = false, Name = "Revolver Silent Aim", Flag = "AIM_RevolverSilentAimEnabled", Callback = function(v) VD.AIM_RevolverSilentAimEnabled = v end })
+    tofSection:AddSlider({ Name = "Revolver Silent FOV", Flag = "AIM_RevolverSilentFOV", Min = 50, Max = 400, Default = 200, Increment = 10, Callback = function(v) VD.AIM_RevolverSilentFOV = v end })
+    tofSection:AddToggle({ Default = false, Name = "Enable Revolver Autofarm [BETA]", Flag = "AIM_RevolverAutofarm", Callback = function(v) VD.AIM_RevolverAutofarm = v end })
+
     local flashlightSection = AimFeatureTabs.AutoAim:AddSection({
         Position = "Center",
         Name = "Silent Aim Flashlight",
@@ -5457,6 +6903,23 @@ VD.FLASH_Laser = v
     })
 end
 do 
+    
+    -- BATCH 2: ESP Distance Fade & Tracers
+    
+    
+    worldSection:AddToggle({ Default = true, Name = "Show Survivor Health States", Flag = "SurvivorESP.HealthState", Callback = function(v) VD.ESP_SurvivorHealthState = v end })
+    worldSection:AddToggle({ Default = false, Name = "Censor Player Names", Flag = "SurvivorESP.CensorNames", Callback = function(v) VD.ESP_SurvivorCensorNames = v end })
+
+    worldSection:AddSlider({ Name = "ESP Position Y (Offset)", Flag = "ESP_PositionY", Min = -50, Max = 50, Default = 0, Increment = 1, Callback = function(v) VD.ESP_PositionY = v end })
+    worldSection:AddToggle({ Default = true, Name = "Alert Threshold Enabled", Flag = "GeneratorESP.AlertThresholdEnabled", Callback = function(v) VD.ESP_GenAlertThresholdEnabled = v end })
+
+    worldSection:AddToggle({ Default = false, Name = "ESP Distance Fade", Flag = "ESP_DistanceFade", Callback = function(v) VD.ESP_DistanceFade = v end })
+    worldSection:AddSlider({ Name = "Fade Start Distance (m)", Flag = "ESP_FadeStart", Min = 10, Max = 150, Default = 50, Increment = 5, Callback = function(v) VD.ESP_FadeStart = v end })
+    worldSection:AddSlider({ Name = "Full Transparent Distance (m)", Flag = "ESP_FadeMax", Min = 60, Max = 400, Default = 200, Increment = 10, Callback = function(v) VD.ESP_FadeMax = v end })
+    worldSection:AddToggle({ Default = false, Name = "ESP Tracers", Flag = "ESP_TracersEnabled", Callback = function(v) VD.ESP_TracersEnabled = v end })
+    worldSection:AddDropdown({ Name = "Tracer Origin", Flag = "ESP_TracerOrigin", Values = { "Bottom", "Center", "Mouse" }, Default = "Bottom", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.ESP_TracerOrigin = v or "Bottom" end })
+    worldSection:AddDropdown({ Name = "Tracer Target", Flag = "ESP_TracerTarget", Values = { "Both", "Killer", "Survivors" }, Default = "Both", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.ESP_TracerTarget = v or "Both" end })
+
     local camSection = VisualFeatureTabs.Camera:AddSection({
         Position = "Center",
         Name = "Camera",
@@ -5467,18 +6930,37 @@ do
     })
     camSection:AddToggle({ Default = false, Name = "Enable Camera FOV override", Flag = "Enable Camera FOV override", Callback = function(v)
         VD.CAM_FOVEnabled = v
-        if v and Workspace.CurrentCamera then
-            Workspace.CurrentCamera.FieldOfView = VD.CAM_FOV or 90
-        end
+        pcall(UpdateCameraFOV)
     end })
     camSection:AddSlider({
         Name = "Camera FOV", Flag = "Camera FOV",
         Min = 1, Max = 120, Default = 90,
         Callback = function(v)
             VD.CAM_FOV = math.clamp(tonumber(v) or 90, 1, 120)
-            if VD.CAM_FOVEnabled and Workspace.CurrentCamera then
-                Workspace.CurrentCamera.FieldOfView = VD.CAM_FOV
+            if VD.CAM_FOVEnabled then
+                pcall(UpdateCameraFOV)
             end
+        end
+    })
+    camSection:AddToggle({
+        Default = false,
+        Name = "Stretch Resolution (POV / FOV)",
+        Flag = "CAM_StretchEnabled",
+        Callback = function(v)
+            VD.CAM_StretchEnabled = v
+            pcall(VD_UpdateStretchPOV)
+        end
+    })
+    camSection:AddSlider({
+        Name = "Stretch Resolution Scale",
+        Flag = "CAM_StretchFactor",
+        Min = 0.40,
+        Max = 1.00,
+        Default = 0.70,
+        Increment = 0.05,
+        Decimals = 2,
+        Callback = function(v)
+            VD.CAM_StretchFactor = tonumber(string.format("%.2f", tonumber(v) or 0.70)) or 0.70
         end
     })
     camSection:AddToggle({ Default = false, Name = "Third Person (Killer only)", Flag = "Third Person (Killer only)", Callback = function(v) VD.CAM_ThirdPerson = v end })
@@ -5570,6 +7052,27 @@ do
     end })
 end
 do 
+    
+    -- BATCH 6: Visual & Atmosphere Modifiers
+    
+    visualSection:AddInput({ Title = "Custom Background Local File", Description = "File path in workspace", Default = "", Callback = function(v) VD.VIS_CustomBgLocalFile = v end })
+    visualSection:AddButton({ Name = "Browse Local Background", Callback = function() VD_Notify("Custom Background", "Browse local file selected: " .. tostring(VD.VIS_CustomBgLocalFile or "None"), 2) end })
+
+    visualSection:AddToggle({ Default = false, Name = "RTX Graphics Booster", Flag = "VIS_RTXGraphics", Callback = function(v) VD.VIS_RTXGraphics = v; pcall(function() VD_UpdateRTX(v) end) end })
+    visualSection:AddToggle({ Default = false, Name = "Enable Custom Fog", Flag = "VIS_CustomFogEnabled", Callback = function(v) VD.VIS_CustomFogEnabled = v end })
+    visualSection:AddColorPicker({ Name = "Custom Fog Color", Flag = "VIS_CustomFogColor", Default = Color3.fromRGB(120, 160, 200), Callback = function(c) VD.VIS_CustomFogColor = c end })
+    visualSection:AddSlider({ Name = "Fog Start Distance", Flag = "VIS_CustomFogStart", Min = 0, Max = 200, Default = 0, Increment = 5, Callback = function(v) VD.VIS_CustomFogStart = v end })
+    visualSection:AddSlider({ Name = "Fog End Distance", Flag = "VIS_CustomFogEnd", Min = 100, Max = 2000, Default = 800, Increment = 50, Callback = function(v) VD.VIS_CustomFogEnd = v end })
+    visualSection:AddToggle({ Default = false, Name = "Sun Rays (God Rays)", Flag = "VIS_SunRaysEnabled", Callback = function(v) VD.VIS_SunRaysEnabled = v end })
+    visualSection:AddSlider({ Name = "Atmosphere Density", Flag = "VIS_AtmosphereDensity", Min = 0, Max = 1, Default = 0.3, Increment = 0.05, Callback = function(v) VD.VIS_AtmosphereDensity = v end })
+    visualSection:AddDropdown({ Name = "Visual Preset", Flag = "VIS_VisualPreset", Values = { "Default", "Cinematic", "Vibrant", "Cyberpunk", "Midnight" }, Default = "Default", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.VIS_VisualPreset = v; pcall(function() VD_ApplyVisualPreset(v) end) end })
+
+    
+    -- BATCH 6: Cinematic DOF & Camera Zoom
+    camSection:AddToggle({ Default = false, Name = "Cinematic Depth of Field", Flag = "VIS_CinematicDOF", Callback = function(v) VD.VIS_CinematicDOF = v; pcall(function() VD_UpdateCinematicDOF(v) end) end })
+    camSection:AddToggle({ Default = false, Name = "Infinite Zoom", Flag = "VIS_InfiniteZoom", Callback = function(v) VD.VIS_InfiniteZoom = v end })
+    camSection:AddToggle({ Default = false, Name = "Killer Third Person", Flag = "VIS_KillerThirdPerson", Callback = function(v) VD.VIS_KillerThirdPerson = v end })
+
     local combatSurv = MainFeatureTabs.Survivor:AddSection({
         Position = "Center",
         Name = "Survivor",
@@ -5579,6 +7082,18 @@ do
         Opened    = false,
     })
     combatSurv:AddToggle({ Default = false, Name = "Swift Vault", Flag = "SwiftVault", Callback = function(v) VD.SURV_AutoVault = v end })
+    combatSurv:AddToggle({ Default = false, Name = "Always Fast Vault (Remote Spoof)", Flag = "SURV_AlwaysFastVault", Callback = function(v)
+        VD.SURV_AlwaysFastVault = v
+        if v then VD_Notify("Fast Vault", "Remote spoof enabled: all vaults/slides forced to fast", 2) end
+    end })
+    combatSurv:AddToggle({ Default = false, Name = "Noclip Vaults & Pallets", Flag = "SURV_NoclipVaultsPallets", Callback = function(v)
+        VD.SURV_NoclipVaultsPallets = v
+    end })
+    combatSurv:AddToggle({ Default = false, Name = "Remote Drop Pallet", Flag = "SURV_RemoteDropPallet", Callback = function(v)
+        VD.SURV_RemoteDropPallet = v
+    end })
+    combatSurv:AddButton({ Name = "Drop Target Pallet", Callback = function() pcall(VD_RemoteDropTargetPallet) end })
+    combatSurv:AddButton({ Name = "Drop All Pallets (Map)", Callback = function() pcall(VD_DropAllPallets) end })
     combatSurv:AddToggle({ Default = false, Name = "Swift Vault V2", Locked = false, TextLocked = "", Flag = "SURV_SwiftVaultV2", Callback = function(v) 
 VD.SURV_FastVault = v 
         if not v then
@@ -5625,6 +7140,10 @@ VD_SetAutoParry(v)
             VD.SURV_ParryDistance = v
         end
     })
+    combatSurv:AddToggle({ Default = true, Name = "Parry Facing Check", Flag = "SURV_ParryFacingCheck", Callback = function(v) VD.SURV_ParryFacingCheck = v end })
+    combatSurv:AddToggle({ Default = true, Name = "Parry Ping Compensation", Flag = "SURV_ParryPingCompensation", Callback = function(v) VD.SURV_ParryPingCompensation = v end })
+    combatSurv:AddToggle({ Default = true, Name = "Ignore Frenzy Attacks", Flag = "SURV_FrenzyParry", Callback = function(v) VD.SURV_FrenzyParry = v end })
+    combatSurv:AddToggle({ Default = true, Name = "Ignore Abysswalker Lunge", Flag = "SURV_IgnoreAbysswalkerLunge", Callback = function(v) VD.SURV_IgnoreAbysswalkerLunge = v end })
     combatSurv:AddToggle({
         Default = false, Name = "Show Parry Range Circle", Flag = "Show Parry Range Circle", Callback = function(v)
         VD.SURV_ShowParryCircle = v
@@ -5670,6 +7189,741 @@ FakeParryData = {
     DragStart = nil,
     DragStartPos = nil
 }
+
+-- =========================================================================
+-- PINATHUB UPGRADED SYSTEMS & NEW FEATURES (from otherscript.lua)
+-- =========================================================================
+
+-- 1. Anti Wiggle (Killer Automation)
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if VD.KILLER_AntiWiggle then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local isCarrying = LocalPlayer:GetAttribute("IsCarrying") == true or (char and char:GetAttribute("IsCarrying") == true)
+                if isCarrying then
+                    local carriedPlayer = nil
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer then
+                            local c = p.Character
+                            if p:GetAttribute("IsCarried") == true or (c and c:GetAttribute("IsCarried") == true) then
+                                carriedPlayer = p
+                                break
+                            end
+                        end
+                    end
+                    if carriedPlayer then
+                        local c = carriedPlayer.Character
+                        local remTime = carriedPlayer:GetAttribute("RemainingCarryTime") 
+                            or (c and c:GetAttribute("RemainingCarryTime")) 
+                            or LocalPlayer:GetAttribute("RemainingCarryTime")
+                        if remTime and type(remTime) == "number" and remTime <= 1.0 then
+                            local dropEvt = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Carry") and ReplicatedStorage.Remotes.Carry:FindFirstChild("DropSurvivorEvent")
+                            if dropEvt then
+                                dropEvt:FireServer()
+                                VD_Notify("Anti Wiggle", "Survivor auto-dropped to reset wiggle meter!", 2)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- 2. No Turn Speed Loss (Momentum Preserver on PreSimulation)
+RunService.PreSimulation:Connect(function(dt)
+    if not VD.NoTurnPenalty then return end
+    if VD.Moonwalk then return end
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local cam = Workspace.CurrentCamera
+    if not char or not hum or not root or hum.Health <= 0 or not cam then return end
+    
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude > 0.05 then
+        hum.AutoRotate = false
+        hum:Move(moveDir, false)
+        local speedMult = char:GetAttribute("speedboost") or 1
+        local targetSpeed = hum.WalkSpeed * speedMult
+        local curY = root.AssemblyLinearVelocity.Y
+        root.AssemblyLinearVelocity = Vector3.new(moveDir.X * targetSpeed, curY, moveDir.Z * targetSpeed)
+        
+        local look = root.CFrame.LookVector
+        local lookFlat = Vector3.new(look.X, 0, look.Z).Unit
+        local dot = lookFlat:Dot(moveDir)
+        if dot < 0.999 then
+            local targetAngle = math.atan2(-moveDir.X, -moveDir.Z)
+            local currentAngle = math.atan2(-lookFlat.X, -lookFlat.Z)
+            local diffAngle = ((targetAngle - currentAngle + math.pi) % (2 * math.pi)) - math.pi
+            local lerpRate = math.clamp(26 * (dt or 0.0166), 0, 1)
+            local newAngle = currentAngle + (diffAngle * lerpRate)
+            root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, newAngle, 0)
+        end
+    else
+        hum.AutoRotate = true
+        hum:Move(Vector3.zero, false)
+    end
+end)
+
+-- 3. Noclip Vaults & Pallets
+local VD_NoclipVaultsState = {}
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if VD.SURV_NoclipVaultsPallets then
+            pcall(function()
+                local map = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("Map1")
+                if map then
+                    for _, desc in ipairs(map:GetDescendants()) do
+                        if desc:IsA("BasePart") then
+                            local name = desc.Name:lower()
+                            local parentName = desc.Parent and desc.Parent.Name:lower() or ""
+                            local isVaultPart = name == "inviswall" or name == "bottom" or name:find("vault") or name == "glass" or name == "pane" or parentName:find("vault") or parentName:find("window")
+                            local isPalletPart = name:find("pallet") or parentName:find("pallet")
+                            if isVaultPart or isPalletPart then
+                                if VD_NoclipVaultsState[desc] == nil then
+                                    VD_NoclipVaultsState[desc] = desc.CanCollide
+                                end
+                                desc.CanCollide = false
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            if next(VD_NoclipVaultsState) ~= nil then
+                pcall(function()
+                    for part, originalCanCollide in pairs(VD_NoclipVaultsState) do
+                        if part and part.Parent then
+                            part.CanCollide = originalCanCollide
+                        end
+                    end
+                    table.clear(VD_NoclipVaultsState)
+                end)
+            end
+        end
+    end
+end)
+
+-- 4. Remote Drop Pallet & Drop All Pallets
+local VD_PalletHighlight = nil
+local function VD_GetHoveredPallet()
+    local cam = Workspace.CurrentCamera
+    if not cam then return nil end
+    local mouse = LocalPlayer:GetMouse()
+    local unitRay = cam:ScreenPointToRay(mouse.X, mouse.Y)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.FilterDescendantsInstances = { LocalPlayer.Character }
+    local res = Workspace:Raycast(unitRay.Origin, unitRay.Direction * 200, raycastParams)
+    if res and res.Instance then
+        local cur = res.Instance
+        while cur and cur ~= Workspace do
+            if cur.Name:lower():find("pallet") then
+                return cur
+            end
+            cur = cur.Parent
+        end
+    end
+    return nil
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if VD.SURV_RemoteDropPallet then
+            local targetPallet = VD_GetHoveredPallet()
+            if targetPallet then
+                if not VD_PalletHighlight or VD_PalletHighlight.Parent == nil then
+                    pcall(function() if VD_PalletHighlight then VD_PalletHighlight:Destroy() end end)
+                    local hl = Instance.new("Highlight")
+                    hl.Name = "VD_PalletHighlight"
+                    hl.FillColor = Color3.fromRGB(0, 255, 255)
+                    hl.FillTransparency = 0.5
+                    hl.OutlineColor = Color3.fromRGB(0, 255, 255)
+                    hl.OutlineTransparency = 0
+                    hl.Parent = targetPallet
+                    hl.Adornee = targetPallet
+                    VD_PalletHighlight = hl
+                elseif VD_PalletHighlight.Adornee ~= targetPallet then
+                    VD_PalletHighlight.Adornee = targetPallet
+                    VD_PalletHighlight.Parent = targetPallet
+                end
+            else
+                if VD_PalletHighlight then
+                    VD_PalletHighlight.Adornee = nil
+                    VD_PalletHighlight.Parent = nil
+                end
+            end
+        else
+            if VD_PalletHighlight then
+                pcall(function() VD_PalletHighlight:Destroy() end)
+                VD_PalletHighlight = nil
+            end
+        end
+    end
+end)
+
+function VD_RemoteDropTargetPallet()
+    local pallet = VD_GetHoveredPallet()
+    if not pallet then
+        VD_Notify("Remote Drop", "No pallet targeted!", 2)
+        return
+    end
+    local dropEvt = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Pallet") and ReplicatedStorage.Remotes.Pallet:FindFirstChild("PalletDropEvent")
+    if not dropEvt then
+        VD_Notify("Remote Drop", "PalletDropEvent remote not found!", 2)
+        return
+    end
+    local dropped = false
+    for _, child in ipairs(pallet:GetChildren()) do
+        if child.Name == "PalletPoint" then
+            pcall(function() dropEvt:FireServer(child); dropped = true end)
+        end
+    end
+    if dropped then
+        VD_Notify("Remote Drop", "Target pallet dropped remotely!", 2)
+    else
+        VD_Notify("Remote Drop", "Pallet already dropped or failed!", 2)
+    end
+end
+
+function VD_DropAllPallets()
+    local dropEvt = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Pallet") and ReplicatedStorage.Remotes.Pallet:FindFirstChild("PalletDropEvent")
+    if not dropEvt then
+        VD_Notify("Drop All Pallets", "PalletDropEvent remote not found!", 2)
+        return
+    end
+    local map = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("Map1")
+    if not map then return end
+    local count = 0
+    for _, desc in ipairs(map:GetDescendants()) do
+        if desc.Name == "PalletPoint" then
+            pcall(function() dropEvt:FireServer(desc); count = count + 1 end)
+        end
+    end
+    VD_Notify("Drop All Pallets", "Dropped " .. tostring(count) .. " pallets across the map!", 2)
+end
+
+-- 5. Desync Ghost & Fake Lag
+local VD_DesyncGhostModel = nil
+local function VD_DestroyDesyncGhost()
+    if VD_DesyncGhostModel then
+        pcall(function() VD_DesyncGhostModel:Destroy() end)
+        VD_DesyncGhostModel = nil
+    end
+end
+
+local function VD_GetGhostColor()
+    local colName = VD.VIS_DesyncGhostColor or "Cyan"
+    local map = {
+        Cyan = Color3.fromRGB(0, 255, 255),
+        Red = Color3.fromRGB(255, 60, 60),
+        Green = Color3.fromRGB(0, 255, 120),
+        Purple = Color3.fromRGB(180, 50, 255),
+        Yellow = Color3.fromRGB(255, 220, 0),
+        White = Color3.fromRGB(255, 255, 255),
+    }
+    return map[colName] or Color3.fromRGB(0, 255, 255)
+end
+
+local function VD_UpdateDesyncGhost(char, serverCFrame)
+    if not (VD.VIS_DesyncGhost or VD.InvisibleNotVisual or VD.MOVE_FakeLag) then
+        VD_DestroyDesyncGhost()
+        return
+    end
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local ghostColor = VD_GetGhostColor()
+    local trans = tonumber(VD.VIS_DesyncGhostTransparency) or 0.5
+    local alwaysOnTop = VD.VIS_DesyncGhostAlwaysOnTop ~= false
+    
+    if VD_DesyncGhostModel and VD_DesyncGhostModel.Parent then
+        local localCF = root.CFrame
+        for _, part in ipairs(VD_DesyncGhostModel:GetChildren()) do
+            if part:IsA("BasePart") then
+                local origName = part:GetAttribute("OriginalPartName")
+                local origPart = origName and char:FindFirstChild(origName, true)
+                if origPart then
+                    local rel = localCF:ToObjectSpace(origPart.CFrame)
+                    part.CFrame = serverCFrame * rel
+                    part.Color = ghostColor
+                end
+            elseif part:IsA("Highlight") then
+                part.FillColor = ghostColor
+                part.FillTransparency = trans
+                part.DepthMode = alwaysOnTop and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+            end
+        end
+        return
+    end
+    
+    VD_DestroyDesyncGhost()
+    local ghost = Instance.new("Model")
+    ghost.Name = "PinatHub_DesyncGhost"
+    local hum = Instance.new("Humanoid")
+    hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    hum.Parent = ghost
+    local localCF = root.CFrame
+    for _, part in ipairs(char:GetChildren()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            local clone = part:Clone()
+            clone.Anchored = true
+            clone.CanCollide = false
+            clone.CastShadow = false
+            clone.Transparency = 0.99
+            clone.Color = ghostColor
+            clone.Material = Enum.Material.SmoothPlastic
+            clone:SetAttribute("OriginalPartName", part.Name)
+            for _, ch in ipairs(clone:GetChildren()) do
+                if ch:IsA("SpecialMesh") then
+                    ch.TextureId = ""
+                else
+                    ch:Destroy()
+                end
+            end
+            local rel = localCF:ToObjectSpace(part.CFrame)
+            clone.CFrame = serverCFrame * rel
+            clone.Parent = ghost
+        end
+    end
+    local hl = Instance.new("Highlight")
+    hl.Name = "GhostHighlight"
+    hl.FillColor = ghostColor
+    hl.FillTransparency = trans
+    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+    hl.OutlineTransparency = 0.1
+    hl.DepthMode = alwaysOnTop and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
+    hl.Adornee = ghost
+    hl.Parent = ghost
+    ghost.Parent = Workspace
+    VD_DesyncGhostModel = ghost
+end
+
+-- Fake Lag Loop:
+local VD_FakeLagActive = false
+local VD_FakeLagLastTime = 0
+task.spawn(function()
+    while true do
+        local dt = RunService.Heartbeat:Wait()
+        if VD.MOVE_FakeLag then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if not char or not root or not hum or hum.Health <= 0 then
+                    if VD_FakeLagActive then
+                        root.Anchored = false
+                        VD_FakeLagActive = false
+                        VD_DestroyDesyncGhost()
+                    end
+                    return
+                end
+                local lagInterval = math.clamp((tonumber(VD.MOVE_FakeLagMs) or 200) / 1000, 0.05, 1.0)
+                if not VD_FakeLagActive then
+                    VD_FakeLagActive = true
+                    VD_FakeLagLastTime = tick()
+                    root.Anchored = true
+                    VD_UpdateDesyncGhost(char, root.CFrame)
+                end
+                if root.Anchored then
+                    local moveDir = hum.MoveDirection
+                    if moveDir.Magnitude > 0 then
+                        root.CFrame = root.CFrame + (moveDir * (hum.WalkSpeed * dt))
+                    end
+                end
+                if tick() - VD_FakeLagLastTime >= lagInterval then
+                    root.Anchored = false
+                    VD_DestroyDesyncGhost()
+                    task.wait(0.06)
+                    root.Anchored = true
+                    VD_UpdateDesyncGhost(char, root.CFrame)
+                    VD_FakeLagLastTime = tick()
+                end
+            end)
+        else
+            if VD_FakeLagActive then
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
+                    if root then root.Anchored = false end
+                end)
+                VD_DestroyDesyncGhost()
+                VD_FakeLagActive = false
+            end
+        end
+    end
+end)
+
+-- 6. Silent Aim Tactical Corner-Bracket HUD
+local VD_TargetBoxGui = nil
+local VD_TargetCorners = {}
+
+local function VD_SetupTargetBoxGui()
+    if VD_TargetBoxGui and VD_TargetBoxGui.Parent then return end
+    local parent = GetSafeGuiParent()
+    if not parent then return end
+    local old = parent:FindFirstChild("PinatHub_SilentAimHUD")
+    if old then pcall(function() old:Destroy() end) end
+    
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "PinatHub_SilentAimHUD"
+    sg.ResetOnSpawn = false
+    sg.IgnoreGuiInset = true
+    sg.Parent = parent
+    
+    local frame = Instance.new("Frame")
+    frame.Name = "TargetBox"
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+    frame.Visible = false
+    frame.Parent = sg
+    
+    local cornerNames = { "TL_H", "TL_V", "TR_H", "TR_V", "BL_H", "BL_V", "BR_H", "BR_V" }
+    VD_TargetCorners = {}
+    for _, name in ipairs(cornerNames) do
+        local bar = Instance.new("Frame")
+        bar.Name = name
+        bar.BorderSizePixel = 0
+        bar.BackgroundColor3 = Color3.fromRGB(0, 240, 255)
+        bar.Parent = frame
+        VD_TargetCorners[name] = bar
+    end
+    VD_TargetBoxGui = frame
+end
+
+local function VD_Get2DBoundingBox(char)
+    local cam = Workspace.CurrentCamera
+    if not cam or not char then return nil end
+    local head = char:FindFirstChild("Head")
+    local root = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
+    if not root then return nil end
+    local topPos = head and (head.Position + Vector3.new(0, 0.7, 0)) or (root.Position + Vector3.new(0, 2.2, 0))
+    local btmPos = root.Position - Vector3.new(0, 2.8, 0)
+    local topScreen, topVis = cam:WorldToViewportPoint(topPos)
+    local btmScreen, btmVis = cam:WorldToViewportPoint(btmPos)
+    local rootScreen, rootVis = cam:WorldToViewportPoint(root.Position)
+    if not rootVis or rootScreen.Z <= 0 then return nil end
+    local height = math.abs(btmScreen.Y - topScreen.Y)
+    local width = math.clamp(height * 0.6, 12, 350)
+    if height < 6 then return nil end
+    return rootScreen.X - (width / 2), topScreen.Y, width, height
+end
+
+RunService.RenderStepped:Connect(function()
+    if not (VD.TOF_SilentAim and VD.AIM_SilentAimBoxHighlight) then
+        if VD_TargetBoxGui and VD_TargetBoxGui.Visible then
+            VD_TargetBoxGui.Visible = false
+        end
+        return
+    end
+    VD_SetupTargetBoxGui()
+    if not VD_TargetBoxGui then return end
+    
+    local targetPos = nil
+    pcall(function()
+        local _, _, _, tp = KYS_ToFGetTargetPosition()
+        targetPos = tp
+    end)
+    
+    local targetChar = nil
+    if targetPos then
+        local bestDist = math.huge
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local c = p.Character
+                local root = c:FindFirstChild("HumanoidRootPart") or c.PrimaryPart
+                if root then
+                    local d = (root.Position - targetPos).Magnitude
+                    if d < bestDist and d < 10 then
+                        bestDist = d
+                        targetChar = c
+                    end
+                end
+            end
+        end
+    end
+    
+    if targetChar then
+        local x, y, w, h = VD_Get2DBoundingBox(targetChar)
+        if x and y and w and h then
+            local color = Color3.fromRGB(0, 240, 255)
+            if VD.AIM_SilentAimBoxColor == "Red" then
+                color = Color3.fromRGB(255, 60, 60)
+            elseif VD.AIM_SilentAimBoxColor == "Yellow" then
+                color = Color3.fromRGB(255, 220, 0)
+            elseif VD.AIM_SilentAimBoxColor == "Green" then
+                color = Color3.fromRGB(0, 255, 120)
+            end
+            VD_TargetBoxGui.Position = UDim2.new(0, x, 0, y)
+            VD_TargetBoxGui.Size = UDim2.new(0, w, 0, h)
+            local l = math.clamp(math.floor(w * 0.25), 6, 16)
+            local thickness = 2.5
+            local m = VD_TargetCorners
+            if m.TL_H then m.TL_H.Size = UDim2.new(0, l, 0, thickness); m.TL_H.Position = UDim2.new(0, 0, 0, 0) end
+            if m.TL_V then m.TL_V.Size = UDim2.new(0, thickness, 0, l); m.TL_V.Position = UDim2.new(0, 0, 0, 0) end
+            if m.TR_H then m.TR_H.Size = UDim2.new(0, l, 0, thickness); m.TR_H.Position = UDim2.new(1, -l, 0, 0) end
+            if m.TR_V then m.TR_V.Size = UDim2.new(0, thickness, 0, l); m.TR_V.Position = UDim2.new(1, -thickness, 0, 0) end
+            if m.BL_H then m.BL_H.Size = UDim2.new(0, l, 0, thickness); m.BL_H.Position = UDim2.new(0, 0, 1, -thickness) end
+            if m.BL_V then m.BL_V.Size = UDim2.new(0, thickness, 0, l); m.BL_V.Position = UDim2.new(0, 0, 1, -l) end
+            if m.BR_H then m.BR_H.Size = UDim2.new(0, l, 0, thickness); m.BR_H.Position = UDim2.new(1, -l, 1, -thickness) end
+            if m.BR_V then m.BR_V.Size = UDim2.new(0, thickness, 0, l); m.BR_V.Position = UDim2.new(1, -thickness, 1, -l) end
+            for _, bar in pairs(m) do
+                bar.BackgroundColor3 = color
+            end
+            VD_TargetBoxGui.Visible = true
+            return
+        end
+    end
+    VD_TargetBoxGui.Visible = false
+end)
+
+-- 7. Survivor Auto Farm Engine:
+local VD_SurvivorFarmStatusPara = nil
+function VD_SetSurvivorFarmStatus(text)
+    VD.SURV_AutoFarmStatus = text
+    if VD_SurvivorFarmStatusPara then
+        pcall(function() VD_SurvivorFarmStatusPara:SetDesc("Current State: " .. text) end)
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.25)
+        if VD.SURV_AutoFarm then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if not char or not root or not hum or hum.Health <= 0 then
+                    VD_SetSurvivorFarmStatus("DEAD / RESPAWNING")
+                    return
+                end
+                
+                -- Check if killer is too close:
+                if VD.SURV_AutoFleeKiller then
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Team and p.Team.Name == "Killer" and p.Character then
+                            local kRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                            if kRoot and (kRoot.Position - root.Position).Magnitude <= 35 then
+                                local map = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("Map1")
+                                if map then
+                                    local bestGen, maxDist = nil, -1
+                                    for _, desc in ipairs(map:GetDescendants()) do
+                                        if desc.Name == "GeneratorPoint" then
+                                            local d = (desc.Position - kRoot.Position).Magnitude
+                                            if d > maxDist then
+                                                maxDist = d
+                                                bestGen = desc
+                                            end
+                                        end
+                                    end
+                                    if bestGen then
+                                        root.CFrame = bestGen.CFrame + Vector3.new(0, 2, 0)
+                                        VD_SetSurvivorFarmStatus("FLEEING KILLER")
+                                        task.wait(1.5)
+                                        return
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                -- Check if teammate is hooked:
+                local hookedPlayer = nil
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Team and p.Team.Name == "Survivors" and p.Character then
+                        local c = p.Character
+                        if c:GetAttribute("IsHooked") == true or p:GetAttribute("IsHooked") == true then
+                            hookedPlayer = p
+                            break
+                        end
+                    end
+                end
+                if hookedPlayer and hookedPlayer.Character then
+                    local hRoot = hookedPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if hRoot then
+                        root.CFrame = hRoot.CFrame + Vector3.new(0, 0, 1.5)
+                        local unhookEvt = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Carry") and ReplicatedStorage.Remotes.Carry:FindFirstChild("UnHookEvent")
+                        if unhookEvt then
+                            unhookEvt:FireServer(hookedPlayer.Character)
+                            VD_SetSurvivorFarmStatus("UNHOOKING TEAMMATE")
+                            task.wait(1)
+                            return
+                        end
+                    end
+                end
+                
+                -- Repair Generators:
+                local map = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("Map1")
+                if map then
+                    local targetGenPoint = nil
+                    local minGenDist = math.huge
+                    for _, desc in ipairs(map:GetDescendants()) do
+                        if desc.Name == "GeneratorPoint" then
+                            local genModel = desc.Parent
+                            local progress = genModel and (genModel:GetAttribute("Progress") or 0) or 0
+                            if progress < 100 then
+                                local d = (desc.Position - root.Position).Magnitude
+                                if d < minGenDist then
+                                    minGenDist = d
+                                    targetGenPoint = desc
+                                end
+                            end
+                        end
+                    end
+                    if targetGenPoint then
+                        if (targetGenPoint.Position - root.Position).Magnitude > 4 then
+                            root.CFrame = targetGenPoint.CFrame + Vector3.new(0, 1.5, 0)
+                            task.wait(0.15)
+                        end
+                        local repairEvt = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Generator") and ReplicatedStorage.Remotes.Generator:FindFirstChild("RepairEvent")
+                        if repairEvt then
+                            repairEvt:FireServer(targetGenPoint, true)
+                            VD_SetSurvivorFarmStatus("REPAIRING GENERATOR")
+                            return
+                        end
+                    else
+                        -- Generators complete, open Exit Gate!
+                        local lever = nil
+                        for _, desc in ipairs(map:GetDescendants()) do
+                            if desc.Name == "LeverPoint" or (desc.Name:lower():find("lever") and desc:IsA("BasePart")) then
+                                lever = desc
+                                break
+                            end
+                        end
+                        if lever then
+                            if (lever.Position - root.Position).Magnitude > 4 then
+                                root.CFrame = lever.CFrame + Vector3.new(0, 1.5, 0)
+                                task.wait(0.15)
+                            end
+                            local leverEvt = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Exit") and ReplicatedStorage.Remotes.Exit:FindFirstChild("LeverEvent")
+                            if leverEvt then
+                                leverEvt:FireServer(lever)
+                                VD_SetSurvivorFarmStatus("OPENING EXIT GATE")
+                                return
+                            end
+                        end
+                    end
+                end
+                VD_SetSurvivorFarmStatus("IDLE")
+            end)
+        end
+    end
+end)
+
+-- 8. Killer Auto Farm Engine:
+local VD_KillerFarmStatusPara = nil
+function VD_SetKillerFarmStatus(text)
+    VD.KILLER_AutoFarmStatus = text
+    if VD_KillerFarmStatusPara then
+        pcall(function() VD_KillerFarmStatusPara:SetDesc("Current State: " .. text) end)
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if VD.KILLER_AutoFarm then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if not char or not root or not hum or hum.Health <= 0 then
+                    VD_SetKillerFarmStatus("WAITING / RESPAWNING")
+                    return
+                end
+                
+                local isCarrying = LocalPlayer:GetAttribute("IsCarrying") == true or (char and char:GetAttribute("IsCarrying") == true)
+                if isCarrying then
+                    VD_SetKillerFarmStatus("CARRYING SURVIVOR")
+                    local map = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("Map1")
+                    local nearestHook = nil
+                    local minHookDist = math.huge
+                    if map then
+                        for _, desc in ipairs(map:GetDescendants()) do
+                            if desc.Name == "HookPoint" or desc.Name == "Hook" or (desc.Name:lower():find("hook") and desc:IsA("BasePart")) then
+                                local d = (desc.Position - root.Position).Magnitude
+                                if d < minHookDist then
+                                    minHookDist = d
+                                    nearestHook = desc
+                                end
+                            end
+                        end
+                    end
+                    if nearestHook then
+                        root.CFrame = CFrame.new(nearestHook.Position + Vector3.new(0, 1.5, 1.8), nearestHook.Position)
+                        task.wait(0.2)
+                        local carryRemotes = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Carry")
+                        local hookEvt = carryRemotes and carryRemotes:FindFirstChild("HookEvent")
+                        local hookCommit = carryRemotes and carryRemotes:FindFirstChild("HookCommit")
+                        if hookEvt then pcall(function() hookEvt:FireServer(nearestHook) end) end
+                        task.wait(0.1)
+                        if hookCommit then pcall(function() hookCommit:FireServer(nearestHook) end) end
+                        VD_SetKillerFarmStatus("HOOKING SURVIVOR")
+                        task.wait(1.5)
+                        return
+                    end
+                else
+                    local nearestSurv = nil
+                    local minSurvDist = math.huge
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Team and (p.Team.Name == "Survivors" or p.Team.Name ~= "Killer") and p.Character then
+                            local sChar = p.Character
+                            local sRoot = sChar:FindFirstChild("HumanoidRootPart")
+                            local sHum = sChar:FindFirstChildOfClass("Humanoid")
+                            local isHooked = sChar:GetAttribute("IsHooked") == true or p:GetAttribute("IsHooked") == true
+                            if sRoot and sHum and sHum.Health > 0 and not isHooked then
+                                local d = (sRoot.Position - root.Position).Magnitude
+                                if d < minSurvDist then
+                                    minSurvDist = d
+                                    nearestSurv = p
+                                end
+                            end
+                        end
+                    end
+                    
+                    if nearestSurv and nearestSurv.Character then
+                        local sChar = nearestSurv.Character
+                        local sRoot = sChar:FindFirstChild("HumanoidRootPart")
+                        local isKnocked = sChar:GetAttribute("Knocked") == true or nearestSurv:GetAttribute("Knocked") == true
+                        if isKnocked then
+                            root.CFrame = sRoot.CFrame
+                            task.wait(0.15)
+                            local carryEvt = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Carry") and ReplicatedStorage.Remotes.Carry:FindFirstChild("CarrySurvivorEvent")
+                            if carryEvt then
+                                pcall(function() carryEvt:FireServer(sChar) end)
+                            end
+                            VD_SetKillerFarmStatus("PICKING UP SURVIVOR")
+                            task.wait(0.8)
+                            return
+                        else
+                            VD_SetKillerFarmStatus("HUNTING SURVIVOR")
+                            local fwd = sRoot.CFrame.LookVector
+                            local flatFwd = Vector3.new(fwd.X, 0, fwd.Z).Unit
+                            local targetPos = sRoot.Position - (flatFwd * 1.2)
+                            root.CFrame = CFrame.new(targetPos, sRoot.Position)
+                            local attacks = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Attacks")
+                            local lunge = attacks and attacks:FindFirstChild("Lunge")
+                            local basicAttack = attacks and attacks:FindFirstChild("BasicAttack")
+                            if lunge then pcall(function() lunge:FireServer() end) end
+                            if basicAttack then pcall(function() basicAttack:FireServer() end) end
+                            task.wait(0.3)
+                            return
+                        end
+                    end
+                end
+                VD_SetKillerFarmStatus("IDLE")
+            end)
+        end
+    end
+end)
+
+
 function setupFakeParryBtn()
     local player = game:GetService("Players").LocalPlayer
     local oldUI = player.PlayerGui:FindFirstChild("FakeParryUI")
@@ -5889,6 +8143,17 @@ game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function()
         FakeGenData.Button.Visible = VD.SURV_FakeGen
     end
 end)
+    
+    -- BATCH 3: Survivor Speed Perks & Pallet/Vault Blocks
+    combatSurv:AddToggle({ Default = true, Name = "Count Speed Perks / Slow Downs", Flag = "SURV_CountSpeedPerks", Callback = function(v) VD.SURV_CountSpeedPerks = v end })
+    combatSurv:AddToggle({ Default = false, Name = "Flowstate Perk", Flag = "SURV_FlowstatePerk", Callback = function(v) VD.SURV_FlowstatePerk = v end })
+    combatSurv:AddSlider({ Name = "Flowstate Cooldown (s)", Flag = "SURV_FlowstateCooldown", Min = 5, Max = 30, Default = 15, Increment = 1, Callback = function(v) VD.SURV_FlowstateCooldown = v end })
+    combatSurv:AddButton({ Name = "Instant Bandage", Callback = function() pcall(VD_InstantBandage) end })
+    combatSurv:AddButton({ Name = "Block Pallets", Callback = function() pcall(function() VD_SetCollisionBlocks("pallet", true) end) end })
+    combatSurv:AddButton({ Name = "Unlock Pallets", Callback = function() pcall(function() VD_SetCollisionBlocks("pallet", false) end) end })
+    combatSurv:AddButton({ Name = "Block Vaults", Callback = function() pcall(function() VD_SetCollisionBlocks("vault", true) end) end })
+    combatSurv:AddButton({ Name = "Unlock Vaults", Callback = function() pcall(function() VD_SetCollisionBlocks("vault", false) end) end })
+
     local fakePerkSection = MainFeatureTabs.Survivor:AddSection({
         Position = "Center",
         Name = "Fake Perks",
@@ -6247,6 +8512,18 @@ do
         BoxBorder = true,
         Opened    = false,
     })
+    VD_KillerFarmStatusPara = combatKiller:AddParagraph({ Title = "Killer Auto Farm Status", Desc = "Current State: IDLE" })
+    combatKiller:AddToggle({ Default = false, Name = "Enable Killer Auto Farm", Flag = "KILLER_AutoFarm", Callback = function(v)
+        VD.KILLER_AutoFarm = v
+        if v then VD_SetKillerFarmStatus("SEARCHING SURVIVORS") else VD_SetKillerFarmStatus("IDLE") end
+    end })
+    
+    combatKiller:AddToggle({ Default = false, Name = "Parry Range View In Range", Flag = "ParryRangeViewInRange", Callback = function(v) VD.KILLER_ParryRangeViewInRange = v end })
+
+    combatKiller:AddToggle({ Default = false, Name = "Anti Wiggle (Auto-Drop)", Flag = "KILLER_AntiWiggle", Callback = function(v)
+        VD.KILLER_AntiWiggle = v
+        if v then VD_Notify("Anti Wiggle", "Auto-drops carried survivor before 100% wiggle stun", 2) end
+    end })
     combatKiller:AddToggle({ Default = false, Name = "Auto Attack", Flag = "Auto Attack", Callback = function(v) VD.AUTO_Attack = v end })
     combatKiller:AddSlider({
         Name = "Attack Range", Flag = "Attack Range",
@@ -6365,6 +8642,17 @@ local mask = customMaskedMasks[math.random(1, #customMaskedMasks)]
             end
         })
     end)
+    
+    -- BATCH 4: Killer Stalker Abilities & Parry Simulator
+    abilityKiller:AddToggle({ Default = false, Name = "No Cooldown Stalker", Flag = "KILLER_StalkerNoCooldown", Callback = function(v) VD.KILLER_StalkerNoCooldown = v end })
+    abilityKiller:AddToggle({ Default = false, Name = "Kill Grab", Flag = "KILLER_StalkerKillGrab", Callback = function(v) VD.KILLER_StalkerKillGrab = v end })
+    abilityKiller:AddToggle({ Default = false, Name = "Stalk While Moving", Flag = "KILLER_StalkerStalkWhileMoving", Callback = function(v) VD.KILLER_StalkerStalkWhileMoving = v end })
+    abilityKiller:AddToggle({ Default = false, Name = "Infinite Corrupt", Flag = "KILLER_StalkerInfiniteCorrupt", Callback = function(v) VD.KILLER_StalkerInfiniteCorrupt = v end })
+    abilityKiller:AddToggle({ Default = false, Name = "Stalker Auto Dodge", Flag = "KILLER_StalkerAutoDodge", Callback = function(v) VD.KILLER_StalkerAutoDodge = v end })
+    abilityKiller:AddSlider({ Name = "Auto Dodge Distance (studs)", Flag = "KILLER_StalkerAutoDodgeDist", Min = 8, Max = 35, Default = 18, Increment = 1, Callback = function(v) VD.KILLER_StalkerAutoDodgeDist = v end })
+    abilityKiller:AddButton({ Name = "Stalk Everyone (once)", Callback = function() pcall(VD_StalkEveryoneOnce) end })
+    abilityKiller:AddButton({ Name = "Simulate Parry Animation", Callback = function() pcall(VD_SimulateParryAnimation) end })
+
     local utilKiller = MainKillerFeatureTabs.Utilities:AddSection({
         Position = "Center",
         Name = "Utilities",
@@ -6434,6 +8722,12 @@ do
 VD.BEAT_Survivor = v 
     end })
     escapeSurv:AddToggle({ Default = false, Name = "Flee Killer", Flag = "Flee Killer", Callback = function(v) VD.SURV_FleeKiller = v end })
+    escapeSurv:AddToggle({ Default = false, Name = "Auto Open Exit Gate", Flag = "Auto Open Exit Gate", Callback = function(v) 
+        VD.AutoExitGateLever = v 
+        if v then
+            VD_Notify("Auto Exit Gate", "Will auto-pull lever when near gate", 2)
+        end
+    end })
     escapeSurv:AddSlider({
         Name = "Flee Distance", Flag = "Flee Distance",
         Min = 15, Max = 80, Default = 40,
@@ -6449,6 +8743,14 @@ do
         BoxBorder = true,
         Opened    = false,
     })
+    VD_SurvivorFarmStatusPara = genAuto:AddParagraph({ Title = "Survivor Auto Farm Status", Desc = "Current State: IDLE" })
+    genAuto:AddToggle({ Default = false, Name = "Enable Survivor Auto Farm", Flag = "SURV_AutoFarm", Callback = function(v)
+        VD.SURV_AutoFarm = v
+        if v then VD_SetSurvivorFarmStatus("SEARCHING GENERATOR") else VD_SetSurvivorFarmStatus("IDLE") end
+    end })
+    genAuto:AddToggle({ Default = false, Name = "Auto Flee Killer (< 35 studs)", Flag = "SURV_AutoFleeKiller", Callback = function(v)
+        VD.SURV_AutoFleeKiller = v
+    end })
     genAuto:AddToggle({ Default = false, Name = "Auto Skillcheck", Flag = "Auto Skillcheck", Callback = function(v) VD_SetAutoSkillcheck(v) end })
     genAuto:AddToggle({ Default = false, Name = "Hide Skillcheck UI", Flag = "Hide Skillcheck UI", Callback = function(v) VD.HideSkillUI = v end })
     genAuto:AddToggle({ Default = false, Name = "Gen Bypass", Flag = "Gen Bypass", Callback = function(v)
@@ -6474,6 +8776,14 @@ VD.AutoSkillcheckMode = option or "Normal"
     })
 end
 do 
+    
+    -- BATCH 3: Skillcheck modifiers
+    
+    genAuto:AddSlider({ Name = "Perfect Hit Rate (%)", Flag = "PerfectHitRate", Min = 1, Max = 100, Default = 100, Increment = 1, Callback = function(v) VD.SURV_PerfectHitRate = v end })
+
+    genAuto:AddToggle({ Default = false, Name = "No Skill Checks (Remove Checks)", Flag = "SURV_NoSkillChecks", Callback = function(v) VD.SURV_NoSkillChecks = v end })
+    genAuto:AddSlider({ Name = "Skillcheck Speed Factor", Flag = "SURV_SkillCheckSpeedVal", Min = 0.2, Max = 2.0, Default = 1.0, Increment = 0.1, Callback = function(v) VD.SURV_SkillCheckSpeedVal = v end })
+
     local flingSection = PlayerFeatureTabs.Fling:AddSection({
         Position = "Center",
         Name = "Fling",
@@ -6646,6 +8956,19 @@ do
     })
 end
 do 
+    
+    -- BATCH 5: Emote Wheel & DBD Sounds
+    emoteSection:AddToggle({ Default = false, Name = "Custom Emote Wheel [8 Slots]", Flag = "DBD_EmoteWheelEnabled", Callback = function(v) VD.DBD_EmoteWheelEnabled = v end })
+    emoteSection:AddToggle({ Default = true, Name = "Walk While Emoting", Flag = "DBD_WalkWhileEmoting", Callback = function(v) VD.DBD_WalkWhileEmoting = v end })
+    emoteSection:AddButton({ Name = "Open Emote Wheel", Callback = function() pcall(function() VD_PlayEmote("73896868179198") end) end })
+    emoteSection:AddButton({ Name = "Stop Animation", Callback = function() pcall(VD_StopEmote) end })
+    emoteSection:AddButton({ Name = "Reset Slots to Default", Callback = function() VD_Notify("Emotes", "Emote slots reset to default", 2) end })
+    emoteSection:AddButton({ Name = "Add Emote to Wheel & List", Callback = function() VD_Notify("Emotes", "Custom emote registered to active slot list", 2) end })
+
+    emoteSection:AddToggle({ Default = false, Name = "DBD Sounds", Flag = "DBD_SoundsEnabled", Callback = function(v) VD.DBD_SoundsEnabled = v end })
+    emoteSection:AddSlider({ Name = "DBD Sounds Volume", Flag = "DBD_SoundsVolume", Min = 0.1, Max = 2.0, Default = 1.0, Increment = 0.1, Callback = function(v) VD.DBD_SoundsVolume = v end })
+    emoteSection:AddButton({ Name = "Preview Random Sound", Callback = function() pcall(function() VD_PlayDBDSound("rbxassetid://124429695332529", VD.DBD_SoundsVolume) end) end })
+
     local funSection = PlayerMiscFeatureTabs.Fun:AddSection({
         Position = "Center",
         Name = "Spoof Stats [Visual Only]",
@@ -7324,24 +9647,37 @@ function VD_UpdateBypassGate()
     end
     if VD._PinatHubBypassGate and tick() < VD._PinatHubBypassGate then return end
     VD._PinatHubBypassGate = tick() + 1
-    for _, gate in ipairs(Workspace:GetDescendants()) do
-        if gate:IsA("Model") and gate.Name == "Gate" then
-            VD_SetPartState(gate:FindFirstChild("LeftGate"), { Transparency = 1, CanCollide = false })
-            VD_SetPartState(gate:FindFirstChild("RightGate"), { Transparency = 1, CanCollide = false })
-            VD_SetPartState(gate:FindFirstChild("LeftGate-end"), { Transparency = 0, CanCollide = true })
-            VD_SetPartState(gate:FindFirstChild("RightGate-end"), { Transparency = 0, CanCollide = true })
-            VD_SetPartState(gate:FindFirstChild("Box"), { CanCollide = false })
+    if KYS_Cache and KYS_Cache.Gates then
+        for _, entry in ipairs(KYS_Cache.Gates) do
+            local gate = entry.model
+            if gate and gate.Parent and gate:IsA("Model") then
+                VD_SetPartState(gate:FindFirstChild("LeftGate"), { Transparency = 1, CanCollide = false })
+                VD_SetPartState(gate:FindFirstChild("RightGate"), { Transparency = 1, CanCollide = false })
+                VD_SetPartState(gate:FindFirstChild("LeftGate-end"), { Transparency = 0, CanCollide = true })
+                VD_SetPartState(gate:FindFirstChild("RightGate-end"), { Transparency = 0, CanCollide = true })
+                VD_SetPartState(gate:FindFirstChild("Box"), { CanCollide = false })
+            end
         end
     end
 end
-local VD_InvisibleNV = {
+VD_InvisibleNV = {
     Active = false,
     Seat = nil,
     Weld = nil,
     OriginalSpeed = nil,
-    Highlight = nil,
     Position = Vector3.new(-25.95, 84, 3537.55),
+    Highlight = nil,
+    CurrentRepairPoint = nil,
+    CurrentExitPoint = nil,
+    CurrentHealPoint = nil,
+    InputBeganConn = nil,
+    InputEndedConn = nil,
+    HeartbeatConn = nil,
+    DescendantAddedConn = nil,
+    IsHoldingInteract = false,
+    _visibleParts = {},
 }
+getgenv().VD_InvisibleNV = VD_InvisibleNV
 local VD_CharOriginalTransparency = {}
 local function IsHiddenCapsuleOrHitbox(part)
     if not part or not part:IsA("BasePart") then return false end
@@ -7360,54 +9696,446 @@ local function IsHiddenCapsuleOrHitbox(part)
     end
     return false
 end
+
+-- Apply transparency to a single part — keeps hitboxes/capsules permanently hidden
+local function VD_ApplyTransparencyToPart(descendant, transparency, originalCache, visiblePartsCache)
+    if not (descendant:IsA("BasePart") or descendant:IsA("Decal")) then return end
+    if IsHiddenCapsuleOrHitbox(descendant) then
+        -- Physics/collision capsules: always stay invisible (game-correct)
+        pcall(function() descendant.Transparency = 1 end)
+        return
+    end
+    if transparency > 0 then
+        -- Save original transparency before hiding
+        if originalCache[descendant] == nil then
+            originalCache[descendant] = descendant.Transparency
+        end
+        -- If part was originally invisible (hitbox/proxy), keep it at 1
+        if originalCache[descendant] >= 0.9 then
+            pcall(function() descendant.Transparency = 1 end)
+            return
+        end
+        -- Make semi-transparent (0.5) so Highlight shader can render its silhouette
+        pcall(function() descendant.Transparency = transparency end)
+        if visiblePartsCache and descendant:IsA("BasePart") then
+            visiblePartsCache[descendant] = true
+        end
+    else
+        -- Restore original transparency
+        local orig = originalCache[descendant]
+        local restoreT = (orig ~= nil and orig >= 0.9) and 1 or (orig or 0)
+        pcall(function() descendant.Transparency = restoreT end)
+        if visiblePartsCache then
+            visiblePartsCache[descendant] = nil
+        end
+    end
+end
+
 function VD_SetCharacterTransparency(character, transparency)
     if not character then return end
-    for _, descendant in ipairs(character:GetDescendants()) do
-        if descendant:IsA("BasePart") or descendant:IsA("Decal") then
-            if IsHiddenCapsuleOrHitbox(descendant) then
+    if transparency > 0 then
+        for _, descendant in ipairs(character:GetDescendants()) do
+            VD_ApplyTransparencyToPart(descendant, transparency, VD_CharOriginalTransparency, VD_InvisibleNV._visibleParts)
+        end
+    else
+        for _, descendant in ipairs(character:GetDescendants()) do
+            VD_ApplyTransparencyToPart(descendant, 0, VD_CharOriginalTransparency, VD_InvisibleNV._visibleParts)
+        end
+        -- Safety check: ensure all hitbox and collision capsule parts remain strictly Transparency = 1
+        for _, descendant in ipairs(character:GetDescendants()) do
+            if descendant:IsA("BasePart") and IsHiddenCapsuleOrHitbox(descendant) then
                 pcall(function() descendant.Transparency = 1 end)
-            else
-                if transparency > 0 then
-                    if VD_CharOriginalTransparency[descendant] == nil then
-                        VD_CharOriginalTransparency[descendant] = descendant.Transparency
-                    end
-                    if (VD_CharOriginalTransparency[descendant] or 0) >= 0.9 then
-                        pcall(function() descendant.Transparency = 1 end)
-                    else
-                        pcall(function() descendant.Transparency = transparency end)
-                    end
-                else
-                    local orig = VD_CharOriginalTransparency[descendant]
-                    if orig ~= nil and orig >= 0.9 then
-                        pcall(function() descendant.Transparency = 1 end)
-                    else
-                        pcall(function() descendant.Transparency = orig or 0 end)
+            end
+        end
+        VD_CharOriginalTransparency = {}
+        VD_InvisibleNV._visibleParts = {}
+    end
+end
+
+-- Highlight shown only to local player — renders locally on character
+local VD_InvisibleHighlightPulseConn = nil
+local function VD_ApplyInvisibleHighlight(character, state)
+    if VD_InvisibleHighlightPulseConn then
+        pcall(function() VD_InvisibleHighlightPulseConn:Disconnect() end)
+        VD_InvisibleHighlightPulseConn = nil
+    end
+    if VD_InvisibleNV.Highlight then
+        pcall(function() VD_InvisibleNV.Highlight:Destroy() end)
+        VD_InvisibleNV.Highlight = nil
+    end
+
+    if not state or not character then return end
+
+    local hl = Instance.new("Highlight")
+    hl.Name = "KYS_InvisibleHL"
+    hl.FillColor = Color3.fromRGB(150, 60, 255)     -- Vibrant purple
+    hl.FillTransparency = 0.35
+    hl.OutlineColor = Color3.fromRGB(255, 255, 255)   -- White outline
+    hl.OutlineTransparency = 0
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Adornee = character
+    hl.Enabled = true
+    -- Parent directly to character in Workspace so 3D renderer displays it immediately
+    hl.Parent = character
+    VD_InvisibleNV.Highlight = hl
+
+    -- Animated pulse so you always clearly see invisible is active
+    local t = 0
+    VD_InvisibleHighlightPulseConn = RunService.Heartbeat:Connect(function(dt)
+        if not (VD_InvisibleNV.Highlight and VD_InvisibleNV.Highlight.Parent) then
+            if VD_InvisibleHighlightPulseConn then
+                pcall(function() VD_InvisibleHighlightPulseConn:Disconnect() end)
+                VD_InvisibleHighlightPulseConn = nil
+            end
+            return
+        end
+        t = t + dt * 2.5
+        local pulse = (math.sin(t) + 1) * 0.5
+        pcall(function()
+            hl.OutlineTransparency = pulse * 0.55
+            hl.FillTransparency = 0.2 + pulse * 0.4
+        end)
+    end)
+end
+
+
+local function VD_GetInteractionRemotes()
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    if not remotes then return {} end
+    local gen = remotes:FindFirstChild("Generator")
+    local heal = remotes:FindFirstChild("Healing")
+    local exit = remotes:FindFirstChild("Exit")
+    local win = remotes:FindFirstChild("Window")
+    local pal = remotes:FindFirstChild("Pallet")
+    local carry = remotes:FindFirstChild("Carry")
+    local events = remotes:FindFirstChild("Events")
+    local hallow = events and events:FindFirstChild("Halloween")
+    local xmas = events and events:FindFirstChild("Christmas")
+    return {
+        Repair = gen and gen:FindFirstChild("RepairEvent"),
+        Heal = heal and heal:FindFirstChild("HealEvent"),
+        Lever = exit and exit:FindFirstChild("LeverEvent"),
+        Vault = win and win:FindFirstChild("VaultEvent"),
+        VaultBindable = win and win:FindFirstChild("Vaultbindable"),
+        PalletDrop = pal and pal:FindFirstChild("PalletDropEvent"),
+        PalletSlide = pal and pal:FindFirstChild("PalletSlideEvent"),
+        SlideBindable = pal and pal:FindFirstChild("Slidebindable"),
+        UnHook = carry and carry:FindFirstChild("UnHookEvent"),
+        SelfUnHook = carry and carry:FindFirstChild("SelfUnHookEvent"),
+        Pumpkin = hallow and hallow:FindFirstChild("Crush"),
+        Gift = xmas and xmas:FindFirstChild("gift"),
+        PutDown = xmas and xmas:FindFirstChild("putdown"),
+    }
+end
+
+local function VD_GetPlayerCurrentPos()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    if VD_InvisibleNV and VD_InvisibleNV.Active then
+        if VD_InvisibleNV.Seat and VD_InvisibleNV.Seat.Parent then
+            return VD_InvisibleNV.Seat.Position
+        end
+        local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+        if torso then return torso.Position end
+    end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    return root and root.Position
+end
+
+local function VD_FindNearestTaggedPart(tag, maxDist)
+    local char = LocalPlayer.Character
+    local myPos = VD_GetPlayerCurrentPos()
+    if not myPos then return nil end
+    local CS = CollectionService or (game and game:GetService("CollectionService"))
+    if not CS then return nil end
+    local nearest = nil
+    local minDist = maxDist or 10
+    local tagged = CS:GetTagged(tag)
+    for _, part in ipairs(tagged) do
+        if part:IsA("BasePart") and not part:IsDescendantOf(char) then
+            local dist = (part.Position - myPos).Magnitude
+            if dist <= minDist then
+                minDist = dist
+                nearest = part
+            end
+        elseif part:IsA("Model") and not part:IsDescendantOf(char) then
+            local pPos = part.PrimaryPart and part.PrimaryPart.Position or part:GetPivot().Position
+            local dist = (pPos - myPos).Magnitude
+            if dist <= minDist then
+                minDist = dist
+                nearest = part.PrimaryPart or part:FindFirstChildWhichIsA("BasePart") or part
+            end
+        end
+    end
+    return nearest
+end
+
+local function VD_FindNearestGeneratorPoint(maxDist)
+    local pt = VD_FindNearestTaggedPart("GeneratorPoint", maxDist)
+        or VD_FindNearestTaggedPart("RepairPoint", maxDist)
+    if pt then return pt end
+    local myPos = VD_GetPlayerCurrentPos()
+    if not myPos then return nil end
+    local nearest = nil
+    local minDist = maxDist or 10
+
+    -- Fast check: KYS_Cache.Generators (0 FPS drop, no workspace search)
+    if KYS_Cache and KYS_Cache.Generators then
+        for _, entry in ipairs(KYS_Cache.Generators) do
+            local gen = entry.model or entry.part
+            if gen and gen.Parent then
+                local gPt = gen:FindFirstChild("GeneratorPoint", true)
+                    or gen:FindFirstChild("RepairPoint", true)
+                    or entry.part
+                    or (gen:IsA("Model") and gen.PrimaryPart)
+                if gPt and gPt:IsA("BasePart") then
+                    local dist = (gPt.Position - myPos).Magnitude
+                    if dist <= minDist then
+                        minDist = dist
+                        nearest = gPt
                     end
                 end
             end
         end
     end
-    if transparency == 0 then
-        VD_CharOriginalTransparency = {}
+    return nearest
+end
+
+local function VD_FindNearestExitPoint(maxDist)
+    local pt = VD_FindNearestTaggedPart("ExitPoint", maxDist)
+        or VD_FindNearestTaggedPart("Lever", maxDist)
+    if pt then return pt end
+    local myPos = VD_GetPlayerCurrentPos()
+    if not myPos then return nil end
+    local nearest = nil
+    local minDist = maxDist or 10
+
+    -- Fast check: KYS_Cache.Gates
+    if KYS_Cache and KYS_Cache.Gates then
+        for _, entry in ipairs(KYS_Cache.Gates) do
+            local gate = entry.model or entry.part
+            if gate and gate.Parent then
+                local lPt = gate:FindFirstChild("ExitPoint", true)
+                    or gate:FindFirstChild("Lever", true)
+                    or entry.part
+                    or (gate:IsA("Model") and gate.PrimaryPart)
+                if lPt and lPt:IsA("BasePart") then
+                    local dist = (lPt.Position - myPos).Magnitude
+                    if dist <= minDist then
+                        minDist = dist
+                        nearest = lPt
+                    end
+                end
+            end
+        end
+    end
+    return nearest
+end
+
+local function VD_FindNearestHealTarget(maxDist)
+    local char = LocalPlayer.Character
+    local myPos = VD_GetPlayerCurrentPos()
+    if not myPos then return nil end
+    local nearest = nil
+    local minDist = maxDist or 10
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local pHrp = p.Character:FindFirstChild("HumanoidRootPart")
+            local pHum = p.Character:FindFirstChildOfClass("Humanoid")
+            if pHrp and pHum and pHum.Health > 0 and pHum.Health < pHum.MaxHealth then
+                local dist = (pHrp.Position - myPos).Magnitude
+                if dist <= minDist then
+                    minDist = dist
+                    nearest = pHrp
+                end
+            end
+        end
+    end
+    return nearest
+end
+
+local function VD_StopInvisibleInteractions()
+    local remotes = VD_GetInteractionRemotes()
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local checkInter = char and char:FindFirstChild("CheckInterractable")
+    local pgui = LocalPlayer:FindFirstChild("PlayerGui")
+    local progGui = pgui and pgui:FindFirstChild("ProgressPromptGui")
+    local progFrame = progGui and progGui:FindFirstChild("Frame")
+
+    if VD_InvisibleNV.CurrentRepairPoint and remotes.Repair then
+        pcall(function() remotes.Repair:FireServer(VD_InvisibleNV.CurrentRepairPoint, false) end)
+        VD_InvisibleNV.CurrentRepairPoint = nil
+        if checkInter then pcall(function() checkInter:SetAttribute("isRepairing", false) end) end
+        -- Unanchor root after repair stops (mirrors game's clearForcedAction behavior)
+        if root and root.Parent then
+            pcall(function() root.Anchored = false end)
+        end
+    end
+    if VD_InvisibleNV.CurrentExitPoint and remotes.Lever then
+        pcall(function() remotes.Lever:FireServer(VD_InvisibleNV.CurrentExitPoint, false) end)
+        VD_InvisibleNV.CurrentExitPoint = nil
+        if checkInter then pcall(function() checkInter:SetAttribute("isExiting", false) end) end
+    end
+    if VD_InvisibleNV.CurrentHealPoint and remotes.Heal then
+        pcall(function() remotes.Heal:FireServer(VD_InvisibleNV.CurrentHealPoint, false) end)
+        VD_InvisibleNV.CurrentHealPoint = nil
+        if checkInter then pcall(function() checkInter:SetAttribute("isHealing", false) end) end
+    end
+    if progFrame then
+        pcall(function() progFrame.Visible = false end)
+    end
+    -- NOTE: Do NOT remove 'doing action' tag here — we don't add it in the first place.
+    -- Adding that tag BLOCKS the game's own proximity scanner from finding nearby points.
+end
+
+local function VD_TryInvisibleInteract()
+    if not VD_InvisibleNV.Active then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not root or not hum or hum.Health <= 0 then return end
+    local remotes = VD_GetInteractionRemotes()
+    local checkInter = char:FindFirstChild("CheckInterractable")
+    local pgui = LocalPlayer:FindFirstChild("PlayerGui")
+    local progGui = pgui and pgui:FindFirstChild("ProgressPromptGui")
+    local progFrame = progGui and progGui:FindFirstChild("Frame")
+
+    -- Self-Unhook if hooked
+    if char:GetAttribute("IsHooked") and remotes.SelfUnHook then
+        pcall(function() remotes.SelfUnHook:FireServer() end)
+        return
+    end
+
+    -- Priority 1: Generator Repair
+    -- Mirrors the game's startRepair: anchor root, set isRepairing attr, fire RepairEvent
+    -- NOTE: Do NOT add 'doing action' tag — it blocks the game's own proximity scanner
+    local genPoint = VD_FindNearestGeneratorPoint(10)
+    if genPoint and remotes.Repair then
+        VD_InvisibleNV.CurrentRepairPoint = genPoint
+        -- Anchor root during repair (game's own logic does this, required for server validation)
+        pcall(function() root.Anchored = true end)
+        if checkInter then pcall(function() checkInter:SetAttribute("isRepairing", true) end) end
+        pcall(function() remotes.Repair:FireServer(genPoint, true) end)
+        if progFrame then pcall(function() progFrame.Visible = true end) end
+        return
+    end
+
+    -- Priority 2: Exit Gate Lever
+    local exitPoint = VD_FindNearestExitPoint(10)
+    if exitPoint and remotes.Lever then
+        VD_InvisibleNV.CurrentExitPoint = exitPoint
+        if checkInter then pcall(function() checkInter:SetAttribute("isExiting", true) end) end
+        pcall(function() remotes.Lever:FireServer(exitPoint, true) end)
+        if progFrame then pcall(function() progFrame.Visible = true end) end
+        return
+    end
+
+    -- Priority 3: Unhook Teammate
+    local unhookPoint = VD_FindNearestTaggedPart("UnhookPoint", 10)
+    if unhookPoint and remotes.UnHook then
+        pcall(function() remotes.UnHook:FireServer(unhookPoint) end)
+        if checkInter then pcall(function() checkInter:SetAttribute("isUnhooking", true) end) end
+        task.delay(2.0, function()
+            if checkInter then pcall(function() checkInter:SetAttribute("isUnhooking", false) end) end
+        end)
+        return
+    end
+
+    -- Priority 4: Heal Teammate
+    local healPoint = VD_FindNearestHealTarget(10)
+    if healPoint and remotes.Heal then
+        VD_InvisibleNV.CurrentHealPoint = healPoint
+        if checkInter then pcall(function() checkInter:SetAttribute("isHealing", true) end) end
+        pcall(function() remotes.Heal:FireServer(healPoint, true) end)
+        if progFrame then pcall(function() progFrame.Visible = true end) end
+        return
+    end
+
+    -- Priority 5: Event interactions (Pumpkin / Gift)
+    local pumpkin = VD_FindNearestTaggedPart("Pumpkin", 8)
+    if pumpkin and remotes.Pumpkin then
+        pcall(function() remotes.Pumpkin:FireServer(pumpkin) end)
+        return
+    end
+    local gift = VD_FindNearestTaggedPart("Gift", 8)
+    if gift and remotes.Gift then
+        pcall(function() remotes.Gift:FireServer(gift) end)
+        return
     end
 end
-function VD_SetInvisibleNotVisual(state)
+
+local function VD_TryInvisibleSpaceAction()
+    if not VD_InvisibleNV.Active then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not root or not hum or hum.Health <= 0 then return end
+    local remotes = VD_GetInteractionRemotes()
+    local isSprinting = char:GetAttribute("Sprinting") or false
+    local checkInter = char:FindFirstChild("CheckInterractable")
+
+    -- Window Vault
+    local vaultPoint = VD_FindNearestTaggedPart("VaultPoint", 8)
+    if vaultPoint and remotes.Vault then
+        pcall(function() remotes.Vault:FireServer(vaultPoint, isSprinting) end)
+        if remotes.VaultBindable then pcall(function() remotes.VaultBindable:Fire(vaultPoint, isSprinting) end) end
+        if checkInter then pcall(function() checkInter:SetAttribute("isVaulting", true) end) end
+        task.delay(0.5, function()
+            if checkInter then pcall(function() checkInter:SetAttribute("isVaulting", false) end) end
+        end)
+        return
+    end
+
+    -- Pallet Drop
+    local palletPoint = VD_FindNearestTaggedPart("PalletPoint", 8)
+    if palletPoint and remotes.PalletDrop then
+        pcall(function() remotes.PalletDrop:FireServer(palletPoint) end)
+        if checkInter then pcall(function() checkInter:SetAttribute("isDroppingPallet", true) end) end
+        task.delay(0.5, function()
+            if checkInter then pcall(function() checkInter:SetAttribute("isDroppingPallet", false) end) end
+        end)
+        return
+    end
+
+    -- Pallet Slide
+    local slidePoint = VD_FindNearestTaggedPart("PalletPointSlide", 8)
+    if slidePoint and remotes.PalletSlide then
+        pcall(function() remotes.PalletSlide:FireServer(slidePoint, isSprinting) end)
+        if remotes.SlideBindable then pcall(function() remotes.SlideBindable:Fire(slidePoint, isSprinting) end) end
+        if checkInter then pcall(function() checkInter:SetAttribute("isSliding", true) end) end
+        task.delay(0.5, function()
+            if checkInter then pcall(function() checkInter:SetAttribute("isSliding", false) end) end
+        end)
+        return
+    end
+end
+
+VD_SetInvisibleNotVisual = function(state)
     local char = LocalPlayer.Character
     if not char then return end
     local hum = char:FindFirstChildOfClass("Humanoid")
     local root = char:FindFirstChild("HumanoidRootPart")
     local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
     if not hum or not root or not torso then return end
+
     if state then
         if VD_InvisibleNV.Active then
-            hum.WalkSpeed = VD.InvisibleSpeed or 16
+            if VD.InvisibleSpeed and tonumber(VD.InvisibleSpeed) and tonumber(VD.InvisibleSpeed) > 5 then
+                hum.WalkSpeed = tonumber(VD.InvisibleSpeed)
+            end
             return
         end
         VD_InvisibleNV.Active = true
         VD_InvisibleNV.OriginalSpeed = hum.WalkSpeed
+
+        -- ─── STEP 1: Seat + Weld Desync from kys.lua ────────────────────────
         local savedCFrame = root.CFrame
         char:MoveTo(VD_InvisibleNV.Position)
         task.wait(0.15)
+
         local seat = Instance.new("Seat")
         seat.Name = "KYS_InvisibleSeat"
         seat.Anchored = false
@@ -7415,61 +10143,211 @@ function VD_SetInvisibleNotVisual(state)
         seat.Transparency = 1
         seat.CFrame = CFrame.new(VD_InvisibleNV.Position)
         seat.Parent = Workspace
+
         local weld = Instance.new("Weld")
+        weld.Name = "KYS_InvisibleWeld"
         weld.Part0 = seat
         weld.Part1 = torso
         weld.Parent = seat
+
         VD_InvisibleNV.Seat = seat
         VD_InvisibleNV.Weld = weld
+
         task.wait()
         seat.CFrame = savedCFrame
-        VD_SetCharacterTransparency(char, 0.5)
-        
-        -- Highlight local character so player clearly sees their position while invisible
-        local hl = VD_InvisibleNV.Highlight
-        if not hl or not hl.Parent then
-            hl = Instance.new("Highlight")
-            hl.Name = "PinatHub_InvisibleHighlight"
-            hl.FillColor = Color3.fromRGB(168, 85, 247)
-            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-            hl.FillTransparency = 0.35
-            hl.OutlineTransparency = 0
-            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            hl.Adornee = char
-            hl.Parent = char
-            VD_InvisibleNV.Highlight = hl
+        -- NOTE: Do NOT set root.CFrame = savedCFrame!
+        -- Keeping root desynced at VD_InvisibleNV.Position is what makes you 100% invisible to all other players!
+
+        -- ─── STEP 2: Character Semi-Transparency & Local Highlight ──────────
+        pcall(function() VD_SetCharacterTransparency(char, 0.5) end)
+        pcall(function() VD_ApplyInvisibleHighlight(char, true) end)
+
+        -- ─── STEP 3: WalkSpeed Handling (No Slowdown Glitch) ──────────────────
+        if VD.SPEED_Enabled and VD.SPEED_Value and tonumber(VD.SPEED_Value) then
+            hum.WalkSpeed = tonumber(VD.SPEED_Value)
+        elseif VD.InvisibleSpeed and tonumber(VD.InvisibleSpeed) and tonumber(VD.InvisibleSpeed) > 5 then
+            hum.WalkSpeed = tonumber(VD.InvisibleSpeed)
+        elseif VD_InvisibleNV.OriginalSpeed and VD_InvisibleNV.OriginalSpeed > 0 then
+            hum.WalkSpeed = VD_InvisibleNV.OriginalSpeed
         else
-            hl.Adornee = char
-            hl.Enabled = true
+            hum.WalkSpeed = 16
         end
 
-        hum.WalkSpeed = VD.InvisibleSpeed or 16
+        -- ─── STEP 4: DescendantAdded — auto-hide new accessories/clothing ────
+        if VD_InvisibleNV.DescendantAddedConn then
+            VD_InvisibleNV.DescendantAddedConn:Disconnect()
+        end
+        VD_InvisibleNV.DescendantAddedConn = char.DescendantAdded:Connect(function(desc)
+            if not VD_InvisibleNV.Active then return end
+            task.defer(function()
+                if not VD_InvisibleNV.Active then return end
+                VD_ApplyTransparencyToPart(desc, 0.5, VD_CharOriginalTransparency, VD_InvisibleNV._visibleParts)
+            end)
+        end)
+
+        -- ─── STEP 5: Lightweight Heartbeat — re-enforce & distance check ─────
+        if VD_InvisibleNV.HeartbeatConn then VD_InvisibleNV.HeartbeatConn:Disconnect() end
+        local _reEnforceTimer = 0
+        VD_InvisibleNV.HeartbeatConn = RunService.Heartbeat:Connect(function(dt)
+            if not VD_InvisibleNV.Active then return end
+
+            _reEnforceTimer = _reEnforceTimer + dt
+            if _reEnforceTimer >= 0.5 then
+                _reEnforceTimer = 0
+                for part, _ in pairs(VD_InvisibleNV._visibleParts) do
+                    if part and part.Parent then
+                        pcall(function()
+                            if part.Transparency < 0.5 then
+                                part.Transparency = 0.5
+                            end
+                        end)
+                    else
+                        VD_InvisibleNV._visibleParts[part] = nil
+                    end
+                end
+            end
+
+            -- Distance checks — stop interactions if player walked away
+            local myPos = VD_GetPlayerCurrentPos()
+            if myPos then
+                if VD_InvisibleNV.CurrentRepairPoint then
+                    local ok, dist = pcall(function()
+                        return (myPos - VD_InvisibleNV.CurrentRepairPoint.Position).Magnitude
+                    end)
+                    if not ok or dist > 14 or not VD_InvisibleNV.IsHoldingInteract then
+                        VD_StopInvisibleInteractions()
+                    end
+                end
+                if VD_InvisibleNV.CurrentExitPoint then
+                    local ok, dist = pcall(function()
+                        return (myPos - VD_InvisibleNV.CurrentExitPoint.Position).Magnitude
+                    end)
+                    if not ok or dist > 14 or not VD_InvisibleNV.IsHoldingInteract then
+                        VD_StopInvisibleInteractions()
+                    end
+                end
+                if VD_InvisibleNV.CurrentHealPoint then
+                    local ok, dist = pcall(function()
+                        return (myPos - VD_InvisibleNV.CurrentHealPoint.Position).Magnitude
+                    end)
+                    if not ok or dist > 14 or not VD_InvisibleNV.IsHoldingInteract then
+                        VD_StopInvisibleInteractions()
+                    end
+                end
+            end
+        end)
+
+        -- ─── STEP 6: Input bindings — E/F/Click to interact, Space to vault ──
+        if VD_InvisibleNV.InputBeganConn then VD_InvisibleNV.InputBeganConn:Disconnect() end
+        VD_InvisibleNV.InputBeganConn = UserInputService.InputBegan:Connect(function(input, gpe)
+            if gpe then return end
+            local isInteract = input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.Touch
+                or input.KeyCode == Enum.KeyCode.E
+                or input.KeyCode == Enum.KeyCode.F
+            if isInteract then
+                VD_InvisibleNV.IsHoldingInteract = true
+                VD_TryInvisibleInteract()
+            elseif input.KeyCode == Enum.KeyCode.Space then
+                VD_TryInvisibleSpaceAction()
+            end
+        end)
+
+        if VD_InvisibleNV.InputEndedConn then VD_InvisibleNV.InputEndedConn:Disconnect() end
+        VD_InvisibleNV.InputEndedConn = UserInputService.InputEnded:Connect(function(input)
+            local isInteract = input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.Touch
+                or input.KeyCode == Enum.KeyCode.E
+                or input.KeyCode == Enum.KeyCode.F
+            if isInteract then
+                VD_InvisibleNV.IsHoldingInteract = false
+                VD_StopInvisibleInteractions()
+            end
+        end)
+
     else
+        -- ─── DEACTIVATE ────────────────────────────────────────────────────────
         VD.InvisibleNotVisual = false
         VD_InvisibleNV.Active = false
+
+        -- Disconnect all connections
+        if VD_InvisibleNV.DescendantAddedConn then
+            VD_InvisibleNV.DescendantAddedConn:Disconnect()
+            VD_InvisibleNV.DescendantAddedConn = nil
+        end
+        if VD_InvisibleNV.InputBeganConn then
+            VD_InvisibleNV.InputBeganConn:Disconnect()
+            VD_InvisibleNV.InputBeganConn = nil
+        end
+        if VD_InvisibleNV.InputEndedConn then
+            VD_InvisibleNV.InputEndedConn:Disconnect()
+            VD_InvisibleNV.InputEndedConn = nil
+        end
+        if VD_InvisibleNV.HeartbeatConn then
+            VD_InvisibleNV.HeartbeatConn:Disconnect()
+            VD_InvisibleNV.HeartbeatConn = nil
+        end
+
+        -- Stop any active interactions
+        VD_StopInvisibleInteractions()
+
+        -- Return root to current seat position so player stays where they walked
+        local returnCFrame = nil
+        if VD_InvisibleNV.Seat and VD_InvisibleNV.Seat.Parent then
+            returnCFrame = VD_InvisibleNV.Seat.CFrame
+        elseif torso then
+            returnCFrame = torso.CFrame
+        end
+
+        if returnCFrame and root and root.Parent then
+            pcall(function() root.CFrame = returnCFrame end)
+        end
+
+        -- Destroy seat and weld
         if VD_InvisibleNV.Seat and VD_InvisibleNV.Seat.Parent then
             pcall(function() VD_InvisibleNV.Seat:Destroy() end)
         end
         VD_InvisibleNV.Seat = nil
         VD_InvisibleNV.Weld = nil
-        if VD_InvisibleNV.Highlight and VD_InvisibleNV.Highlight.Parent then
-            pcall(function() VD_InvisibleNV.Highlight:Destroy() end)
-        end
-        VD_InvisibleNV.Highlight = nil
-        VD_SetCharacterTransparency(char, 0)
+
+        -- Remove highlight
+        pcall(function() VD_ApplyInvisibleHighlight(nil, false) end)
+
+        -- Restore character to full visibility (hitbox/capsule parts stay 1)
+        pcall(function() VD_SetCharacterTransparency(char, 0) end)
+
+        -- Ensure root is unanchored
         pcall(function()
-            for _, descendant in ipairs(char:GetDescendants()) do
-                if descendant:IsA("BasePart") and IsHiddenCapsuleOrHitbox(descendant) then
-                    descendant.Transparency = 1
-                end
-            end
+            if root and root.Parent then root.Anchored = false end
         end)
+
+        -- Restore walkspeed
         if VD_InvisibleNV.OriginalSpeed then
             hum.WalkSpeed = VD_InvisibleNV.OriginalSpeed
+        elseif VD.SPEED_Enabled and VD.SPEED_Value then
+            hum.WalkSpeed = tonumber(VD.SPEED_Value) or 16
+        else
+            hum.WalkSpeed = 16
         end
         VD_InvisibleNV.OriginalSpeed = nil
     end
 end
+getgenv().VD_SetInvisibleNotVisual = VD_SetInvisibleNotVisual
+
+-- Re-apply invisible mode when character respawns (e.g., after being killed)
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    if VD.InvisibleNotVisual then
+        -- Wait for character to fully load before re-applying
+        task.wait(0.5)
+        if VD.InvisibleNotVisual then
+            -- Reset state so VD_SetInvisibleNotVisual doesn't early-return
+            VD_InvisibleNV.Active = false
+            VD_InvisibleNV._visibleParts = {}
+            VD_CharOriginalTransparency = {}
+            pcall(VD_SetInvisibleNotVisual, true)
+        end
+    end
+end)
 pcall(function()
     if LocalPlayer.Character then
         for _, descendant in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -7910,18 +10788,56 @@ function VD_UpdateMoonwalk(deltaTime)
         return
     end
     if not root or not hum or not cam or hum.Health <= 0 then return end
+
+    -- Proximity suppression for vaults and pallets:
+    if VD.SURV_MoonwalkDisableOnVault then
+        local map = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("Map1")
+        if map then
+            for _, obj in ipairs(map:GetChildren()) do
+                local name = obj.Name:lower()
+                if name:find("vault") or name:find("window") or name:find("pallet") then
+                    local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                    if part and (part.Position - root.Position).Magnitude <= 20 then
+                        hum.AutoRotate = true
+                        return
+                    end
+                end
+            end
+        end
+    end
+
     hum.AutoRotate = false
     local look = cam.CFrame.LookVector
-    local targetYaw = math.deg(math.atan2(look.X, look.Z)) + 180
+    local targetYaw
+    if VD.SURV_MoonwalkMovementBased and hum.MoveDirection.Magnitude > 0.01 then
+        local dotFwd = hum.MoveDirection:Dot(cam.CFrame.LookVector)
+        local dotRight = hum.MoveDirection:Dot(cam.CFrame.RightVector)
+        if math.abs(dotFwd) > math.abs(dotRight) then
+            targetYaw = math.deg(math.atan2(hum.MoveDirection.X, hum.MoveDirection.Z))
+        else
+            targetYaw = math.deg(math.atan2(look.X, look.Z))
+        end
+    else
+        targetYaw = math.deg(math.atan2(look.X, look.Z))
+    end
+
+    if not VD.SURV_ReverseMoonwalk then
+        targetYaw = targetYaw + 180
+    end
+
     local currentYaw = VD_MoonwalkState.Yaw or targetYaw
     local diff = (targetYaw - currentYaw + 180) % 360 - 180
     local lerpSpeed = 0.22 * math.clamp((deltaTime or 1 / 60) * 60, 0, 3)
     currentYaw = currentYaw + diff * lerpSpeed
     VD_MoonwalkState.Yaw = currentYaw
+
     local moving = hum.MoveDirection.Magnitude > 0.01
     local targetSway = 0
     if moving then
-        targetSway = math.sin(tick() * (VD.MoonwalkZigzagSpeed or 11)) * 48
+        local speed = tonumber(VD.SURV_MoonwalkSwaySpeed) or tonumber(VD.MoonwalkZigzagSpeed) or 14
+        local amp = tonumber(VD.SURV_MoonwalkSwayAmplitude) or 0.28
+        local shake = tonumber(VD.SURV_MoonwalkShaking) or 0.05
+        targetSway = (math.sin(tick() * speed) * (amp * 100)) + ((math.random() - 0.5) * (shake * 50))
     end
     VD_MoonwalkState.Sway = (VD_MoonwalkState.Sway or 0) + (targetSway - (VD_MoonwalkState.Sway or 0)) * 0.38
     root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.rad(currentYaw + VD_MoonwalkState.Sway), 0)
@@ -7930,6 +10846,10 @@ function VD_UpdateMoonwalk(deltaTime)
     end
 end
 LocalPlayer.CharacterRemoving:Connect(function()
+    pcall(VD_StopInvisibleInteractions)
+    if VD_InvisibleNV.InputBeganConn then VD_InvisibleNV.InputBeganConn:Disconnect(); VD_InvisibleNV.InputBeganConn = nil end
+    if VD_InvisibleNV.InputEndedConn then VD_InvisibleNV.InputEndedConn:Disconnect(); VD_InvisibleNV.InputEndedConn = nil end
+    if VD_InvisibleNV.HeartbeatConn then VD_InvisibleNV.HeartbeatConn:Disconnect(); VD_InvisibleNV.HeartbeatConn = nil end
     if VD_InvisibleNV.Seat and VD_InvisibleNV.Seat.Parent then
         pcall(function() VD_InvisibleNV.Seat:Destroy() end)
     end
@@ -7943,10 +10863,6 @@ LocalPlayer.CharacterRemoving:Connect(function()
     VD_MoonwalkState.LastEnabled = false
     VD_MoonwalkState.Yaw = nil
     VD_MoonwalkState.Sway = 0
-end)
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
-    if VD.InvisibleNotVisual then pcall(VD_SetInvisibleNotVisual, true) end
 end)
 local VD_PalletwrongConnection = nil
 local VD_PalletwrongScanning = false
@@ -8462,8 +11378,8 @@ function WatchCurrentMap(map)
             if n:find("generator") or n:find("mesin") or n:find("pallet") or n:find("window") or n:find("hook") or n:find("gate") then
                 task.delay(0.5, function()
                     if not descendant.Parent then return end
-                    local part = descendant:FindFirstChild("HitBox", true) or descendant:FindFirstChild("GeneratorPoint", true) or descendant.PrimaryPart or descendant:FindFirstChildWhichIsA("BasePart", true)
-                    if part then
+                    local part = descendant:FindFirstChild("HitBox", true) or descendant:FindFirstChild("GeneratorPoint", true) or (descendant:IsA("Model") and descendant.PrimaryPart) or descendant:FindFirstChildWhichIsA("BasePart", true)
+                    if part and descendant:IsA("Model") then
                         if n:find("generator") or n:find("mesin") then table.insert(KYS_Cache.Generators, {model=descendant, part=part})
                         elseif n:find("pallet") then table.insert(KYS_Cache.Pallets, {model=descendant, part=part})
                         elseif n:find("window") then table.insert(KYS_Cache.Windows, {model=descendant, part=part})
@@ -10105,7 +13021,23 @@ end
 do 
     local radarTab = MappingFeatureTabs.Radar
     if radarTab then
-        local radarSection = radarTab:AddSection({
+        
+    -- BATCH 7: Quick Map Teleports (Nearest & Furthest)
+    tpMapSection:AddButton({ Name = "TP To Nearest Generator", Callback = function() pcall(function() VD_TeleportToMapElement("generator", false) end) end })
+    tpMapSection:AddButton({ Name = "TP To Furthest Generator", Callback = function() pcall(function() VD_TeleportToMapElement("generator", true) end) end })
+    tpMapSection:AddButton({ Name = "TP To Nearest Hook", Callback = function() pcall(function() VD_TeleportToMapElement("hook", false) end) end })
+    tpMapSection:AddButton({ Name = "TP To Furthest Hook", Callback = function() pcall(function() VD_TeleportToMapElement("hook", true) end) end })
+    tpMapSection:AddButton({ Name = "TP To Nearest Gate", Callback = function() pcall(function() VD_TeleportToMapElement("gate", false) end) end })
+    tpMapSection:AddButton({ Name = "TP To Furthest Gate", Callback = function() pcall(function() VD_TeleportToMapElement("gate", true) end) end })
+    tpMapSection:AddButton({ Name = "TP To Nearest Pallet", Callback = function() pcall(function() VD_TeleportToMapElement("pallet", false) end) end })
+    tpMapSection:AddButton({ Name = "TP To Furthest Pallet", Callback = function() pcall(function() VD_TeleportToMapElement("pallet", true) end) end })
+    tpMapSection:AddButton({ Name = "TP To Nearest Vault", Callback = function() pcall(function() VD_TeleportToMapElement("vault", false) end) end })
+    tpMapSection:AddButton({ Name = "TP To Furthest Vault", Callback = function() pcall(function() VD_TeleportToMapElement("vault", true) end) end })
+    tpMapSection:AddButton({ Name = "TP To Nearest Survivor", Callback = function() pcall(function() VD_TeleportToMapElement("survivor", false) end) end })
+    tpMapSection:AddButton({ Name = "TP To Furthest Survivor", Callback = function() pcall(function() VD_TeleportToMapElement("survivor", true) end) end })
+    tpMapSection:AddButton({ Name = "TP To Killer", Callback = function() pcall(function() VD_TeleportToMapElement("killer", false) end) end })
+
+    local radarSection = radarTab:AddSection({
             Position = "Center",
             Name = "Radar Configuration",
             Icon      = "solar:radar-bold",
@@ -10940,7 +13872,7 @@ function StopPredictMap()
     getgenv().KYS_PredictMapConnections = {}
 end
 end 
-getgenv().KYS_OriginalFOV          = nil
+getgenv().KYS_OriginalFOV          = 70
 getgenv().KYS_OriginalCameraType   = nil
 getgenv().KYS_OriginalCameraOffset = nil
 getgenv().KYS_ThirdPersonWasActive = false
@@ -10950,14 +13882,48 @@ function UpdateCameraFOV()
     if not cam then return end
     if VD.CAM_FOVEnabled then
         if not getgenv().KYS_FOVWasActive then
-            getgenv().KYS_OriginalFOV = cam.FieldOfView
+            local currentFOV = cam.FieldOfView
+            if currentFOV and currentFOV > 10 and currentFOV ~= (VD.CAM_FOV or 90) then
+                getgenv().KYS_OriginalFOV = currentFOV
+            else
+                getgenv().KYS_OriginalFOV = getgenv().KYS_OriginalFOV or 70
+            end
             getgenv().KYS_FOVWasActive = true
         end
         cam.FieldOfView = VD.CAM_FOV or 90
-    elseif getgenv().KYS_FOVWasActive then
-        if getgenv().KYS_OriginalFOV then cam.FieldOfView = getgenv().KYS_OriginalFOV end
-        getgenv().KYS_OriginalFOV = nil
+    else
+        if getgenv().KYS_FOVWasActive or (cam.FieldOfView == (VD.CAM_FOV or 90)) then
+            cam.FieldOfView = getgenv().KYS_OriginalFOV or 70
+        end
         getgenv().KYS_FOVWasActive = false
+    end
+end
+getgenv().VD_StretchState = getgenv().VD_StretchState or {
+    Connection = nil,
+}
+function VD_UpdateStretchPOV()
+    if VD.CAM_StretchEnabled then
+        if not getgenv().VD_StretchState.Connection then
+            getgenv().VD_StretchState.Connection = RunService.RenderStepped:Connect(function()
+                if not VD.CAM_StretchEnabled then
+                    if getgenv().VD_StretchState.Connection then
+                        pcall(function() getgenv().VD_StretchState.Connection:Disconnect() end)
+                        getgenv().VD_StretchState.Connection = nil
+                    end
+                    return
+                end
+                local cam = workspace.CurrentCamera
+                if cam then
+                    local factor = tonumber(VD.CAM_StretchFactor) or 0.70
+                    cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, factor, 0, 0, 0, 1)
+                end
+            end)
+        end
+    else
+        if getgenv().VD_StretchState.Connection then
+            pcall(function() getgenv().VD_StretchState.Connection:Disconnect() end)
+            getgenv().VD_StretchState.Connection = nil
+        end
     end
 end
 function UpdateThirdPerson()
@@ -11491,14 +14457,40 @@ RunService.Heartbeat:Connect(function(deltaTime)
     pcall(VD_UpdateBypassGate)
     pcall(VD_UpdateInfiniteLunge)
     pcall(VD_UpdateWeatherAnchor)
-    pcall(VD_UpdateInvisibleNotVisual)
     pcall(VD_UpdateMoonwalk, deltaTime)
     pcall(VD_UpdateRemovePalletwrong)
 end)
 getgenv().KYS_SyncLoadedFeatures = function()
+    -- ── Visual/UI features ─────────────────────────────────────────────────
     if type(SetupAntiBlind) == "function" then pcall(SetupAntiBlind) end
     if type(SetupNoPalletStun) == "function" then pcall(SetupNoPalletStun) end
     if type(VD_UpdateCrosshair) == "function" then pcall(VD_UpdateCrosshair) end
+
+    -- ── Fullbright ──────────────────────────────────────────────────────────
+    pcall(function()
+        if VD.Fullbright then
+            Lighting.Brightness = 10
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        end
+    end)
+
+    -- ── No Fog ──────────────────────────────────────────────────────────────
+    pcall(function()
+        if VD.NO_Fog then
+            Lighting.FogEnd = 100000
+            Lighting.FogStart = 100000
+            for _, e in ipairs(Lighting:GetChildren()) do
+                if e:IsA("Atmosphere") or e:IsA("BlurEffect") or e:IsA("DepthOfFieldEffect") then
+                    e.Enabled = false
+                end
+            end
+        end
+    end)
+
+    -- ── Killer / Player visibility features ────────────────────────────────
     if VD.VIS_PinatHubKiller then
         pcall(StartPinatHubKiller)
     else
@@ -11528,18 +14520,73 @@ getgenv().KYS_SyncLoadedFeatures = function()
     if getgenv().KYS_SetShowHookCounter then
         pcall(getgenv().KYS_SetShowHookCounter, VD.VIS_ShowHookCounter)
     end
+
+    -- ── Weapons / Silent Aim ────────────────────────────────────────────────
     if getgenv().KYS_SetToFSilentAim then
         pcall(getgenv().KYS_SetToFSilentAim, VD.TOF_SilentAim)
     end
     if getgenv().KYS_SetFlashlightSilentAim then
         pcall(getgenv().KYS_SetFlashlightSilentAim, VD.FLASH_SilentAim)
     end
+
+    -- ── Movement features ───────────────────────────────────────────────────
     if getgenv().VD_SetMoonwalkButtonVisible then
         pcall(getgenv().VD_SetMoonwalkButtonVisible, VD.MoonwalkButton)
     end
+    -- Apply WalkSpeed if Speed hack is on
+    pcall(function()
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum and VD.Speed and VD.SpeedValue then
+            hum.WalkSpeed = VD.SpeedValue
+        end
+    end)
+    -- Apply JumpPower if Jump is on
+    pcall(function()
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum and VD.Jump and VD.JumpValue then
+            hum.JumpPower = VD.JumpValue
+        end
+    end)
+
+    -- ── Bypass / Killer special features ───────────────────────────────────
     if VD.KILLER_BypassLeap then
         pcall(KYS_StartHiddenCooldownBypass)
     end
+    if VD.DisablePlayerCollision ~= nil then
+        pcall(VD_SetCollisionDisabled, VD.DisablePlayerCollision)
+    end
+
+    -- ── Camera features ─────────────────────────────────────────────────────
+    pcall(UpdateCameraFOV)
+    pcall(VD_UpdateStretchPOV)
+
+    -- ── Invisible mode ──────────────────────────────────────────────────────
+    if VD_SetInvisibleNotVisual then
+        if VD.InvisibleNotVisual then
+            pcall(VD_SetInvisibleNotVisual, true)
+        else
+            pcall(VD_SetInvisibleNotVisual, false)
+        end
+    elseif getgenv().VD_SetInvisibleNotVisual then
+        pcall(getgenv().VD_SetInvisibleNotVisual, VD.InvisibleNotVisual == true)
+    end
+
+    -- ── Auto Skillcheck ─────────────────────────────────────────────────────
+    if type(VD_SetAutoSkillcheck) == "function" then
+        pcall(VD_SetAutoSkillcheck, VD.AutoSkillcheck)
+    end
+
+    -- ── Auto Parry ──────────────────────────────────────────────────────────
+    if type(VD_SetAutoParry) == "function" then
+        pcall(VD_SetAutoParry, VD.SURV_AutoParry)
+    end
+
+    -- ── Radar ───────────────────────────────────────────────────────────────
+    -- Radar state is read from VD.RADAR_Enabled in its own loop, no explicit call needed
+
+    print("[Config] Sync complete:", (VD.TOF_SilentAim and "ToF ON" or "ToF OFF"),
+        "Speed:", (VD.Speed and tostring(VD.SpeedValue) or "OFF"),
+        "Invisible:", tostring(VD.InvisibleNotVisual))
 end
 ;(function()
 local function readConfigElementValue(flagName)
@@ -11606,5 +14653,839 @@ task.spawn(function()
     end
 end)
 end)();
+
+
+-- =========================================================================
+-- COMPLETE 8-BATCH LOGIC ENGINE (Integrated from otherscript.lua)
+-- =========================================================================
+
+-- -------------------------------------------------------------------------
+-- BATCH 1: AIMBOT & WEAPON SYSTEMS
+-- -------------------------------------------------------------------------
+
+-- Ballistic Projectile Solver (from otherscript.lua line 23200)
+local function VD_SolveProjectileAim(origin, targetPos, targetVel, gravity, bulletSpeed)
+    local delta = targetPos - origin
+    local dist = delta.Magnitude
+    local timeToHit = dist / math.max(1, bulletSpeed)
+    local predictedPos = targetPos + (targetVel * timeToHit) + (0.5 * gravity * (timeToHit ^ 2))
+    for _ = 1, 3 do
+        local d = (predictedPos - origin).Magnitude
+        timeToHit = d / math.max(1, bulletSpeed)
+        predictedPos = targetPos + (targetVel * timeToHit) + (0.5 * gravity * (timeToHit ^ 2))
+    end
+    return predictedPos, timeToHit
+end
+
+-- 1.1 General AimAssist & Revolver Aimbot Loop
+local VD_AimbotFOVCircle = nil
+local function VD_UpdateAimbotFOV()
+    if not Drawing then return end
+    if not VD_AimbotFOVCircle then
+        pcall(function()
+            local circle = Drawing.new("Circle")
+            circle.Thickness = 1.5
+            circle.NumSides = 48
+            circle.Radius = VD.AIM_AimAssistFOV or 150
+            circle.Filled = false
+            circle.Color = Color3.fromRGB(0, 240, 255)
+            circle.Visible = false
+            circle.Transparency = 0.8
+            VD_AimbotFOVCircle = circle
+        end)
+    end
+    if VD_AimbotFOVCircle then
+        local cam = Workspace.CurrentCamera
+        local showFOV = VD.AIM_AimAssistShowFOV or VD.AIM_RevolverShowFOV or VD.TOF_DrawFOV
+        if showFOV and (VD.AIM_AimAssistEnabled or VD.AIM_RevolverAimbotEnabled or VD.AIM_SpearAimbotEnabled) then
+            VD_AimbotFOVCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+            VD_AimbotFOVCircle.Radius = VD.AIM_AimAssistEnabled and VD.AIM_AimAssistFOV or (VD.AIM_RevolverAimbotEnabled and VD.AIM_RevolverRadius or 150)
+            VD_AimbotFOVCircle.Visible = true
+        else
+            VD_AimbotFOVCircle.Visible = false
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function(dt)
+    pcall(VD_UpdateAimbotFOV)
+    local cam = Workspace.CurrentCamera
+    if not cam then return end
+    
+    -- AimAssist or Revolver Aimbot
+    local aimActive = VD.AIM_AimAssistEnabled or VD.AIM_RevolverAimbotEnabled or VD.AIM_SpearAimbotEnabled
+    if not aimActive then return end
+    
+    local isAimHotkeyDown = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+    if not isAimHotkeyDown then return end
+    
+    local myChar = LocalPlayer.Character
+    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return end
+    
+    local bestTargetPart = nil
+    local bestDistToCenter = math.huge
+    local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+    local maxRadius = VD.AIM_AimAssistEnabled and VD.AIM_AimAssistFOV or (VD.AIM_RevolverAimbotEnabled and VD.AIM_RevolverRadius or (VD.AIM_SpearRadius or 150))
+    
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local isKiller = p.Team and p.Team.Name == "Killer"
+            local allowed = false
+            if VD.AIM_AimAssistTargetTeam == "Both" or VD.AIM_RevolverSilentTarget == "Both Teams" then
+                allowed = true
+            elseif VD.AIM_AimAssistTargetTeam == "Killer" and isKiller then
+                allowed = true
+            elseif VD.AIM_AimAssistTargetTeam == "Survivors" and not isKiller then
+                allowed = true
+            end
+            
+            if allowed then
+                local tChar = p.Character
+                local partName = VD.AIM_AimAssistTargetPart or "UpperTorso"
+                local targetPart = tChar:FindFirstChild(partName) or tChar:FindFirstChild("HumanoidRootPart") or tChar:FindFirstChild("Head")
+                local hum = tChar:FindFirstChildOfClass("Humanoid")
+                if targetPart and hum and hum.Health > 0 then
+                    local screenPos, onScreen = cam:WorldToViewportPoint(targetPart.Position)
+                    if onScreen then
+                        local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+                        if screenDist <= maxRadius and screenDist < bestDistToCenter then
+                            bestDistToCenter = screenDist
+                            bestTargetPart = targetPart
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    if bestTargetPart then
+        local targetPos = bestTargetPart.Position
+        local targetVel = bestTargetPart.AssemblyLinearVelocity or Vector3.zero
+        
+        -- Prediction
+        if VD.AIM_AimAssistPrediction or VD.AIM_RevolverPrediction then
+            local bulletSpeed = VD.AIM_RevolverAimbotEnabled and (VD.AIM_RevolverBulletVelocity or 800) or 500
+            local gravity = Vector3.new(0, -Workspace.Gravity, 0)
+            local predPos = VD_SolveProjectileAim(cam.CFrame.Position, targetPos, targetVel, gravity, bulletSpeed)
+            targetPos = predPos
+        end
+        
+        -- Offset calibration
+        if VD.AIM_RevolverAimbotEnabled then
+            local offX = (VD.AIM_RevolverOffsetX or 0) * 0.1
+            local offY = (VD.AIM_RevolverOffsetY or 0) * 0.1
+            targetPos = targetPos + Vector3.new(offX, offY, 0)
+        end
+        
+        local desiredCF = CFrame.new(cam.CFrame.Position, targetPos)
+        local smoothness = VD.AIM_AimAssistEnabled and (VD.AIM_AimAssistSmoothness or 0.2) or (VD.AIM_RevolverSmoothness or 0)
+        if smoothness <= 0.01 then
+            cam.CFrame = desiredCF
+        else
+            local alpha = math.clamp((1 - smoothness) * (dt * 30), 0.05, 1)
+            cam.CFrame = cam.CFrame:Lerp(desiredCF, alpha)
+        end
+    end
+end)
+
+-- 1.2 Revolver Silent Aim Hook
+local VD_OriginalShootRemote = nil
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if VD.AIM_RevolverSilentAimEnabled or VD.AIM_RevolverAutofarm then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local gun = char and (char:FindFirstChild("Revolver") or char:FindFirstChildWhichIsA("Tool"))
+                if gun then
+                    local shootEvt = gun:FindFirstChild("Shoot") or gun:FindFirstChild("ShootEvent") or gun:FindFirstChild("Fire")
+                    if shootEvt and shootEvt:IsA("RemoteEvent") and VD_OriginalShootRemote ~= shootEvt then
+                        VD_OriginalShootRemote = shootEvt
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- 1.3 Revolver Autofarm
+task.spawn(function()
+    while true do
+        task.wait(0.25)
+        if VD.AIM_RevolverAutofarm then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if not char or not hum or hum.Health <= 0 then return end
+                
+                -- Equip revolver
+                local backpack = LocalPlayer:FindFirstChild("Backpack")
+                local gun = char:FindFirstChild("Revolver") or (backpack and backpack:FindFirstChild("Revolver"))
+                if gun and gun.Parent == backpack then
+                    hum:EquipTool(gun)
+                    task.wait(0.1)
+                end
+                
+                -- Target closest player
+                local bestTarget = nil
+                local bestDist = math.huge
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+                
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character then
+                        local tRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                        local tHum = p.Character:FindFirstChildOfClass("Humanoid")
+                        if tRoot and tHum and tHum.Health > 0 then
+                            local d = (tRoot.Position - root.Position).Magnitude
+                            if d < bestDist then
+                                bestDist = d
+                                bestTarget = tRoot
+                            end
+                        end
+                    end
+                end
+                
+                if bestTarget and gun and gun.Parent == char then
+                    local shootEvt = gun:FindFirstChild("Shoot") or gun:FindFirstChild("ShootEvent") or gun:FindFirstChild("Fire")
+                    if shootEvt then
+                        shootEvt:FireServer(bestTarget.Position)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- 1.4 Spear Trajectory Arc Renderer
+local VD_TrajectoryBeam = nil
+local VD_TrajectoryAttachment0 = nil
+local VD_TrajectoryAttachment1 = nil
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if VD.AIM_SpearTrajectory then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local spear = char and (char:FindFirstChild("Spear") or char:FindFirstChild("VeilSpear") or char:FindFirstChildWhichIsA("Tool"))
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if spear and root then
+                    if not VD_TrajectoryBeam or not VD_TrajectoryBeam.Parent then
+                        local att0 = Instance.new("Attachment", root)
+                        local att1 = Instance.new("Attachment", Workspace.Terrain)
+                        local beam = Instance.new("Beam")
+                        beam.Name = "PinatHub_SpearTrajectory"
+                        beam.Attachment0 = att0
+                        beam.Attachment1 = att1
+                        beam.Width0 = 0.4
+                        beam.Width1 = 0.4
+                        beam.Color = ColorSequence.new(Color3.fromRGB(0, 255, 255))
+                        beam.Transparency = NumberSequence.new(0.3)
+                        beam.Parent = root
+                        VD_TrajectoryBeam = beam
+                        VD_TrajectoryAttachment0 = att0
+                        VD_TrajectoryAttachment1 = att1
+                    end
+                    local cam = Workspace.CurrentCamera
+                    local origin = root.Position + Vector3.new(0, 1.5, 0)
+                    local dir = cam.CFrame.LookVector * 150
+                    VD_TrajectoryAttachment0.Position = Vector3.new(0, 1.5, 0)
+                    VD_TrajectoryAttachment1.WorldPosition = origin + dir
+                else
+                    if VD_TrajectoryBeam then
+                        pcall(function() VD_TrajectoryBeam:Destroy() end)
+                        VD_TrajectoryBeam = nil
+                    end
+                end
+            end)
+        else
+            if VD_TrajectoryBeam then
+                pcall(function() VD_TrajectoryBeam:Destroy() end)
+                VD_TrajectoryBeam = nil
+            end
+        end
+    end
+end)
+
+-- -------------------------------------------------------------------------
+-- BATCH 2: ESP & VISUAL TRACKING ENHANCEMENTS
+-- -------------------------------------------------------------------------
+
+-- 2.1 ESP Distance Fade Controller
+local function VD_CalculateESPFadeAlpha(dist)
+    if not VD.ESP_DistanceFade then return 1 end
+    local fStart = tonumber(VD.ESP_FadeStart) or 50
+    local fMax = tonumber(VD.ESP_FadeMax) or 200
+    if dist <= fStart then return 1 end
+    if dist >= fMax then return 0 end
+    return 1 - ((dist - fStart) / (fMax - fStart))
+end
+
+-- 2.2 ESP Tracers Engine
+local VD_ActiveTracers = {}
+RunService.RenderStepped:Connect(function()
+    if not Drawing then return end
+    if not (KYS_ESPState.WorldMasterESP and VD.ESP_TracersEnabled) then
+        for _, line in pairs(VD_ActiveTracers) do
+            line.Visible = false
+        end
+        return
+    end
+    
+    local cam = Workspace.CurrentCamera
+    if not cam then return end
+    
+    local originPoint
+    if VD.ESP_TracerOrigin == "Bottom" then
+        originPoint = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y)
+    elseif VD.ESP_TracerOrigin == "Center" then
+        originPoint = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+    else
+        local mouse = LocalPlayer:GetMouse()
+        originPoint = Vector2.new(mouse.X, mouse.Y)
+    end
+    
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local isKiller = p.Team and p.Team.Name == "Killer"
+            local allowed = false
+            if VD.ESP_TracerTarget == "Both" then
+                allowed = true
+            elseif VD.ESP_TracerTarget == "Killer" and isKiller then
+                allowed = true
+            elseif VD.ESP_TracerTarget == "Survivors" and not isKiller then
+                allowed = true
+            end
+            
+            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            if allowed and root then
+                local screenPos, onScreen = cam:WorldToViewportPoint(root.Position)
+                local tracerLine = VD_ActiveTracers[p]
+                if not tracerLine then
+                    tracerLine = Drawing.new("Line")
+                    tracerLine.Thickness = 1.5
+                    tracerLine.Transparency = 0.7
+                    VD_ActiveTracers[p] = tracerLine
+                end
+                
+                if onScreen and screenPos.Z > 0 then
+                    tracerLine.From = originPoint
+                    tracerLine.To = Vector2.new(screenPos.X, screenPos.Y)
+                    tracerLine.Color = isKiller and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(50, 255, 120)
+                    tracerLine.Visible = true
+                else
+                    tracerLine.Visible = false
+                end
+            else
+                if VD_ActiveTracers[p] then VD_ActiveTracers[p].Visible = false end
+            end
+        else
+            if VD_ActiveTracers[p] then VD_ActiveTracers[p].Visible = false end
+        end
+    end
+end)
+
+-- -------------------------------------------------------------------------
+-- BATCH 3: SURVIVOR AUTOMATIONS (Speed Perks, Flowstate, Bandage, Blocks)
+-- -------------------------------------------------------------------------
+
+-- 3.1 Speed Perks / Slowdown Monitor
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if VD.SURV_CountSpeedPerks then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local speedBoost = char:GetAttribute("SpeedBoost") or char:GetAttribute("speedboost") or 1
+                    local slowDown = char:GetAttribute("SlowDown") or char:GetAttribute("slowdown") or 1
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum and (speedBoost ~= 1 or slowDown ~= 1) then
+                        hum.WalkSpeed = 16 * speedBoost * slowDown
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- 3.2 Flowstate Perk Simulation
+local VD_FlowstateLastUsed = 0
+function VD_TriggerFlowstate()
+    if tick() - VD_FlowstateLastUsed < (VD.SURV_FlowstateCooldown or 15) then
+        VD_Notify("Flowstate", "Flowstate perk on cooldown!", 2)
+        return
+    end
+    VD_FlowstateLastUsed = tick()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        local origSpeed = hum.WalkSpeed
+        hum.WalkSpeed = origSpeed * 1.5
+        VD_Notify("Flowstate", "Flowstate activated! +50% Speed Boost for 3s", 2)
+        task.delay(3, function()
+            if hum and hum.Parent then hum.WalkSpeed = origSpeed end
+        end)
+    end
+end
+
+-- 3.3 Instant Bandage Action
+function VD_InstantBandage()
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local healRemotes = remotes and (remotes:FindFirstChild("Healing") or remotes:FindFirstChild("Character"))
+    local bandageEvt = healRemotes and (healRemotes:FindFirstChild("BandageEvent") or healRemotes:FindFirstChild("HealEvent"))
+    if bandageEvt then
+        bandageEvt:FireServer(LocalPlayer.Character)
+        VD_Notify("Instant Bandage", "Bandage applied successfully!", 2)
+    else
+        VD_Notify("Instant Bandage", "Bandage remote not found in current session", 2)
+    end
+end
+
+-- 3.4 Block / Unlock Pallets and Vaults
+function VD_SetCollisionBlocks(targetType, blockState)
+    local map = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("Map1")
+    if not map then return end
+    local count = 0
+    for _, desc in ipairs(map:GetDescendants()) do
+        if desc:IsA("BasePart") then
+            local name = desc.Name:lower()
+            local parentName = desc.Parent and desc.Parent.Name:lower() or ""
+            local match = false
+            if targetType == "pallet" and (name:find("pallet") or parentName:find("pallet")) then
+                match = true
+            elseif targetType == "vault" and (name:find("vault") or name:find("window") or parentName:find("vault")) then
+                match = true
+            end
+            if match then
+                desc.CanCollide = blockState
+                count = count + 1
+            end
+        end
+    end
+    VD_Notify("Collision Modifier", (blockState and "Blocked " or "Unlocked ") .. count .. " " .. targetType .. " parts!", 2)
+end
+
+-- -------------------------------------------------------------------------
+-- BATCH 4: KILLER AUTOMATIONS (Stalker Abilities, Simulate Parry, Stalk All)
+-- -------------------------------------------------------------------------
+
+-- 4.1 Stalker Auto Dodge
+task.spawn(function()
+    while true do
+        task.wait(0.15)
+        if VD.KILLER_StalkerAutoDodge then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Team and p.Team.Name == "Survivors" and p.Character then
+                        local sRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                        if sRoot then
+                            local dist = (sRoot.Position - root.Position).Magnitude
+                            if dist <= (VD.KILLER_StalkerAutoDodgeDist or 18) then
+                                local look = sRoot.CFrame.LookVector
+                                local toMe = (root.Position - sRoot.Position).Unit
+                                if look:Dot(toMe) > 0.7 then
+                                    TriggerCrouch()
+                                    task.wait(0.3)
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- 4.2 Stalk Everyone Once
+function VD_StalkEveryoneOnce()
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local killers = remotes and remotes:FindFirstChild("Killers")
+    local stalker = killers and killers:FindFirstChild("Stalker")
+    local startStalk = stalker and stalker:FindFirstChild("StartStalking")
+    if startStalk then
+        local count = 0
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                pcall(function() startStalk:FireServer(p.Character); count = count + 1 end)
+            end
+        end
+        VD_Notify("Stalker", "Stalk remote fired on " .. count .. " players!", 2)
+    else
+        VD_Notify("Stalker", "StartStalking remote not found!", 2)
+    end
+end
+
+-- 4.3 Simulate Parry Animation Action
+function VD_SimulateParryAnimation()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        local anim = Instance.new("Animation")
+        anim.AnimationId = "rbxassetid://80411309607666"
+        local track = hum:LoadAnimation(anim)
+        track:Play()
+        VD_Notify("Parry Simulator", "Simulated parry animation played on client", 2)
+    end
+end
+
+-- -------------------------------------------------------------------------
+-- BATCH 5: DBD IMMERSION (Emote Wheel, Custom Sounds & HUD)
+-- -------------------------------------------------------------------------
+
+local VD_EmoteGui = nil
+local VD_Emotes = {
+    { Name = "KWIK FLIP", Id = "73896868179198" },
+    { Name = "Schadenfreude (laugh)", Id = "138303785534052" },
+    { Name = "Wave", Id = "99670106766588" },
+    { Name = "Pop off", Id = "130933486827090" },
+    { Name = "Backflip", Id = "74705617908505" },
+    { Name = "Griddy", Id = "75586690784894" },
+    { Name = "The Dab", Id = "93350677984372" },
+    { Name = "California girls", Id = "123552803041504" },
+}
+
+local VD_CurrentEmoteTrack = nil
+function VD_PlayEmote(animId)
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    if VD_CurrentEmoteTrack then
+        pcall(function() VD_CurrentEmoteTrack:Stop() end)
+        VD_CurrentEmoteTrack = nil
+    end
+    local anim = Instance.new("Animation")
+    anim.AnimationId = animId:match("^rbxassetid://") and animId or ("rbxassetid://" .. animId)
+    local track = hum:LoadAnimation(anim)
+    track:Play()
+    VD_CurrentEmoteTrack = track
+end
+
+function VD_StopEmote()
+    if VD_CurrentEmoteTrack then
+        pcall(function() VD_CurrentEmoteTrack:Stop() end)
+        VD_CurrentEmoteTrack = nil
+        VD_Notify("Emote", "Emote animation stopped", 2)
+    end
+end
+
+-- 5.2 Play DBD Sound
+function VD_PlayDBDSound(soundUrlOrId, vol)
+    pcall(function()
+        local s = Instance.new("Sound")
+        s.SoundId = soundUrlOrId
+        s.Volume = vol or 1.0
+        s.Parent = Workspace
+        s:Play()
+        s.Ended:Connect(function() s:Destroy() end)
+    end)
+end
+
+-- -------------------------------------------------------------------------
+-- BATCH 6: VISUAL & CAMERA MODIFIERS (RTX, DOF, Fog, Bloom, Presets)
+-- -------------------------------------------------------------------------
+
+local VD_RTXBloom = nil
+local VD_RTXColorCorr = nil
+local VD_CinematicDOF = nil
+
+function VD_ApplyVisualPreset(presetName)
+    local lighting = game:GetService("Lighting")
+    if presetName == "Cinematic" then
+        lighting.ClockTime = 18.5
+        lighting.Brightness = 1.2
+        lighting.ExposureCompensation = 0.2
+    elseif presetName == "Cyberpunk" then
+        lighting.ClockTime = 0
+        lighting.Brightness = 2.0
+        lighting.OutdoorAmbient = Color3.fromRGB(80, 0, 120)
+    elseif presetName == "Midnight" then
+        lighting.ClockTime = 0
+        lighting.Brightness = 0.8
+        lighting.OutdoorAmbient = Color3.fromRGB(20, 20, 40)
+    elseif presetName == "Vibrant" then
+        lighting.ClockTime = 14
+        lighting.Brightness = 2.5
+        lighting.ExposureCompensation = 0.4
+    else
+        lighting.ClockTime = 14
+        lighting.Brightness = 2
+        lighting.ExposureCompensation = 0
+    end
+    VD_Notify("Visual Preset", "Applied preset: " .. presetName, 2)
+end
+
+function VD_UpdateCinematicDOF(enabled)
+    local lighting = game:GetService("Lighting")
+    if enabled then
+        if not VD_CinematicDOF or not VD_CinematicDOF.Parent then
+            local dof = Instance.new("DepthOfFieldEffect")
+            dof.Name = "PinatHub_DOF"
+            dof.FarIntensity = 0.8
+            dof.FocusDistance = 25
+            dof.InFocusRadius = 20
+            dof.NearIntensity = 0.5
+            dof.Parent = lighting
+            VD_CinematicDOF = dof
+        end
+    else
+        if VD_CinematicDOF then
+            pcall(function() VD_CinematicDOF:Destroy() end)
+            VD_CinematicDOF = nil
+        end
+    end
+end
+
+function VD_UpdateRTX(enabled)
+    local lighting = game:GetService("Lighting")
+    if enabled then
+        if not VD_RTXColorCorr or not VD_RTXColorCorr.Parent then
+            local cc = Instance.new("ColorCorrectionEffect")
+            cc.Name = "PinatHub_RTX_CC"
+            cc.Contrast = 0.2
+            cc.Saturation = 0.35
+            cc.Parent = lighting
+            VD_RTXColorCorr = cc
+        end
+        if not VD_RTXBloom or not VD_RTXBloom.Parent then
+            local b = Instance.new("BloomEffect")
+            b.Name = "PinatHub_RTX_Bloom"
+            b.Intensity = 0.6
+            b.Size = 24
+            b.Threshold = 0.8
+            b.Parent = lighting
+            VD_RTXBloom = b
+        end
+    else
+        if VD_RTXColorCorr then pcall(function() VD_RTXColorCorr:Destroy() end); VD_RTXColorCorr = nil end
+        if VD_RTXBloom then pcall(function() VD_RTXBloom:Destroy() end); VD_RTXBloom = nil end
+    end
+end
+
+-- 6.2 Infinite Zoom Loop
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if VD.VIS_InfiniteZoom then
+            pcall(function()
+                LocalPlayer.CameraMaxZoomDistance = 99999
+            end)
+        end
+    end
+end)
+
+-- 6.3 Killer Third Person
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if VD.VIS_KillerThirdPerson then
+            pcall(function()
+                if LocalPlayer.Team and LocalPlayer.Team.Name == "Killer" then
+                    LocalPlayer.CameraMode = Enum.CameraMode.Classic
+                end
+            end)
+        end
+    end
+end)
+
+-- -------------------------------------------------------------------------
+-- BATCH 7: QUICK MAP TELEPORTS (Nearest & Furthest)
+-- -------------------------------------------------------------------------
+
+function VD_TeleportToMapElement(elementType, isFurthest)
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    local map = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("Map1")
+    if not map then
+        VD_Notify("Teleport", "Map not found in workspace!", 2)
+        return
+    end
+    
+    local targetParts = {}
+    local lowerType = elementType:lower()
+    
+    if lowerType == "generator" then
+        for _, desc in ipairs(map:GetDescendants()) do
+            if desc.Name == "GeneratorPoint" or (desc.Name:lower():find("gen") and desc:IsA("BasePart")) then
+                table.insert(targetParts, desc)
+            end
+        end
+    elseif lowerType == "hook" then
+        for _, desc in ipairs(map:GetDescendants()) do
+            if desc.Name == "HookPoint" or desc.Name == "Hook" or (desc.Name:lower():find("hook") and desc:IsA("BasePart")) then
+                table.insert(targetParts, desc)
+            end
+        end
+    elseif lowerType == "gate" then
+        for _, desc in ipairs(map:GetDescendants()) do
+            if desc.Name == "LeverPoint" or (desc.Name:lower():find("gate") and desc:IsA("BasePart")) then
+                table.insert(targetParts, desc)
+            end
+        end
+    elseif lowerType == "pallet" then
+        for _, desc in ipairs(map:GetDescendants()) do
+            if desc.Name == "PalletPoint" or (desc.Name:lower():find("pallet") and desc:IsA("BasePart")) then
+                table.insert(targetParts, desc)
+            end
+        end
+    elseif lowerType == "vault" then
+        for _, desc in ipairs(map:GetDescendants()) do
+            if desc.Name:lower():find("vault") or desc.Name:lower():find("window") then
+                local p = desc:IsA("BasePart") and desc or desc:FindFirstChildWhichIsA("BasePart")
+                if p then table.insert(targetParts, p) end
+            end
+        end
+    elseif lowerType == "survivor" then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Team and p.Team.Name == "Survivors" and p.Character then
+                local sRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                if sRoot then table.insert(targetParts, sRoot) end
+            end
+        end
+    elseif lowerType == "killer" then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Team and p.Team.Name == "Killer" and p.Character then
+                local kRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                if kRoot then table.insert(targetParts, kRoot) end
+            end
+        end
+    end
+    
+    if #targetParts == 0 then
+        VD_Notify("Teleport", "No target found for: " .. elementType, 2)
+        return
+    end
+    
+    local bestPart = nil
+    local bestDist = isFurthest and -1 or math.huge
+    for _, part in ipairs(targetParts) do
+        local d = (part.Position - root.Position).Magnitude
+        if isFurthest then
+            if d > bestDist then bestDist = d; bestPart = part end
+        else
+            if d < bestDist then bestDist = d; bestPart = part end
+        end
+    end
+    
+    if bestPart then
+        root.CFrame = bestPart.CFrame + Vector3.new(0, 3, 0)
+        VD_Notify("Teleport", "Teleported to " .. (isFurthest and "furthest " or "nearest ") .. elementType, 2)
+    end
+end
+
+-- -------------------------------------------------------------------------
+-- BATCH 8: TELEMETRY, HUD & PROFILE EXTENSIONS
+-- -------------------------------------------------------------------------
+
+-- 8.1 Info Banner Top HUD
+local VD_InfoBannerGui = nil
+local VD_InfoBannerLabel = nil
+function VD_UpdateInfoBanner()
+    if not VD.UI_ShowInfoBanner then
+        if VD_InfoBannerGui then VD_InfoBannerGui.Visible = false end
+        return
+    end
+    if not VD_InfoBannerGui or not VD_InfoBannerGui.Parent then
+        local parent = GetSafeGuiParent()
+        if not parent then return end
+        local sg = Instance.new("ScreenGui")
+        sg.Name = "PinatHub_InfoBanner"
+        sg.ResetOnSpawn = false
+        sg.Parent = parent
+        
+        local frame = Instance.new("Frame")
+        frame.Name = "Banner"
+        frame.AnchorPoint = Vector2.new(0.5, 0)
+        frame.Position = UDim2.new(0.5, 0, 0, 8)
+        frame.Size = UDim2.new(0, 520, 0, 26)
+        frame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+        frame.BackgroundTransparency = 0.25
+        frame.BorderSizePixel = 0
+        frame.Parent = sg
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 6)
+        corner.Parent = frame
+        
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(168, 85, 247)
+        stroke.Thickness = 1
+        stroke.Parent = frame
+        
+        local lbl = Instance.new("TextLabel")
+        lbl.Parent = frame
+        lbl.Size = UDim2.new(1, -16, 1, 0)
+        lbl.Position = UDim2.new(0, 8, 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Font = Enum.Font.GothamMedium
+        lbl.TextSize = 11
+        lbl.TextColor3 = Color3.fromRGB(240, 240, 255)
+        lbl.TextXAlignment = Enum.TextXAlignment.Center
+        VD_InfoBannerLabel = lbl
+        VD_InfoBannerGui = frame
+    end
+    
+    VD_InfoBannerGui.Visible = true
+    local parts = {}
+    if VD.UI_InfoBannerShowMap then
+        local mapName = Workspace:FindFirstChild("Map") and "Active Map" or "Standard"
+        table.insert(parts, "🗺️ Map: " .. mapName)
+    end
+    if VD.UI_InfoBannerShowKiller then
+        local kName = "Searching..."
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Team and p.Team.Name == "Killer" then kName = p.DisplayName; break end
+        end
+        table.insert(parts, "💀 Killer: " .. kName)
+    end
+    if VD.UI_InfoBannerShowFPS then
+        local fps = math.floor(1 / math.max(0.001, RunService.RenderStepped:Wait()))
+        table.insert(parts, "⚡ FPS: " .. tostring(fps))
+    end
+    if VD.UI_InfoBannerShowPing then
+        local ping = 60
+        pcall(function() ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+        table.insert(parts, "📶 Ping: " .. tostring(ping) .. "ms")
+    end
+    VD_InfoBannerLabel.Text = table.concat(parts, "  |  ")
+end
+
+RunService.RenderStepped:Connect(function()
+    if VD.UI_ShowInfoBanner and tick() % 0.5 < 0.05 then
+        pcall(VD_UpdateInfoBanner)
+    end
+end)
+
+-- 8.2 Server Hop Escape on Killer Proximity
+task.spawn(function()
+    while true do
+        task.wait(1.5)
+        if VD.UI_AutoServerHopEscape then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Team and p.Team.Name == "Killer" and p.Character then
+                        local kRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                        if kRoot and (kRoot.Position - root.Position).Magnitude <= 18 then
+                            VD_Notify("Server Hop", "Killer too close! Executing emergency server hop...", 3)
+                            local TeleportService = game:GetService("TeleportService")
+                            TeleportService:Teleport(game.PlaceId, LocalPlayer)
+                            break
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
 end
 __PinatHub_Init_Main__()
