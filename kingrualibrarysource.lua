@@ -62,13 +62,12 @@ local TabIcons = {
 	["cpu"] = "rbxassetid://10709813383",
 	["activity"] = "rbxassetid://10709752035",
 	["heart"] = "rbxassetid://10723406885",
-	["home"] = "rbxassetid://10723407389",
-	["search"] = "rbxassetid://10734943674",
+	["search"] = "rbxassetid://2804603877",
 	["bell"] = "rbxassetid://10709775704",
 	["flame"] = "rbxassetid://10723376114",
 	["database"] = "rbxassetid://10709818996",
-	["discord"] = "rbxassetid://10734950553",
-	["tiktok"] = "rbxassetid://114617227673334",
+	["discord"] = "rbxassetid://18505728250",
+	["tiktok"] = "rbxassetid://114030178331137",
 	["message-circle"] = "rbxassetid://10734888000",
 	["video"] = "rbxassetid://10747374938",
 	["youtube"] = "rbxassetid://10747374938",
@@ -125,15 +124,14 @@ local TabIcons = {
 	Config = "rbxassetid://10734963400",          -- Sliders
 	Player = "rbxassetid://10747373176",          -- User
 	Misc = "rbxassetid://10747383470",            -- Wrench
-	Credits = "rbxassetid://10723406988",         -- Help / Info
-	Search = "rbxassetid://10734943674",          -- Search (FIXED)
+	Search = "rbxassetid://2804603877",
 	Minimize = "rbxassetid://10734896206",
 	Maximize = "rbxassetid://10734914561",
 	Close = "rbxassetid://10747384394",
 	ChevronRight = "rbxassetid://10709791437",
 	ChevronDown = "rbxassetid://10709790948",
-	Discord = "rbxassetid://10734950553",
-	TikTok = "rbxassetid://114617227673334",
+	Discord = "rbxassetid://18505728250",
+	TikTok = "rbxassetid://114030178331137",
 	Cursor = "rbxassetid://10709818534"
 }
 
@@ -1139,22 +1137,25 @@ function Library:NewWindow(ConfigWindow)
 	SearchStroke.Parent = SearchFrame
 
 	local SearchIcon = Instance.new("ImageLabel")
-	SearchIcon.Name = "Icon"
+	SearchIcon.Name = "SearchIcon"
 	SearchIcon.Parent = SearchFrame
 	SearchIcon.AnchorPoint = Vector2.new(0, 0.5)
 	SearchIcon.Position = UDim2.new(0, 8, 0.5, 0)
-	SearchIcon.Size = UDim2.new(0, 13, 0, 13)
+	SearchIcon.Size = UDim2.new(0, 14, 0, 14)
 	SearchIcon.BackgroundTransparency = 1
-	SearchIcon.Image = TabIcons.Search
-	SearchIcon.ImageColor3 = Theme.TextMuted
+	SearchIcon.ImageTransparency = 0
+	SearchIcon.Image = "rbxassetid://2804603877"
+	SearchIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
 	SearchIcon.ScaleType = Enum.ScaleType.Fit
+	SearchIcon.ZIndex = 6
+	SearchIcon.Visible = true
 
 	local SearchBox = Instance.new("TextBox")
 	SearchBox.Name = "SearchBox"
 	SearchBox.Parent = SearchFrame
 	SearchBox.BackgroundTransparency = 1
-	SearchBox.Position = UDim2.new(0, 24, 0, 0)
-	SearchBox.Size = UDim2.new(1, -66, 1, 0)
+	SearchBox.Position = UDim2.new(0, 26, 0, 0)
+	SearchBox.Size = UDim2.new(1, -68, 1, 0)
 	SearchBox.Font = Enum.Font.Gotham
 	SearchBox.PlaceholderColor3 = Theme.TextMuted
 	SearchBox.PlaceholderText = "Search features..."
@@ -1163,9 +1164,10 @@ function Library:NewWindow(ConfigWindow)
 	SearchBox.TextSize = 11
 	SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 	SearchBox.ClearTextOnFocus = false
+	SearchBox.ZIndex = 6
 
 	-- Keyboard Shortcut Badge (Ctrl K)
-	local KeyBadge = Instance.new("Frame")
+	local KeyBadge = Instance.new("TextButton")
 	KeyBadge.Name = "KeyBadge"
 	KeyBadge.Parent = SearchFrame
 	KeyBadge.AnchorPoint = Vector2.new(1, 0.5)
@@ -1174,6 +1176,9 @@ function Library:NewWindow(ConfigWindow)
 	KeyBadge.BackgroundColor3 = Theme.SurfaceActive
 	KeyBadge.BackgroundTransparency = 0.4
 	KeyBadge.BorderSizePixel = 0
+	KeyBadge.AutoButtonColor = false
+	KeyBadge.Text = ""
+	KeyBadge.ZIndex = 6
 
 	local KeyCorner = Instance.new("UICorner")
 	KeyCorner.CornerRadius = UDim.new(0, 4)
@@ -1195,27 +1200,46 @@ function Library:NewWindow(ConfigWindow)
 	KeyText.TextColor3 = Theme.TextMuted
 	KeyText.TextSize = 8.5
 	KeyText.TextXAlignment = Enum.TextXAlignment.Center
+	KeyText.ZIndex = 7
+
+	KeyBadge.MouseButton1Click:Connect(function()
+		pcall(function() SearchBox:CaptureFocus() end)
+	end)
 
 	SearchBox.Focused:Connect(function()
 		TweenService:Create(SearchStroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
-		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Theme.AccentGlow }):Play()
+		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
 		TweenService:Create(KeyBadge, TweenInfoFast, { BackgroundTransparency = 0.8 }):Play()
 		TweenService:Create(KeyText, TweenInfoFast, { TextTransparency = 0.6 }):Play()
 	end)
 	SearchBox.FocusLost:Connect(function()
 		TweenService:Create(SearchStroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0 }):Play()
-		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
 		TweenService:Create(KeyBadge, TweenInfoFast, { BackgroundTransparency = 0.4 }):Play()
 		TweenService:Create(KeyText, TweenInfoFast, { TextTransparency = 0 }):Play()
 	end)
 
-	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed then return end
-		if input.KeyCode == Enum.KeyCode.K and (UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)) then
-			task.spawn(function()
-				SearchBox:CaptureFocus()
-			end)
-		end
+	local ctrlKConn
+	pcall(function()
+		ctrlKConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+			if gameProcessed then return end
+			if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.K then
+				local isCtrl = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
+				if isCtrl then
+					task.defer(function()
+						if SearchBox and SearchBox.Parent then
+							pcall(function() SearchBox:CaptureFocus() end)
+						end
+					end)
+				end
+			end
+		end)
+		table.insert(onCloseCallbacks, function()
+			if ctrlKConn then
+				pcall(function() ctrlKConn:Disconnect() end)
+				ctrlKConn = nil
+			end
+		end)
 	end)
 
 	-- Tab List (ScrollingFrame)
@@ -1352,11 +1376,14 @@ function Library:NewWindow(ConfigWindow)
 		local icon = Instance.new("ImageLabel")
 		icon.Name = "Icon"
 		icon.Parent = btn
-		icon.Size = UDim2.new(0, 11, 0, 11)
+		icon.Size = UDim2.new(0, 14, 0, 14)
 		icon.BackgroundTransparency = 1
+		icon.ImageTransparency = 0
 		icon.Image = iconAsset
-		icon.ImageColor3 = Theme.TextSecondary
+		icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
 		icon.ScaleType = Enum.ScaleType.Fit
+		icon.ZIndex = 7
+		icon.Visible = true
 		icon.LayoutOrder = 1
 
 		local txt = Instance.new("TextLabel")
@@ -1369,18 +1396,17 @@ function Library:NewWindow(ConfigWindow)
 		txt.Text = labelText
 		txt.TextColor3 = Theme.TextSecondary
 		txt.TextSize = 9
+		txt.ZIndex = 7
 		txt.LayoutOrder = 2
 
 		btn.MouseEnter:Connect(function()
 			TweenService:Create(btn, TweenInfoFast, { BackgroundTransparency = 0.2, BackgroundColor3 = Theme.SurfaceHover }):Play()
 			TweenService:Create(stroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
-			TweenService:Create(icon, TweenInfoFast, { ImageColor3 = Theme.Text }):Play()
 			txt.TextColor3 = Theme.Text
 		end)
 		btn.MouseLeave:Connect(function()
 			TweenService:Create(btn, TweenInfoFast, { BackgroundTransparency = 0.5, BackgroundColor3 = Theme.Surface }):Play()
 			TweenService:Create(stroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0.4 }):Play()
-			TweenService:Create(icon, TweenInfoFast, { ImageColor3 = Theme.TextSecondary }):Play()
 			txt.TextColor3 = Theme.TextSecondary
 		end)
 
@@ -1395,12 +1421,12 @@ function Library:NewWindow(ConfigWindow)
 		return btn
 	end
 
-	-- Discord Social Button (Invite: Y6Kjfu5XPN)
+	-- Discord Social Button (Asset ID: 18505728250, Invite: Y6Kjfu5XPN)
 	local discordInvite = (Config and Config.Discord) or "https://discord.gg/Y6Kjfu5XPN"
 	if not string.find(discordInvite, "Y6Kjfu5XPN") then
 		discordInvite = "https://discord.gg/Y6Kjfu5XPN"
 	end
-	CreateSocialBtn("DiscordBtn", TabIcons.Discord or "rbxassetid://10734950553", discordInvite, "Discord", 1, function()
+	CreateSocialBtn("DiscordBtn", "rbxassetid://18505728250", discordInvite, "Discord", 1, function()
 		CopyText(discordInvite)
 		pcall(function()
 			local req = (syn and syn.request) or (http and http.request) or request or http_request
@@ -1421,9 +1447,9 @@ function Library:NewWindow(ConfigWindow)
 		})
 	end)
 
-	-- TikTok Social Button (@viunze)
+	-- TikTok Social Button (Asset ID: 114030178331137, Username: @viunze)
 	local tiktokUrl = (Config and Config.TikTok) or "https://www.tiktok.com/@viunze"
-	CreateSocialBtn("TikTokBtn", "rbxassetid://114617227673334", tiktokUrl, "TikTok", 2, function()
+	CreateSocialBtn("TikTokBtn", "rbxassetid://114030178331137", tiktokUrl, "TikTok", 2, function()
 		CopyText(tiktokUrl)
 		Library:Notify({
 			Title = "TikTok Profile",
