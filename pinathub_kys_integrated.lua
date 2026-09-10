@@ -93,11 +93,12 @@ end
 local Window
 if PinatHubAdapter then
     Window = PinatHubAdapter:CreateWindow({
-        Title = "PinatHub HUB",
-        SubTitle = "PinatHub Feature Suite",
+        Title = "PinatHub",
+        SubTitle = "by @viunze",
         Game = "Universal Feature Suite",
         Version = "1.5.7",
-        Discord = "https://discord.gg/ysHZCYFaX7",
+        Discord = "https://discord.gg/Y6Kjfu5XPN",
+        TikTok = "https://www.tiktok.com/@viunze",
         Logo = "rbxassetid://118264723961739",
         OnClose = function()
             if getgenv().VD then getgenv().VD.Destroyed = true end
@@ -319,6 +320,7 @@ getgenv().VD = getgenv().VD or {
     SURV_SkillCheckSpeedVal  = 1.0,
     SURV_BlockPallets        = false,
     SURV_BlockVaults         = false,
+    SURV_InstantBandage      = false,
 
     -- BATCH 4: Killer Automations
     KILLER_ConfigProfile     = "None",
@@ -1393,6 +1395,7 @@ RunService.RenderStepped:Connect(function()
         end
     end)
 end)
+local KYS_ESPState
 do
     if getgenv().PinatHub_VD_VisualESP_Cleanup then
         pcall(getgenv().PinatHub_VD_VisualESP_Cleanup)
@@ -1400,7 +1403,7 @@ do
     local LP = LocalPlayer
     local KYS_Dead = false
     local KYS_ControlsAdded = false
-    local KYS_ESPState = {
+    KYS_ESPState = {
         PlayerMasterESP = false,
         WorldMasterESP = false,
         ESPFillTransparency = 0.95,
@@ -2293,7 +2296,7 @@ do
         playerSection:AddColorPicker({ Name = "Survivor Color", Flag = "KYS Survivor Color", Default = KYS_ESPState.SurvivorColor, Callback = function(color) KYS_ESPState.SurvivorColor = color; KYS_RefreshAllPlayers() end })
         playerSection:AddColorPicker({ Name = "Killer Color", Flag = "KYS Killer Color", Default = KYS_ESPState.KillerColor, Callback = function(color) KYS_ESPState.KillerColor = color; KYS_RefreshAllPlayers() end })
         playerSection:AddColorPicker({ Name = "Spectator Color", Flag = "KYS Spectator Color", Default = KYS_ESPState.SpectatorColor, Callback = function(color) KYS_ESPState.SpectatorColor = color; KYS_RefreshAllPlayers() end })
-        local worldSection = VisualTabRef:AddSection({
+        worldSection = VisualTabRef:AddSection({
             Position = "Center",
             Name = "World Highlight ESP",
             Icon = "solar:map-point-wave-bold",
@@ -6055,7 +6058,7 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 local Main, ESPTab, MapTab, FOVTab
-local SurvivorTab, KillerTab, GeneratorTab, FlingTab, SettingsTab, ResetTab, settingsSection
+local SurvivorTab, KillerTab, GeneratorTab, FlingTab, SettingsTab, ResetTab, settingsSection, worldSection
 local VisualTab, MainTab, AimTab, MappingTab, PlayerTab
 local VisualFeatureTabs, MainFeatureTabs, MainKillerFeatureTabs, AimFeatureTabs, MappingFeatureTabs, PlayerFeatureTabs, PlayerMiscFeatureTabs
 local KYS_MainInfoPanel = {
@@ -6160,6 +6163,7 @@ if Window then
     end
 
     local function makeModernAdapter(section)
+        if section == nil then return nil end
         local adapter = {}
         setmetatable(adapter, {
             __index = function(_, methodName)
@@ -6834,7 +6838,7 @@ VD.TOF_BlockKnocked = v
     tofSection:AddSlider({ Name = "Revolver Silent FOV", Flag = "AIM_RevolverSilentFOV", Min = 50, Max = 400, Default = 200, Increment = 10, Callback = function(v) VD.AIM_RevolverSilentFOV = v end })
     tofSection:AddToggle({ Default = false, Name = "Enable Revolver Autofarm [BETA]", Flag = "AIM_RevolverAutofarm", Callback = function(v) VD.AIM_RevolverAutofarm = v end })
 
-    local flashlightSection = AimFeatureTabs.AutoAim:AddSection({
+    local flashlightSection = AimFeatureTabs.AutoAim and AimFeatureTabs.AutoAim:AddSection({
         Position = "Center",
         Name = "Silent Aim Flashlight",
         Icon      = "lucide:flashlight",
@@ -6842,6 +6846,7 @@ VD.TOF_BlockKnocked = v
         BoxBorder = true,
         Opened    = false,
     })
+    if flashlightSection then
     flashlightSection:AddToggle({
         Default = false,
         Name = "Silent Aim Flashlight",
@@ -6901,24 +6906,36 @@ VD.FLASH_Laser = v
             VD.FLASH_Smooth = tonumber(v) or 0.35
         end
     })
+    end -- flashlightSection
 end
 do 
     
     -- BATCH 2: ESP Distance Fade & Tracers
-    
-    
-    worldSection:AddToggle({ Default = true, Name = "Show Survivor Health States", Flag = "SurvivorESP.HealthState", Callback = function(v) VD.ESP_SurvivorHealthState = v end })
-    worldSection:AddToggle({ Default = false, Name = "Censor Player Names", Flag = "SurvivorESP.CensorNames", Callback = function(v) VD.ESP_SurvivorCensorNames = v end })
+    if not worldSection and (VisualTab or (VisualFeatureTabs and VisualFeatureTabs.ESP)) then
+        local espTab = VisualTab or (VisualFeatureTabs and VisualFeatureTabs.ESP)
+        worldSection = espTab:AddSection({
+            Position = "Center",
+            Name = "World Highlight ESP",
+            Icon = "solar:map-point-wave-bold",
+            Box = true,
+            BoxBorder = true,
+            Opened = false,
+        })
+    end
+    if worldSection then
+        worldSection:AddToggle({ Default = true, Name = "Show Survivor Health States", Flag = "SurvivorESP.HealthState", Callback = function(v) VD.ESP_SurvivorHealthState = v end })
+        worldSection:AddToggle({ Default = false, Name = "Censor Player Names", Flag = "SurvivorESP.CensorNames", Callback = function(v) VD.ESP_SurvivorCensorNames = v end })
 
-    worldSection:AddSlider({ Name = "ESP Position Y (Offset)", Flag = "ESP_PositionY", Min = -50, Max = 50, Default = 0, Increment = 1, Callback = function(v) VD.ESP_PositionY = v end })
-    worldSection:AddToggle({ Default = true, Name = "Alert Threshold Enabled", Flag = "GeneratorESP.AlertThresholdEnabled", Callback = function(v) VD.ESP_GenAlertThresholdEnabled = v end })
+        worldSection:AddSlider({ Name = "ESP Position Y (Offset)", Flag = "ESP_PositionY", Min = -50, Max = 50, Default = 0, Increment = 1, Callback = function(v) VD.ESP_PositionY = v end })
+        worldSection:AddToggle({ Default = true, Name = "Alert Threshold Enabled", Flag = "GeneratorESP.AlertThresholdEnabled", Callback = function(v) VD.ESP_GenAlertThresholdEnabled = v end })
 
-    worldSection:AddToggle({ Default = false, Name = "ESP Distance Fade", Flag = "ESP_DistanceFade", Callback = function(v) VD.ESP_DistanceFade = v end })
-    worldSection:AddSlider({ Name = "Fade Start Distance (m)", Flag = "ESP_FadeStart", Min = 10, Max = 150, Default = 50, Increment = 5, Callback = function(v) VD.ESP_FadeStart = v end })
-    worldSection:AddSlider({ Name = "Full Transparent Distance (m)", Flag = "ESP_FadeMax", Min = 60, Max = 400, Default = 200, Increment = 10, Callback = function(v) VD.ESP_FadeMax = v end })
-    worldSection:AddToggle({ Default = false, Name = "ESP Tracers", Flag = "ESP_TracersEnabled", Callback = function(v) VD.ESP_TracersEnabled = v end })
-    worldSection:AddDropdown({ Name = "Tracer Origin", Flag = "ESP_TracerOrigin", Values = { "Bottom", "Center", "Mouse" }, Default = "Bottom", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.ESP_TracerOrigin = v or "Bottom" end })
-    worldSection:AddDropdown({ Name = "Tracer Target", Flag = "ESP_TracerTarget", Values = { "Both", "Killer", "Survivors" }, Default = "Both", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.ESP_TracerTarget = v or "Both" end })
+        worldSection:AddToggle({ Default = false, Name = "ESP Distance Fade", Flag = "ESP_DistanceFade", Callback = function(v) VD.ESP_DistanceFade = v end })
+        worldSection:AddSlider({ Name = "Fade Start Distance (m)", Flag = "ESP_FadeStart", Min = 10, Max = 150, Default = 50, Increment = 5, Callback = function(v) VD.ESP_FadeStart = v end })
+        worldSection:AddSlider({ Name = "Full Transparent Distance (m)", Flag = "ESP_FadeMax", Min = 60, Max = 400, Default = 200, Increment = 10, Callback = function(v) VD.ESP_FadeMax = v end })
+        worldSection:AddToggle({ Default = false, Name = "ESP Tracers", Flag = "ESP_TracersEnabled", Callback = function(v) VD.ESP_TracersEnabled = v end })
+        worldSection:AddDropdown({ Name = "Tracer Origin", Flag = "ESP_TracerOrigin", Values = { "Bottom", "Center", "Mouse" }, Default = "Bottom", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.ESP_TracerOrigin = v or "Bottom" end })
+        worldSection:AddDropdown({ Name = "Tracer Target", Flag = "ESP_TracerTarget", Values = { "Both", "Killer", "Survivors" }, Default = "Both", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.ESP_TracerTarget = v or "Both" end })
+    end
 
     local camSection = VisualFeatureTabs.Camera:AddSection({
         Position = "Center",
@@ -7050,28 +7067,43 @@ do
             VD.VIS_ShowHookCounter = v
         end
     end })
-end
-do 
     
     -- BATCH 6: Visual & Atmosphere Modifiers
-    
-    visualSection:AddInput({ Title = "Custom Background Local File", Description = "File path in workspace", Default = "", Callback = function(v) VD.VIS_CustomBgLocalFile = v end })
-    visualSection:AddButton({ Name = "Browse Local Background", Callback = function() VD_Notify("Custom Background", "Browse local file selected: " .. tostring(VD.VIS_CustomBgLocalFile or "None"), 2) end })
+    local visualSection6 = VisualFeatureTabs and VisualFeatureTabs.Lighting and VisualFeatureTabs.Lighting:AddSection({
+        Position = "Center",
+        Name = "Visual (Extras)",
+        Icon      = "solar:sun-bold",
+        Box       = true,
+        BoxBorder = true,
+        Opened    = false,
+    })
+    local camSection6 = VisualFeatureTabs and VisualFeatureTabs.Camera and VisualFeatureTabs.Camera:AddSection({
+        Position = "Center",
+        Name = "Camera (Extras)",
+        Icon      = "solar:camera-bold",
+        Box       = true,
+        BoxBorder = true,
+        Opened    = false,
+    })
+    if visualSection6 then
+        visualSection6:AddInput({ Title = "Custom Background Local File", Description = "File path in workspace", Default = "", Callback = function(v) VD.VIS_CustomBgLocalFile = v end })
+        visualSection6:AddButton({ Name = "Browse Local Background", Callback = function() VD_Notify("Custom Background", "Browse local file selected: " .. tostring(VD.VIS_CustomBgLocalFile or "None"), 2) end })
+        visualSection6:AddToggle({ Default = false, Name = "RTX Graphics Booster", Flag = "VIS_RTXGraphics", Callback = function(v) VD.VIS_RTXGraphics = v; pcall(function() VD_UpdateRTX(v) end) end })
+        visualSection6:AddToggle({ Default = false, Name = "Enable Custom Fog", Flag = "VIS_CustomFogEnabled", Callback = function(v) VD.VIS_CustomFogEnabled = v end })
+        visualSection6:AddColorPicker({ Name = "Custom Fog Color", Flag = "VIS_CustomFogColor", Default = Color3.fromRGB(120, 160, 200), Callback = function(c) VD.VIS_CustomFogColor = c end })
+        visualSection6:AddSlider({ Name = "Fog Start Distance", Flag = "VIS_CustomFogStart", Min = 0, Max = 200, Default = 0, Increment = 5, Callback = function(v) VD.VIS_CustomFogStart = v end })
+        visualSection6:AddSlider({ Name = "Fog End Distance", Flag = "VIS_CustomFogEnd", Min = 100, Max = 2000, Default = 800, Increment = 50, Callback = function(v) VD.VIS_CustomFogEnd = v end })
+        visualSection6:AddToggle({ Default = false, Name = "Sun Rays (God Rays)", Flag = "VIS_SunRaysEnabled", Callback = function(v) VD.VIS_SunRaysEnabled = v end })
+        visualSection6:AddSlider({ Name = "Atmosphere Density", Flag = "VIS_AtmosphereDensity", Min = 0, Max = 1, Default = 0.3, Increment = 0.05, Callback = function(v) VD.VIS_AtmosphereDensity = v end })
+        visualSection6:AddDropdown({ Name = "Visual Preset", Flag = "VIS_VisualPreset", Values = { "Default", "Cinematic", "Vibrant", "Cyberpunk", "Midnight" }, Default = "Default", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.VIS_VisualPreset = v; pcall(function() VD_ApplyVisualPreset(v) end) end })
+    end
 
-    visualSection:AddToggle({ Default = false, Name = "RTX Graphics Booster", Flag = "VIS_RTXGraphics", Callback = function(v) VD.VIS_RTXGraphics = v; pcall(function() VD_UpdateRTX(v) end) end })
-    visualSection:AddToggle({ Default = false, Name = "Enable Custom Fog", Flag = "VIS_CustomFogEnabled", Callback = function(v) VD.VIS_CustomFogEnabled = v end })
-    visualSection:AddColorPicker({ Name = "Custom Fog Color", Flag = "VIS_CustomFogColor", Default = Color3.fromRGB(120, 160, 200), Callback = function(c) VD.VIS_CustomFogColor = c end })
-    visualSection:AddSlider({ Name = "Fog Start Distance", Flag = "VIS_CustomFogStart", Min = 0, Max = 200, Default = 0, Increment = 5, Callback = function(v) VD.VIS_CustomFogStart = v end })
-    visualSection:AddSlider({ Name = "Fog End Distance", Flag = "VIS_CustomFogEnd", Min = 100, Max = 2000, Default = 800, Increment = 50, Callback = function(v) VD.VIS_CustomFogEnd = v end })
-    visualSection:AddToggle({ Default = false, Name = "Sun Rays (God Rays)", Flag = "VIS_SunRaysEnabled", Callback = function(v) VD.VIS_SunRaysEnabled = v end })
-    visualSection:AddSlider({ Name = "Atmosphere Density", Flag = "VIS_AtmosphereDensity", Min = 0, Max = 1, Default = 0.3, Increment = 0.05, Callback = function(v) VD.VIS_AtmosphereDensity = v end })
-    visualSection:AddDropdown({ Name = "Visual Preset", Flag = "VIS_VisualPreset", Values = { "Default", "Cinematic", "Vibrant", "Cyberpunk", "Midnight" }, Default = "Default", Multi = false, Callback = function(v) if type(v) == "table" then v = v[1] end; VD.VIS_VisualPreset = v; pcall(function() VD_ApplyVisualPreset(v) end) end })
-
-    
     -- BATCH 6: Cinematic DOF & Camera Zoom
-    camSection:AddToggle({ Default = false, Name = "Cinematic Depth of Field", Flag = "VIS_CinematicDOF", Callback = function(v) VD.VIS_CinematicDOF = v; pcall(function() VD_UpdateCinematicDOF(v) end) end })
-    camSection:AddToggle({ Default = false, Name = "Infinite Zoom", Flag = "VIS_InfiniteZoom", Callback = function(v) VD.VIS_InfiniteZoom = v end })
-    camSection:AddToggle({ Default = false, Name = "Killer Third Person", Flag = "VIS_KillerThirdPerson", Callback = function(v) VD.VIS_KillerThirdPerson = v end })
+    if camSection6 then
+        camSection6:AddToggle({ Default = false, Name = "Cinematic Depth of Field", Flag = "VIS_CinematicDOF", Callback = function(v) VD.VIS_CinematicDOF = v; pcall(function() VD_UpdateCinematicDOF(v) end) end })
+        camSection6:AddToggle({ Default = false, Name = "Infinite Zoom", Flag = "VIS_InfiniteZoom", Callback = function(v) VD.VIS_InfiniteZoom = v end })
+        camSection6:AddToggle({ Default = false, Name = "Killer Third Person", Flag = "VIS_KillerThirdPerson", Callback = function(v) VD.VIS_KillerThirdPerson = v end })
+    end
 
     local combatSurv = MainFeatureTabs.Survivor:AddSection({
         Position = "Center",
@@ -8143,16 +8175,27 @@ game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function()
         FakeGenData.Button.Visible = VD.SURV_FakeGen
     end
 end)
-    
+do
     -- BATCH 3: Survivor Speed Perks & Pallet/Vault Blocks
-    combatSurv:AddToggle({ Default = true, Name = "Count Speed Perks / Slow Downs", Flag = "SURV_CountSpeedPerks", Callback = function(v) VD.SURV_CountSpeedPerks = v end })
-    combatSurv:AddToggle({ Default = false, Name = "Flowstate Perk", Flag = "SURV_FlowstatePerk", Callback = function(v) VD.SURV_FlowstatePerk = v end })
-    combatSurv:AddSlider({ Name = "Flowstate Cooldown (s)", Flag = "SURV_FlowstateCooldown", Min = 5, Max = 30, Default = 15, Increment = 1, Callback = function(v) VD.SURV_FlowstateCooldown = v end })
-    combatSurv:AddButton({ Name = "Instant Bandage", Callback = function() pcall(VD_InstantBandage) end })
-    combatSurv:AddButton({ Name = "Block Pallets", Callback = function() pcall(function() VD_SetCollisionBlocks("pallet", true) end) end })
-    combatSurv:AddButton({ Name = "Unlock Pallets", Callback = function() pcall(function() VD_SetCollisionBlocks("pallet", false) end) end })
-    combatSurv:AddButton({ Name = "Block Vaults", Callback = function() pcall(function() VD_SetCollisionBlocks("vault", true) end) end })
-    combatSurv:AddButton({ Name = "Unlock Vaults", Callback = function() pcall(function() VD_SetCollisionBlocks("vault", false) end) end })
+    local combatSurv3 = MainFeatureTabs and MainFeatureTabs.Survivor and MainFeatureTabs.Survivor:AddSection({
+        Position = "Center",
+        Name = "Survivor (Speed & Pallets)",
+        Icon      = "solar:shield-bold",
+        Box       = true,
+        BoxBorder = true,
+        Opened    = false,
+    })
+    if combatSurv3 then
+    combatSurv3:AddToggle({ Default = true, Name = "Count Speed Perks / Slow Downs", Flag = "SURV_CountSpeedPerks", Callback = function(v) VD.SURV_CountSpeedPerks = v end })
+    combatSurv3:AddToggle({ Default = false, Name = "Flowstate Perk", Flag = "SURV_FlowstatePerk", Callback = function(v) VD.SURV_FlowstatePerk = v end })
+    combatSurv3:AddSlider({ Name = "Flowstate Cooldown (s)", Flag = "SURV_FlowstateCooldown", Min = 5, Max = 30, Default = 15, Increment = 1, Callback = function(v) VD.SURV_FlowstateCooldown = v end })
+    combatSurv3:AddToggle({ Default = false, Name = "Instant Bandage", Flag = "SURV_InstantBandage", Callback = function(v) VD.SURV_InstantBandage = v if v then pcall(VD_InstantBandage) end end })
+    combatSurv3:AddButton({ Name = "Block Pallets", Callback = function() pcall(function() VD_SetCollisionBlocks("pallet", true) end) end })
+    combatSurv3:AddButton({ Name = "Unlock Pallets", Callback = function() pcall(function() VD_SetCollisionBlocks("pallet", false) end) end })
+    combatSurv3:AddButton({ Name = "Block Vaults", Callback = function() pcall(function() VD_SetCollisionBlocks("vault", true) end) end })
+    combatSurv3:AddButton({ Name = "Unlock Vaults", Callback = function() pcall(function() VD_SetCollisionBlocks("vault", false) end) end })
+    end
+end
 
     local fakePerkSection = MainFeatureTabs.Survivor:AddSection({
         Position = "Center",
@@ -8774,9 +8817,7 @@ VD.AutoSkillcheckMode = option or "Normal"
             VD_Notify("Skillcheck Mode", tostring(VD.AutoSkillcheckMode) .. " selected", 2)
         end
     })
-end
-do 
-    
+
     -- BATCH 3: Skillcheck modifiers
     
     genAuto:AddSlider({ Name = "Perfect Hit Rate (%)", Flag = "PerfectHitRate", Min = 1, Max = 100, Default = 100, Increment = 1, Callback = function(v) VD.SURV_PerfectHitRate = v end })
@@ -8954,8 +8995,6 @@ do
             end
         end
     })
-end
-do 
     
     -- BATCH 5: Emote Wheel & DBD Sounds
     emoteSection:AddToggle({ Default = false, Name = "Custom Emote Wheel [8 Slots]", Flag = "DBD_EmoteWheelEnabled", Callback = function(v) VD.DBD_EmoteWheelEnabled = v end })
@@ -13017,10 +13056,6 @@ do
     tpMapSection:AddButton({ Name = "TP to Gen", Callback = function() pcall(function() KYS_TeleportToGenerator(1) end) end })
     tpMapSection:AddButton({ Name = "TP to Gate", Callback = function() pcall(KYS_TeleportToGate) end })
     tpMapSection:AddButton({ Name = "TP to Hook", Callback = function() pcall(KYS_TeleportToHook) end })
-end
-do 
-    local radarTab = MappingFeatureTabs.Radar
-    if radarTab then
         
     -- BATCH 7: Quick Map Teleports (Nearest & Furthest)
     tpMapSection:AddButton({ Name = "TP To Nearest Generator", Callback = function() pcall(function() VD_TeleportToMapElement("generator", false) end) end })
@@ -13037,6 +13072,8 @@ do
     tpMapSection:AddButton({ Name = "TP To Furthest Survivor", Callback = function() pcall(function() VD_TeleportToMapElement("survivor", true) end) end })
     tpMapSection:AddButton({ Name = "TP To Killer", Callback = function() pcall(function() VD_TeleportToMapElement("killer", false) end) end })
 
+    local radarTab = MappingFeatureTabs and MappingFeatureTabs.Radar
+    if radarTab then
     local radarSection = radarTab:AddSection({
             Position = "Center",
             Name = "Radar Configuration",
@@ -14926,7 +14963,9 @@ end
 local VD_ActiveTracers = {}
 RunService.RenderStepped:Connect(function()
     if not Drawing then return end
-    if not (KYS_ESPState.WorldMasterESP and VD.ESP_TracersEnabled) then
+    local espState = KYS_ESPState or getgenv().PinatHub_VD_VisualESP_State or {}
+    local masterOn = (espState.WorldMasterESP ~= false) or (espState.PlayerMasterESP ~= false)
+    if not (VD.ESP_TracersEnabled and masterOn) then
         for _, line in pairs(VD_ActiveTracers) do
             line.Visible = false
         end
@@ -15030,18 +15069,192 @@ function VD_TriggerFlowstate()
     end
 end
 
--- 3.3 Instant Bandage Action
-function VD_InstantBandage()
+-- 3.3 Instant Bandage Action & Automation (Auto Instant Bandage)
+local VD_LastInstantBandage = 0
+function VD_InstantBandage(targetTool)
+    local now = tick()
+    if now - VD_LastInstantBandage < 0.8 then return end
+
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local tool = targetTool
+
+    if not tool or not tool.Parent then
+        tool = (char and char:FindFirstChild("Bandage")) or (backpack and backpack:FindFirstChild("Bandage"))
+        if not tool then
+            if char then
+                for _, item in ipairs(char:GetChildren()) do
+                    if item:IsA("Tool") and item.Name:lower():find("bandage") then
+                        tool = item
+                        break
+                    end
+                end
+            end
+            if not tool and backpack then
+                for _, item in ipairs(backpack:GetChildren()) do
+                    if item:IsA("Tool") and item.Name:lower():find("bandage") then
+                        tool = item
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    local applied = false
     local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+
+    -- 1. Actual game Bandage Fire remote: ReplicatedStorage.Remotes.Items.Bandage.Fire:FireServer(state, tool)
+    local items = remotes and remotes:FindFirstChild("Items")
+    local bandageFolder = items and items:FindFirstChild("Bandage")
+    local fireRemote = bandageFolder and bandageFolder:FindFirstChild("Fire")
+    if fireRemote and tool then
+        pcall(function()
+            fireRemote:FireServer(true, tool)
+            task.wait(0.05)
+            fireRemote:FireServer(false, tool)
+        end)
+        applied = true
+    end
+
+    -- 2. Fallback Healing/Bandage Remotes
     local healRemotes = remotes and (remotes:FindFirstChild("Healing") or remotes:FindFirstChild("Character"))
     local bandageEvt = healRemotes and (healRemotes:FindFirstChild("BandageEvent") or healRemotes:FindFirstChild("HealEvent"))
     if bandageEvt then
-        bandageEvt:FireServer(LocalPlayer.Character)
-        VD_Notify("Instant Bandage", "Bandage applied successfully!", 2)
-    else
+        pcall(function()
+            bandageEvt:FireServer(LocalPlayer.Character)
+        end)
+        applied = true
+    end
+
+    -- 3. Reset channeling lock and attributes so player isn't immobilized
+    if char then
+        pcall(function()
+            char:SetAttribute("Aiming", false)
+            char:SetAttribute("IsBeingHealed", false)
+            local checkInter = char:FindFirstChild("CheckInterractable")
+            if checkInter then
+                checkInter:SetAttribute("isHealing", false)
+            end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp and hrp:HasTag("doing action") then
+                hrp:RemoveTag("doing action")
+            end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.WalkSpeed == 0 then
+                hum.WalkSpeed = 16
+            end
+        end)
+    end
+
+    if applied then
+        VD_LastInstantBandage = now
+        VD_Notify("Instant Bandage", "Bandage applied automatically!", 2)
+    elseif not fireRemote and not bandageEvt then
         VD_Notify("Instant Bandage", "Bandage remote not found in current session", 2)
     end
 end
+
+-- Auto Instant Bandage Listeners (activates automatically when toggle is ON)
+local function VD_HookBandageTool(tool)
+    if not tool or not tool:IsA("Tool") then return end
+    if not tool.Name:lower():find("bandage") then return end
+    if tool:GetAttribute("VD_BandageHooked") then return end
+    tool:SetAttribute("VD_BandageHooked", true)
+
+    tool.Activated:Connect(function()
+        if VD.SURV_InstantBandage then
+            pcall(function()
+                VD_InstantBandage(tool)
+            end)
+        end
+    end)
+end
+
+local function VD_SetupBandageListeners(char)
+    if not char then return end
+    char.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and child.Name:lower():find("bandage") then
+            VD_HookBandageTool(child)
+            if VD.SURV_InstantBandage then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health < hum.MaxHealth then
+                    task.delay(0.05, function()
+                        if VD.SURV_InstantBandage and child.Parent == char then
+                            pcall(function() VD_InstantBandage(child) end)
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+    for _, child in ipairs(char:GetChildren()) do
+        if child:IsA("Tool") and child.Name:lower():find("bandage") then
+            VD_HookBandageTool(child)
+        end
+    end
+end
+
+local function VD_SetupBackpackBandageListeners(bp)
+    if not bp then return end
+    bp.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and child.Name:lower():find("bandage") then
+            VD_HookBandageTool(child)
+        end
+    end)
+    for _, child in ipairs(bp:GetChildren()) do
+        if child:IsA("Tool") and child.Name:lower():find("bandage") then
+            VD_HookBandageTool(child)
+        end
+    end
+end
+
+-- Continuous watcher: triggers immediately if player begins healing/aiming with bandage
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if VD.SURV_InstantBandage then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local checkInter = char:FindFirstChild("CheckInterractable")
+                    local isHealing = char:GetAttribute("IsBeingHealed")
+                        or (checkInter and checkInter:GetAttribute("isHealing"))
+                        or char:GetAttribute("Aiming")
+
+                    if isHealing then
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool and tool.Name:lower():find("bandage") then
+                            VD_InstantBandage(tool)
+                        else
+                            VD_InstantBandage()
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Initialize listeners across character and backpack lifecycles
+task.spawn(function()
+    if LocalPlayer.Character then
+        VD_SetupBandageListeners(LocalPlayer.Character)
+    end
+    LocalPlayer.CharacterAdded:Connect(function(c)
+        task.wait(0.5)
+        VD_SetupBandageListeners(c)
+    end)
+
+    local bp = LocalPlayer:FindFirstChild("Backpack")
+    if bp then VD_SetupBackpackBandageListeners(bp) end
+    LocalPlayer.ChildAdded:Connect(function(child)
+        if child.Name == "Backpack" then
+            VD_SetupBackpackBandageListeners(child)
+        end
+    end)
+end)
+
 
 -- 3.4 Block / Unlock Pallets and Vaults
 function VD_SetCollisionBlocks(targetType, blockState)
