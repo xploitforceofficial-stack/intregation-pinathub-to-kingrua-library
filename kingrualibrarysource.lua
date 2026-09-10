@@ -68,6 +68,7 @@ local TabIcons = {
 	["flame"] = "rbxassetid://10723376114",
 	["database"] = "rbxassetid://10709818996",
 	["discord"] = "rbxassetid://10734950553",
+	["tiktok"] = "rbxassetid://114617227673334",
 	["message-circle"] = "rbxassetid://10734888000",
 	["video"] = "rbxassetid://10747374938",
 	["youtube"] = "rbxassetid://10747374938",
@@ -132,6 +133,7 @@ local TabIcons = {
 	ChevronRight = "rbxassetid://10709791437",
 	ChevronDown = "rbxassetid://10709790948",
 	Discord = "rbxassetid://10734950553",
+	TikTok = "rbxassetid://114617227673334",
 	Cursor = "rbxassetid://10709818534"
 }
 
@@ -887,39 +889,72 @@ function Library:NewWindow(ConfigWindow)
 	LeftHeaderContainer.Parent = Header
 	LeftHeaderContainer.BackgroundTransparency = 1
 	LeftHeaderContainer.Position = UDim2.new(0, 14, 0, 0)
-	LeftHeaderContainer.Size = UDim2.new(0, 320, 1, 0)
+	LeftHeaderContainer.Size = UDim2.new(0, 260, 1, 0)
 
 	local LeftLayout = Instance.new("UIListLayout")
 	LeftLayout.Parent = LeftHeaderContainer
 	LeftLayout.FillDirection = Enum.FillDirection.Horizontal
 	LeftLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	LeftLayout.Padding = UDim.new(0, 8)
+	LeftLayout.Padding = UDim.new(0, 10)
 
-	-- Logo Pinathub
+	-- Logo Pinathub (Refined 26x26, High Visual Hierarchy)
 	local BrandLogo = Instance.new("ImageLabel")
 	BrandLogo.Name = "BrandLogo"
 	BrandLogo.Parent = LeftHeaderContainer
-	BrandLogo.Size = UDim2.new(0, 22, 0, 22)
+	BrandLogo.Size = UDim2.new(0, 26, 0, 26)
 	BrandLogo.BackgroundTransparency = 1
 	BrandLogo.Image = PINATHUB_LOGO
 	BrandLogo.ImageColor3 = Color3.fromRGB(255, 255, 255)
 	BrandLogo.ScaleType = Enum.ScaleType.Fit
 	BrandLogo.LayoutOrder = 1
 
-	-- Title "Pinathub | Drain Water" (Clean, No Subtitle)
+	-- Title & Subtitle Branding Hierarchy Container
+	local BrandTitleContainer = Instance.new("Frame")
+	BrandTitleContainer.Name = "BrandTitleContainer"
+	BrandTitleContainer.Parent = LeftHeaderContainer
+	BrandTitleContainer.BackgroundTransparency = 1
+	BrandTitleContainer.Size = UDim2.new(0, 0, 0, 32)
+	BrandTitleContainer.AutomaticSize = Enum.AutomaticSize.X
+	BrandTitleContainer.LayoutOrder = 2
+
+	local TitleListLayout = Instance.new("UIListLayout")
+	TitleListLayout.Parent = BrandTitleContainer
+	TitleListLayout.FillDirection = Enum.FillDirection.Vertical
+	TitleListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	TitleListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	TitleListLayout.Padding = UDim.new(0, 0)
+
+	local mainTitle = Config.Title or "PinatHub"
+	if string.find(string.lower(mainTitle), "pinathub") then
+		mainTitle = "PinatHub"
+	end
+
 	local BrandName = Instance.new("TextLabel")
 	BrandName.Name = "BrandName"
-	BrandName.Parent = LeftHeaderContainer
+	BrandName.Parent = BrandTitleContainer
 	BrandName.BackgroundTransparency = 1
-	BrandName.Size = UDim2.new(0, 0, 1, 0)
+	BrandName.Size = UDim2.new(0, 0, 0, 16)
 	BrandName.AutomaticSize = Enum.AutomaticSize.X
 	BrandName.Font = Enum.Font.GothamBold
-	BrandName.Text = Config.Title
+	BrandName.Text = mainTitle
 	BrandName.TextColor3 = Theme.Text
 	BrandName.TextSize = 13
 	BrandName.TextXAlignment = Enum.TextXAlignment.Left
-	BrandName.LayoutOrder = 2
+	BrandName.LayoutOrder = 1
+
+	local BrandSub = Instance.new("TextLabel")
+	BrandSub.Name = "BrandSub"
+	BrandSub.Parent = BrandTitleContainer
+	BrandSub.BackgroundTransparency = 1
+	BrandSub.Size = UDim2.new(0, 0, 0, 13)
+	BrandSub.AutomaticSize = Enum.AutomaticSize.X
+	BrandSub.Font = Enum.Font.GothamMedium
+	BrandSub.Text = "by @viunze"
+	BrandSub.TextColor3 = Theme.TextMuted
+	BrandSub.TextSize = 10
+	BrandSub.TextXAlignment = Enum.TextXAlignment.Left
+	BrandSub.LayoutOrder = 2
 
 	-- Right Header Container (Badges + Minimize & Close Buttons)
 	local RightHeaderContainer = Instance.new("Frame")
@@ -1118,24 +1153,69 @@ function Library:NewWindow(ConfigWindow)
 	SearchBox.Name = "SearchBox"
 	SearchBox.Parent = SearchFrame
 	SearchBox.BackgroundTransparency = 1
-	SearchBox.Position = UDim2.new(0, 26, 0, 0)
-	SearchBox.Size = UDim2.new(1, -30, 1, 0)
+	SearchBox.Position = UDim2.new(0, 24, 0, 0)
+	SearchBox.Size = UDim2.new(1, -66, 1, 0)
 	SearchBox.Font = Enum.Font.Gotham
 	SearchBox.PlaceholderColor3 = Theme.TextMuted
-	SearchBox.PlaceholderText = "Search..."
+	SearchBox.PlaceholderText = "Search features..."
 	SearchBox.Text = ""
 	SearchBox.TextColor3 = Theme.Text
 	SearchBox.TextSize = 11
 	SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 	SearchBox.ClearTextOnFocus = false
 
+	-- Keyboard Shortcut Badge (Ctrl K)
+	local KeyBadge = Instance.new("Frame")
+	KeyBadge.Name = "KeyBadge"
+	KeyBadge.Parent = SearchFrame
+	KeyBadge.AnchorPoint = Vector2.new(1, 0.5)
+	KeyBadge.Position = UDim2.new(1, -6, 0.5, 0)
+	KeyBadge.Size = UDim2.new(0, 36, 0, 16)
+	KeyBadge.BackgroundColor3 = Theme.SurfaceActive
+	KeyBadge.BackgroundTransparency = 0.4
+	KeyBadge.BorderSizePixel = 0
+
+	local KeyCorner = Instance.new("UICorner")
+	KeyCorner.CornerRadius = UDim.new(0, 4)
+	KeyCorner.Parent = KeyBadge
+
+	local KeyStroke = Instance.new("UIStroke")
+	KeyStroke.Color = Theme.BorderSoft
+	KeyStroke.Thickness = 0.8
+	KeyStroke.Transparency = 0.2
+	KeyStroke.Parent = KeyBadge
+
+	local KeyText = Instance.new("TextLabel")
+	KeyText.Name = "KeyText"
+	KeyText.Parent = KeyBadge
+	KeyText.BackgroundTransparency = 1
+	KeyText.Size = UDim2.new(1, 0, 1, 0)
+	KeyText.Font = Enum.Font.GothamBold
+	KeyText.Text = "Ctrl K"
+	KeyText.TextColor3 = Theme.TextMuted
+	KeyText.TextSize = 8.5
+	KeyText.TextXAlignment = Enum.TextXAlignment.Center
+
 	SearchBox.Focused:Connect(function()
 		TweenService:Create(SearchStroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
 		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Theme.AccentGlow }):Play()
+		TweenService:Create(KeyBadge, TweenInfoFast, { BackgroundTransparency = 0.8 }):Play()
+		TweenService:Create(KeyText, TweenInfoFast, { TextTransparency = 0.6 }):Play()
 	end)
 	SearchBox.FocusLost:Connect(function()
 		TweenService:Create(SearchStroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0 }):Play()
 		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+		TweenService:Create(KeyBadge, TweenInfoFast, { BackgroundTransparency = 0.4 }):Play()
+		TweenService:Create(KeyText, TweenInfoFast, { TextTransparency = 0 }):Play()
+	end)
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+		if input.KeyCode == Enum.KeyCode.K and (UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)) then
+			task.spawn(function()
+				SearchBox:CaptureFocus()
+			end)
+		end
 	end)
 
 	-- Tab List (ScrollingFrame)
@@ -1145,7 +1225,7 @@ function Library:NewWindow(ConfigWindow)
 	TabList.BackgroundTransparency = 1
 	TabList.BorderSizePixel = 0
 	TabList.Position = UDim2.new(0, 0, 0, 46)
-	TabList.Size = UDim2.new(1, 0, 1, -90) -- Leaves 44px for Profile footer at bottom
+	TabList.Size = UDim2.new(1, 0, 1, -116) -- Leaves room for Search Frame (top) and Profile/Socials (bottom)
 	TabList.ScrollBarThickness = 2
 	TabList.ScrollBarImageColor3 = Theme.Border
 	TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -1164,13 +1244,13 @@ function Library:NewWindow(ConfigWindow)
 
 	self:UpdateScrolling(TabList, TabListLayout)
 
-	-- Bottom User Profile (PinatHub Feature: Avatar Headshot + "Welcome, <username>")
+	-- Bottom User Profile & Community (PinatHub Feature: Avatar + Welcome + Discord & TikTok)
 	local ProfileFooter = Instance.new("Frame")
 	ProfileFooter.Name = "ProfileFooter"
 	ProfileFooter.Parent = Sidebar
 	ProfileFooter.AnchorPoint = Vector2.new(0, 1)
 	ProfileFooter.Position = UDim2.new(0, 0, 1, 0)
-	ProfileFooter.Size = UDim2.new(1, 0, 0, 44)
+	ProfileFooter.Size = UDim2.new(1, 0, 0, 68)
 	ProfileFooter.BackgroundColor3 = Theme.Sidebar
 	ProfileFooter.BackgroundTransparency = 0.1
 	ProfileFooter.BorderSizePixel = 0
@@ -1186,9 +1266,9 @@ function Library:NewWindow(ConfigWindow)
 	local AvatarImage = Instance.new("ImageLabel")
 	AvatarImage.Name = "Avatar"
 	AvatarImage.Parent = ProfileFooter
-	AvatarImage.AnchorPoint = Vector2.new(0, 0.5)
-	AvatarImage.Position = UDim2.new(0, 10, 0.5, 0)
-	AvatarImage.Size = UDim2.new(0, 26, 0, 26)
+	AvatarImage.AnchorPoint = Vector2.new(0, 0)
+	AvatarImage.Position = UDim2.new(0, 10, 0, 8)
+	AvatarImage.Size = UDim2.new(0, 22, 0, 22)
 	AvatarImage.BackgroundColor3 = Theme.Surface
 	AvatarImage.BorderSizePixel = 0
 	pcall(function()
@@ -1208,15 +1288,150 @@ function Library:NewWindow(ConfigWindow)
 	WelcomeText.Name = "Welcome"
 	WelcomeText.Parent = ProfileFooter
 	WelcomeText.BackgroundTransparency = 1
-	WelcomeText.Position = UDim2.new(0, 42, 0, 0)
-	WelcomeText.Size = UDim2.new(1, -48, 1, 0)
+	WelcomeText.Position = UDim2.new(0, 38, 0, 8)
+	WelcomeText.Size = UDim2.new(1, -48, 0, 22)
 	WelcomeText.Font = Enum.Font.GothamBold
 	local displayName = LocalPlayer and (LocalPlayer.DisplayName or LocalPlayer.Name) or "Player"
 	WelcomeText.Text = "Welcome, " .. displayName
 	WelcomeText.TextColor3 = Theme.TextSecondary
-	WelcomeText.TextSize = 11
+	WelcomeText.TextSize = 10.5
 	WelcomeText.TextTruncate = Enum.TextTruncate.AtEnd
 	WelcomeText.TextXAlignment = Enum.TextXAlignment.Left
+
+	-- Compact Social Links Container
+	local SocialLinks = Instance.new("Frame")
+	SocialLinks.Name = "SocialLinks"
+	SocialLinks.Parent = ProfileFooter
+	SocialLinks.BackgroundTransparency = 1
+	SocialLinks.Position = UDim2.new(0, 10, 0, 36)
+	SocialLinks.Size = UDim2.new(1, -20, 0, 24)
+
+	local SocialLayout = Instance.new("UIListLayout")
+	SocialLayout.Parent = SocialLinks
+	SocialLayout.FillDirection = Enum.FillDirection.Horizontal
+	SocialLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	SocialLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	SocialLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	SocialLayout.Padding = UDim.new(0, 6)
+
+	local function CopyText(str)
+		local fn = setclipboard or toclipboard or (Clipboard and Clipboard.set) or (syn and syn.write_clipboard)
+		if fn then pcall(fn, str) end
+	end
+
+	local function CreateSocialBtn(name, iconAsset, linkUrl, labelText, order, onAction)
+		local btn = Instance.new("TextButton")
+		btn.Name = name
+		btn.Parent = SocialLinks
+		btn.Size = UDim2.new(0.5, -3, 0, 22)
+		btn.BackgroundColor3 = Theme.Surface
+		btn.BackgroundTransparency = 0.5
+		btn.BorderSizePixel = 0
+		btn.AutoButtonColor = false
+		btn.Text = ""
+		btn.LayoutOrder = order
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 4)
+		corner.Parent = btn
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Theme.BorderSoft
+		stroke.Thickness = 0.8
+		stroke.Transparency = 0.4
+		stroke.Parent = btn
+
+		local btnLayout = Instance.new("UIListLayout")
+		btnLayout.Parent = btn
+		btnLayout.FillDirection = Enum.FillDirection.Horizontal
+		btnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+		btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		btnLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		btnLayout.Padding = UDim.new(0, 4)
+
+		local icon = Instance.new("ImageLabel")
+		icon.Name = "Icon"
+		icon.Parent = btn
+		icon.Size = UDim2.new(0, 11, 0, 11)
+		icon.BackgroundTransparency = 1
+		icon.Image = iconAsset
+		icon.ImageColor3 = Theme.TextSecondary
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.LayoutOrder = 1
+
+		local txt = Instance.new("TextLabel")
+		txt.Name = "Label"
+		txt.Parent = btn
+		txt.BackgroundTransparency = 1
+		txt.Size = UDim2.new(0, 0, 1, 0)
+		txt.AutomaticSize = Enum.AutomaticSize.X
+		txt.Font = Enum.Font.GothamBold
+		txt.Text = labelText
+		txt.TextColor3 = Theme.TextSecondary
+		txt.TextSize = 9
+		txt.LayoutOrder = 2
+
+		btn.MouseEnter:Connect(function()
+			TweenService:Create(btn, TweenInfoFast, { BackgroundTransparency = 0.2, BackgroundColor3 = Theme.SurfaceHover }):Play()
+			TweenService:Create(stroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
+			TweenService:Create(icon, TweenInfoFast, { ImageColor3 = Theme.Text }):Play()
+			txt.TextColor3 = Theme.Text
+		end)
+		btn.MouseLeave:Connect(function()
+			TweenService:Create(btn, TweenInfoFast, { BackgroundTransparency = 0.5, BackgroundColor3 = Theme.Surface }):Play()
+			TweenService:Create(stroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0.4 }):Play()
+			TweenService:Create(icon, TweenInfoFast, { ImageColor3 = Theme.TextSecondary }):Play()
+			txt.TextColor3 = Theme.TextSecondary
+		end)
+
+		btn.MouseButton1Click:Connect(function()
+			if onAction then
+				onAction()
+			else
+				CopyText(linkUrl)
+			end
+		end)
+
+		return btn
+	end
+
+	-- Discord Social Button (Invite: Y6Kjfu5XPN)
+	local discordInvite = (Config and Config.Discord) or "https://discord.gg/Y6Kjfu5XPN"
+	if not string.find(discordInvite, "Y6Kjfu5XPN") then
+		discordInvite = "https://discord.gg/Y6Kjfu5XPN"
+	end
+	CreateSocialBtn("DiscordBtn", TabIcons.Discord or "rbxassetid://10734950553", discordInvite, "Discord", 1, function()
+		CopyText(discordInvite)
+		pcall(function()
+			local req = (syn and syn.request) or (http and http.request) or request or http_request
+			if req then
+				req({
+					Url = "http://127.0.0.1:6463/rpc?v=1",
+					Method = "POST",
+					Headers = { ["Content-Type"] = "application/json", ["Origin"] = "https://discord.com" },
+					Body = HttpService:JSONEncode({ cmd = "INVITE_BROWSER", args = { code = "Y6Kjfu5XPN" }, nonce = HttpService:GenerateGUID(false) })
+				})
+			end
+		end)
+		Library:Notify({
+			Title = "Discord Invite",
+			Content = "Copied discord.gg/Y6Kjfu5XPN to clipboard!",
+			Type = "Info",
+			Duration = 3
+		})
+	end)
+
+	-- TikTok Social Button (@viunze)
+	local tiktokUrl = (Config and Config.TikTok) or "https://www.tiktok.com/@viunze"
+	CreateSocialBtn("TikTokBtn", "rbxassetid://114617227673334", tiktokUrl, "TikTok", 2, function()
+		CopyText(tiktokUrl)
+		Library:Notify({
+			Title = "TikTok Profile",
+			Content = "Copied tiktok.com/@viunze to clipboard!",
+			Type = "Info",
+			Duration = 3
+		})
+	end)
 
 	-- 8. Content Area
 	local Content = Instance.new("Frame")
