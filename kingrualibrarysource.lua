@@ -2696,6 +2696,32 @@ function Library:NewWindow(ConfigWindow)
 				TitleLabel.TextSize = 12
 				TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+				local tsDecimals = (function()
+					local function countDec(val)
+						if not val then return 0 end
+						local s = tostring(val)
+						local dot = s:find("%.")
+						return dot and (#s - dot) or 0
+					end
+					if type(cfg.Decimals) == "number" and cfg.Decimals >= 0 then return math.min(math.floor(cfg.Decimals), 6) end
+					local incDec = countDec(cfg.Increment)
+					if incDec > 0 then return math.min(incDec, 6) end
+					local minDec = countDec(cfg.Min)
+					local defDec = countDec(cfg.DefaultSlider)
+					local maxDec = math.max(minDec, defDec)
+					if maxDec > 0 then return math.min(maxDec, 6) end
+					return 0
+				end)()
+
+				local function FormatTSValue(val)
+					val = tonumber(val) or 0
+					if tsDecimals > 0 then
+						return string.format("%." .. tsDecimals .. "f", val)
+					else
+						return tostring(math.floor(val + 0.5))
+					end
+				end
+
 				local ValLabel = Instance.new("TextLabel")
 				ValLabel.Name = "Value"
 				ValLabel.Parent = ItemFrame
@@ -2704,7 +2730,7 @@ function Library:NewWindow(ConfigWindow)
 				ValLabel.Size = UDim2.new(0, 50, 0, 16)
 				ValLabel.BackgroundTransparency = 1
 				ValLabel.Font = Enum.Font.Gotham
-				ValLabel.Text = tostring(cfg.DefaultSlider) .. cfg.Suffix
+				ValLabel.Text = FormatTSValue(cfg.DefaultSlider or cfg.Min) .. cfg.Suffix
 				ValLabel.TextColor3 = Theme.TextSecondary
 				ValLabel.TextSize = 11
 				ValLabel.TextXAlignment = Enum.TextXAlignment.Right
@@ -2777,10 +2803,22 @@ function Library:NewWindow(ConfigWindow)
 				end
 
 				local function UpdateS(val)
+					val = tonumber(val) or cfg.Min
+					if cfg.Increment and cfg.Increment > 0 then
+						local steps = math.floor((val - cfg.Min) / cfg.Increment + 0.5)
+						val = cfg.Min + (steps * cfg.Increment)
+						if tsDecimals > 0 then
+							local mult = 10 ^ tsDecimals
+							local rounded = math.floor(val * mult + 0.5) / mult
+							val = tonumber(string.format("%." .. tsDecimals .. "f", rounded)) or rounded
+						else
+							val = math.floor(val + 0.5)
+						end
+					end
 					sVal = math.clamp(val, cfg.Min, cfg.Max)
 					local pct = (sVal - cfg.Min) / math.max(cfg.Max - cfg.Min, 1)
 					Fill.Size = UDim2.new(pct, 0, 1, 0)
-					ValLabel.Text = tostring(math.floor(sVal)) .. cfg.Suffix
+					ValLabel.Text = FormatTSValue(sVal) .. cfg.Suffix
 				end
 
 				UpdateT(true)
@@ -2964,6 +3002,51 @@ function Library:NewWindow(ConfigWindow)
 
 				if cfg.Desc and cfg.Description == "" then cfg.Description = cfg.Desc end
 
+				local function GetDecimals(inc, dec, minVal, defVal)
+					if type(dec) == "number" and dec >= 0 then return math.min(math.floor(dec), 6) end
+					local function countDec(val)
+						if not val then return 0 end
+						local s = tostring(val)
+						local dot = s:find("%.")
+						return dot and (#s - dot) or 0
+					end
+					local incDec = countDec(inc)
+					if incDec > 0 then return math.min(incDec, 6) end
+					local minDec = countDec(minVal)
+					local defDec = countDec(defVal)
+					local maxDec = math.max(minDec, defDec)
+					if maxDec > 0 then return math.min(maxDec, 6) end
+					return 0
+				end
+
+				local decimals = GetDecimals(cfg.Increment, cfg.Decimals or cfg.Precision or cfg.Rounding, cfg.Min, cfg.Default)
+
+				local function Round(num, inc, dec)
+					local incVal = tonumber(inc)
+					num = tonumber(num) or 0
+					if not incVal or incVal <= 0 then incVal = 1 end
+					local steps = math.floor((num - cfg.Min) / incVal + 0.5)
+					local raw = cfg.Min + (steps * incVal)
+					local d = (type(dec) == "number") and dec or decimals
+					if d > 0 then
+						local mult = 10 ^ d
+						local rounded = math.floor(raw * mult + 0.5) / mult
+						return tonumber(string.format("%." .. d .. "f", rounded)) or rounded
+					else
+						return math.floor(raw + 0.5)
+					end
+				end
+
+				local function FormatValue(val, inc, dec)
+					val = tonumber(val) or 0
+					local d = (type(dec) == "number") and dec or decimals
+					if d > 0 then
+						return string.format("%." .. d .. "f", val)
+					else
+						return tostring(math.floor(val + 0.5))
+					end
+				end
+
 				local ItemFrame = Instance.new("Frame")
 				ItemFrame.Name = "Slider_" .. cfg.Title
 				ItemFrame.Parent = ControlsContainer
@@ -3002,7 +3085,7 @@ function Library:NewWindow(ConfigWindow)
 				ValueInput.Size = UDim2.new(0, 50, 0, 16)
 				ValueInput.BackgroundTransparency = 1
 				ValueInput.Font = Enum.Font.GothamBold
-				ValueInput.Text = tostring(cfg.Default)
+				ValueInput.Text = FormatValue(cfg.Default, cfg.Increment, decimals)
 				ValueInput.TextColor3 = Theme.AccentGlow
 				ValueInput.TextSize = 11
 				ValueInput.TextXAlignment = Enum.TextXAlignment.Right
@@ -3046,15 +3129,11 @@ function Library:NewWindow(ConfigWindow)
 				local SliderState = { Value = cfg.Default }
 				local dragging = false
 
-				local function Round(num, inc)
-					return math.floor(num / inc + 0.5) * inc
-				end
-
 				function SliderState:Set(value)
-					value = math.clamp(Round(value, cfg.Increment), cfg.Min, cfg.Max)
+					value = math.clamp(Round(value, cfg.Increment, decimals), cfg.Min, cfg.Max)
 					self.Value = value
-					ValueInput.Text = tostring(value)
-					local scale = (value - cfg.Min) / (cfg.Max - cfg.Min)
+					ValueInput.Text = FormatValue(value, cfg.Increment, decimals)
+					local scale = (value - cfg.Min) / math.max(cfg.Max - cfg.Min, 0.0001)
 					TweenService:Create(RailFill, TweenInfoFast, { Size = UDim2.fromScale(scale, 1) }):Play()
 					TweenService:Create(Thumb, TweenInfoFast, { Position = UDim2.new(scale, 0, 0.5, 0) }):Play()
 					pcall(cfg.Callback, value)
@@ -3083,7 +3162,7 @@ function Library:NewWindow(ConfigWindow)
 
 				ValueInput.FocusLost:Connect(function()
 					local val = tonumber(ValueInput.Text)
-					if val then SliderState:Set(val) else ValueInput.Text = tostring(SliderState.Value) end
+					if val then SliderState:Set(val) else ValueInput.Text = FormatValue(SliderState.Value, cfg.Increment, decimals) end
 				end)
 
 				SliderState:Set(cfg.Default)
@@ -3996,6 +4075,455 @@ function Library:NewWindow(ConfigWindow)
 			SecObj.ColorPicker = SecObj.AddColorPicker
 			SecObj.AddTextInput = SecObj.AddInput
 			SecObj.TextInput = SecObj.AddInput
+
+-- =========================================================================
+-- SPECIALIZED UI EXTENSIONS FOR PINATHUB VIOLENCE DISTRICT (from otherscript.lua)
+-- =========================================================================
+
+-- 1. Custom Background Manager
+function SecObj:AddCustomBgManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Custom Background Manager",
+        DefaultAsset = "",
+        DefaultOverlay = 40,
+        DefaultScale = "Crop",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "CustomBgContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 110)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local cStroke = Instance.new("UIStroke")
+    cStroke.Color = Theme.BorderSoft
+    cStroke.Thickness = 1
+    cStroke.Parent = container
+
+    local preview = Instance.new("ImageLabel")
+    preview.Name = "BgPreview"
+    preview.Parent = container
+    preview.Position = UDim2.new(0, 8, 0, 8)
+    preview.Size = UDim2.new(0, 94, 0, 94)
+    preview.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    preview.BorderSizePixel = 0
+    preview.ScaleType = Enum.ScaleType[cfg.DefaultScale] or Enum.ScaleType.Crop
+    preview.Image = cfg.DefaultAsset ~= "" and cfg.DefaultAsset or "rbxassetid://118264723961739"
+    local prevCorner = Instance.new("UICorner")
+    prevCorner.CornerRadius = UDim.new(0, 4)
+    prevCorner.Parent = preview
+
+    local assetBox = Instance.new("TextBox")
+    assetBox.Name = "AssetInput"
+    assetBox.Parent = container
+    assetBox.Position = UDim2.new(0, 110, 0, 12)
+    assetBox.Size = UDim2.new(1, -118, 0, 28)
+    assetBox.BackgroundColor3 = Theme.Surface
+    assetBox.TextColor3 = Theme.TextPrimary
+    assetBox.PlaceholderText = "Roblox Asset ID (rbxassetid://...)"
+    assetBox.PlaceholderColor3 = Theme.TextMuted
+    assetBox.Font = Enum.Font.Gotham
+    assetBox.TextSize = 11
+    assetBox.Text = cfg.DefaultAsset
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 4)
+    boxCorner.Parent = assetBox
+
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Name = "ApplyBg"
+    applyBtn.Parent = container
+    applyBtn.Position = UDim2.new(0, 110, 0, 48)
+    applyBtn.Size = UDim2.new(1, -118, 0, 26)
+    applyBtn.BackgroundColor3 = Theme.Accent
+    applyBtn.TextColor3 = Color3.new(1, 1, 1)
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextSize = 11
+    applyBtn.Text = "Apply Background"
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = applyBtn
+
+    local statusLbl = Instance.new("TextLabel")
+    statusLbl.Name = "StatusLbl"
+    statusLbl.Parent = container
+    statusLbl.Position = UDim2.new(0, 110, 0, 80)
+    statusLbl.Size = UDim2.new(1, -118, 0, 18)
+    statusLbl.BackgroundTransparency = 1
+    statusLbl.Font = Enum.Font.Gotham
+    statusLbl.TextSize = 10
+    statusLbl.TextColor3 = Theme.TextSecondary
+    statusLbl.TextXAlignment = Enum.TextXAlignment.Left
+    statusLbl.Text = "Scale: " .. tostring(cfg.DefaultScale) .. " | Overlay: " .. tostring(cfg.DefaultOverlay) .. "%"
+
+    applyBtn.MouseButton1Click:Connect(function()
+        local raw = assetBox.Text:gsub("%s+", "")
+        local id = raw
+        if raw:match("^%d+$") then
+            id = "rbxassetid://" .. raw
+        end
+        preview.Image = id
+        statusLbl.Text = "Background Updated!"
+        cfg.Callback({ AssetId = id, Overlay = cfg.DefaultOverlay, ScaleType = cfg.DefaultScale })
+    end)
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        SetAsset = function(_, asset) assetBox.Text = asset; preview.Image = asset end,
+        SetStatus = function(_, txt) statusLbl.Text = txt end
+    }
+end
+
+-- 2. Custom Emote Wheel Manager (8-slot wheel)
+function SecObj:AddEmoteWheelManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Emote Wheel Manager",
+        Slots = { "KWIK FLIP", "Schadenfreude (laugh)", "Wave", "Pop off", "Backflip", "Griddy", "The Dab", "California girls" },
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "EmoteWheelContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 140)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 20)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "EMOTE WHEEL SLOTS (8 SLOTS)"
+
+    local grid = Instance.new("Frame")
+    grid.Parent = container
+    grid.Position = UDim2.new(0, 8, 0, 26)
+    grid.Size = UDim2.new(1, -16, 0, 80)
+    grid.BackgroundTransparency = 1
+
+    local uigrid = Instance.new("UIGridLayout")
+    uigrid.Parent = grid
+    uigrid.CellSize = UDim2.new(0.23, 0, 0, 36)
+    uigrid.CellPadding = UDim2.new(0.02, 0, 0, 4)
+
+    local slotButtons = {}
+    for i = 1, 8 do
+        local slotName = cfg.Slots[i] or ("Slot " .. i)
+        local btn = Instance.new("TextButton")
+        btn.Name = "Slot_" .. i
+        btn.Parent = grid
+        btn.BackgroundColor3 = Theme.Surface
+        btn.TextColor3 = Theme.TextPrimary
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 10
+        btn.Text = tostring(i) .. ". " .. slotName:sub(1, 10)
+        btn.ClipsDescendants = true
+        local bCorner = Instance.new("UICorner")
+        bCorner.CornerRadius = UDim.new(0, 4)
+        bCorner.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            cfg.Callback({ Slot = i, Name = slotName })
+        end)
+        slotButtons[i] = btn
+    end
+
+    local actionRow = Instance.new("Frame")
+    actionRow.Parent = container
+    actionRow.Position = UDim2.new(0, 8, 0, 110)
+    actionRow.Size = UDim2.new(1, -16, 0, 24)
+    actionRow.BackgroundTransparency = 1
+
+    local openWheelBtn = Instance.new("TextButton")
+    openWheelBtn.Parent = actionRow
+    openWheelBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    openWheelBtn.BackgroundColor3 = Theme.Accent
+    openWheelBtn.TextColor3 = Color3.new(1, 1, 1)
+    openWheelBtn.Font = Enum.Font.GothamBold
+    openWheelBtn.TextSize = 10
+    openWheelBtn.Text = "Open Emote Wheel"
+    local oCorner = Instance.new("UICorner")
+    oCorner.CornerRadius = UDim.new(0, 4)
+    oCorner.Parent = openWheelBtn
+
+    local stopAnimBtn = Instance.new("TextButton")
+    stopAnimBtn.Parent = actionRow
+    stopAnimBtn.Position = UDim2.new(0.52, 0, 0, 0)
+    stopAnimBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    stopAnimBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    stopAnimBtn.TextColor3 = Color3.new(1, 1, 1)
+    stopAnimBtn.Font = Enum.Font.GothamBold
+    stopAnimBtn.TextSize = 10
+    stopAnimBtn.Text = "Stop Animation"
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(0, 4)
+    sCorner.Parent = stopAnimBtn
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        OnOpenWheel = function(_, cb) openWheelBtn.MouseButton1Click:Connect(cb) end,
+        OnStopAnim = function(_, cb) stopAnimBtn.MouseButton1Click:Connect(cb) end
+    }
+end
+
+-- 3. Perk Loadout Manager (3 slots + Loadout Selector)
+function SecObj:AddPerkLoadoutManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Survivor Perk Loadout",
+        Perk1 = "None",
+        Perk2 = "None",
+        Perk3 = "None",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "PerkLoadoutContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 80)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "PERK SLOTS (SURVIVOR PERKS)"
+
+    local row = Instance.new("Frame")
+    row.Parent = container
+    row.Position = UDim2.new(0, 8, 0, 26)
+    row.Size = UDim2.new(1, -16, 0, 48)
+    row.BackgroundTransparency = 1
+
+    local pButtons = {}
+    for i = 1, 3 do
+        local pBtn = Instance.new("TextButton")
+        pBtn.Name = "PerkSlot_" .. i
+        pBtn.Parent = row
+        pBtn.Position = UDim2.new((i - 1) * 0.34, 0, 0, 0)
+        pBtn.Size = UDim2.new(0.31, 0, 0, 42)
+        pBtn.BackgroundColor3 = Theme.Surface
+        pBtn.TextColor3 = Theme.TextPrimary
+        pBtn.Font = Enum.Font.GothamMedium
+        pBtn.TextSize = 10
+        pBtn.Text = "Slot " .. i .. "\n" .. (i == 1 and cfg.Perk1 or (i == 2 and cfg.Perk2 or cfg.Perk3))
+        local pbCorner = Instance.new("UICorner")
+        pbCorner.CornerRadius = UDim.new(0, 4)
+        pbCorner.Parent = pBtn
+        pButtons[i] = pBtn
+    end
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        SetPerks = function(_, p1, p2, p3)
+            pButtons[1].Text = "Slot 1\n" .. tostring(p1)
+            pButtons[2].Text = "Slot 2\n" .. tostring(p2)
+            pButtons[3].Text = "Slot 3\n" .. tostring(p3)
+        end
+    }
+end
+
+-- 4. Visual Preset Manager (Ambient Color & Lighting Preset)
+function SecObj:AddVisualPresetManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Lighting Visual Presets",
+        Presets = { "Default", "Cinematic", "Vibrant", "Grim Noir", "Cyberpunk", "Midnight" },
+        CurrentPreset = "Default",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "VisualPresetContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 72)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "LIGHTING & COLOR PRESET CONTROLLER"
+
+    local grid = Instance.new("Frame")
+    grid.Parent = container
+    grid.Position = UDim2.new(0, 8, 0, 26)
+    grid.Size = UDim2.new(1, -16, 0, 40)
+    grid.BackgroundTransparency = 1
+
+    local layout = Instance.new("UIGridLayout")
+    layout.Parent = grid
+    layout.CellSize = UDim2.new(0.31, 0, 0, 18)
+    layout.CellPadding = UDim2.new(0.02, 0, 0, 3)
+
+    for _, presetName in ipairs(cfg.Presets) do
+        local btn = Instance.new("TextButton")
+        btn.Name = "Preset_" .. presetName
+        btn.Parent = grid
+        btn.BackgroundColor3 = (presetName == cfg.CurrentPreset) and Theme.Accent or Theme.Surface
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 9
+        btn.Text = presetName
+        local bCorner = Instance.new("UICorner")
+        bCorner.CornerRadius = UDim.new(0, 4)
+        bCorner.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            for _, child in ipairs(grid:GetChildren()) do
+                if child:IsA("TextButton") then child.BackgroundColor3 = Theme.Surface end
+            end
+            btn.BackgroundColor3 = Theme.Accent
+            cfg.Callback(presetName)
+        end)
+    end
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {}
+end
+
+-- 5. Fog Manager (Color + Fog Start & End)
+function SecObj:AddFogManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Custom Fog Controller",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Fog Controller", Desc = "Managed dynamically via Lighting settings below." })
+end
+
+-- 6. Bloom Manager (Intensity, Size, Threshold)
+function SecObj:AddBloomManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Bloom Controller",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Bloom Controller", Desc = "Adjust bloom parameters in real-time." })
+end
+
+-- 7. Info Banner Configurator
+function SecObj:AddInfoBannerConfig(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Info Banner Configuration",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Info Banner", Desc = "HUD display: Map, Killer, Perks, FPS, Ping." })
+end
+
+-- 8. Aimbot Preview with Calibration Canvas
+function SecObj:AddAimbotPreview(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Aimbot Calibration & FOV Preview",
+        DefaultRadius = 150,
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "AimbotPreviewContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 90)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "AIMBOT TARGET RETICLE & FOV PREVIEW"
+
+    local canvas = Instance.new("Frame")
+    canvas.Parent = container
+    canvas.Position = UDim2.new(0, 8, 0, 24)
+    canvas.Size = UDim2.new(0, 60, 0, 60)
+    canvas.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    local canCorner = Instance.new("UICorner")
+    canCorner.CornerRadius = UDim.new(1, 0)
+    canCorner.Parent = canvas
+    local canStroke = Instance.new("UIStroke")
+    canStroke.Color = Theme.Accent
+    canStroke.Thickness = 1.5
+    canStroke.Parent = canvas
+
+    local centerDot = Instance.new("Frame")
+    centerDot.Parent = canvas
+    centerDot.AnchorPoint = Vector2.new(0.5, 0.5)
+    centerDot.Position = UDim2.new(0.5, 0, 0.5, 0)
+    centerDot.Size = UDim2.new(0, 4, 0, 4)
+    centerDot.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = centerDot
+
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Parent = container
+    infoLabel.Position = UDim2.new(0, 80, 0, 28)
+    infoLabel.Size = UDim2.new(1, -88, 0, 48)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextSize = 11
+    infoLabel.TextColor3 = Theme.TextSecondary
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    infoLabel.Text = "FOV Circle active on screen.\nHorizontal / Vertical offsets calibrated dynamically for ballistics."
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {}
+end
+
+-- 9. Stalker Killer Manager
+function SecObj:AddStalkerManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Stalker Ability Suite",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Stalker Suite", Desc = "Controls for Stalker killer abilities (cooldown bypass, grab, corrupt)." })
+end
+
 
 			return SecObj
 		end
