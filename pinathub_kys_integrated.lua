@@ -100,6 +100,9 @@ if PinatHubAdapter then
         Discord = "https://discord.gg/Y6Kjfu5XPN",
         TikTok = "https://www.tiktok.com/@viunze",
         Logo = "rbxassetid://118264723961739",
+        SearchIcon = "rbxassetid://2804603877",
+        DiscordIcon = "rbxassetid://18505728250",
+        TikTokIcon = "rbxassetid://114030178331137",
         OnClose = function()
             if getgenv().VD then getgenv().VD.Destroyed = true end
         end,
@@ -111,6 +114,56 @@ if PinatHubAdapter then
                 return PinatHubAdapter:Notify(cfg)
             end
         end
+        -- Enforce working Roblox UI icons (Search, Discord, TikTok) with exact requested asset IDs
+        pcall(function()
+            local SEARCH_ID = "rbxassetid://2804603877"
+            local DISCORD_ID = "rbxassetid://18505728250"
+            local TIKTOK_ID = "rbxassetid://114030178331137"
+            local function enforceIcons(root)
+                if not root then return end
+                for _, obj in ipairs(root:GetDescendants()) do
+                    if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+                        if obj.Name == "SearchIcon" or (obj.Parent and obj.Parent.Name == "SearchFrame" and obj.Position.X.Offset <= 12) then
+                            obj.Image = SEARCH_ID
+                            obj.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                            obj.ImageTransparency = 0
+                            obj.Size = UDim2.new(0, 14, 0, 14)
+                            obj.ScaleType = Enum.ScaleType.Fit
+                            obj.Visible = true
+                            obj.ZIndex = 6
+                        elseif (obj.Parent and obj.Parent.Name == "DiscordBtn") or obj.Name == "DiscordBtn" then
+                            local icon = obj:IsA("ImageLabel") and obj or obj:FindFirstChildOfClass("ImageLabel")
+                            if icon then
+                                icon.Image = DISCORD_ID
+                                icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                                icon.ImageTransparency = 0
+                                icon.Size = UDim2.new(0, 14, 0, 14)
+                                icon.ScaleType = Enum.ScaleType.Fit
+                                icon.Visible = true
+                                icon.ZIndex = 7
+                            end
+                        elseif (obj.Parent and obj.Parent.Name == "TikTokBtn") or obj.Name == "TikTokBtn" then
+                            local icon = obj:IsA("ImageLabel") and obj or obj:FindFirstChildOfClass("ImageLabel")
+                            if icon then
+                                icon.Image = TIKTOK_ID
+                                icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                                icon.ImageTransparency = 0
+                                icon.Size = UDim2.new(0, 14, 0, 14)
+                                icon.ScaleType = Enum.ScaleType.Fit
+                                icon.Visible = true
+                                icon.ZIndex = 7
+                            end
+                        end
+                    end
+                end
+            end
+            task.defer(function()
+                enforceIcons(Window.Gui)
+                local pg = LocalPlayer and LocalPlayer:FindFirstChildOfClass("PlayerGui")
+                if pg then enforceIcons(pg:FindFirstChild("PinatHub_UI")) end
+                pcall(function() enforceIcons(game:GetService("CoreGui"):FindFirstChild("PinatHub_UI")) end)
+            end)
+        end)
     end
 end
 if not isMobile then
@@ -13947,12 +14000,23 @@ function VD_UpdateStretchPOV()
                         pcall(function() getgenv().VD_StretchState.Connection:Disconnect() end)
                         getgenv().VD_StretchState.Connection = nil
                     end
+                    local cam = workspace.CurrentCamera
+                    if cam and getgenv().KYS_OriginalFOV then
+                        pcall(function() cam.FieldOfView = getgenv().KYS_OriginalFOV end)
+                    end
                     return
                 end
                 local cam = workspace.CurrentCamera
                 if cam then
+                    if not getgenv().KYS_OriginalFOV then
+                        getgenv().KYS_OriginalFOV = cam.FieldOfView
+                    end
                     local factor = tonumber(VD.CAM_StretchFactor) or 0.70
-                    cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, factor, 0, 0, 0, 1)
+                    factor = math.clamp(factor, 0.4, 1.2)
+                    local baseFOV = getgenv().KYS_OriginalFOV or 70
+                    pcall(function()
+                        cam.FieldOfView = math.clamp(baseFOV / factor, 40, 120)
+                    end)
                 end
             end)
         end
@@ -13960,6 +14024,10 @@ function VD_UpdateStretchPOV()
         if getgenv().VD_StretchState.Connection then
             pcall(function() getgenv().VD_StretchState.Connection:Disconnect() end)
             getgenv().VD_StretchState.Connection = nil
+        end
+        local cam = workspace.CurrentCamera
+        if cam and getgenv().KYS_OriginalFOV then
+            pcall(function() cam.FieldOfView = getgenv().KYS_OriginalFOV end)
         end
     end
 end
@@ -15658,7 +15726,8 @@ function VD_UpdateInfoBanner()
         table.insert(parts, "💀 Killer: " .. kName)
     end
     if VD.UI_InfoBannerShowFPS then
-        local fps = math.floor(1 / math.max(0.001, RunService.RenderStepped:Wait()))
+        local fps = 60
+        pcall(function() fps = math.floor(Workspace:GetRealPhysicsFPS()) end)
         table.insert(parts, "⚡ FPS: " .. tostring(fps))
     end
     if VD.UI_InfoBannerShowPing then
