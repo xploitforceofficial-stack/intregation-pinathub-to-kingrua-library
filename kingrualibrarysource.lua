@@ -1998,6 +1998,9 @@ function Library:NewWindow(ConfigWindow)
 		-- 11. SECTION CREATION (PinatHub Style: Accent Title + Right Chevron)
 		-- -----------------------------------------------------------------------------
 		local TabObj = {}
+		TabObj.Page = Page
+		TabObj.Button = TabBtn
+		TabObj.Order = currentOrder
 
 		function TabObj:AddSection(sectionNameOrConfig)
 			local secTitle = "Section"
@@ -4863,13 +4866,8 @@ end
 			SubNavContainer.BorderSizePixel = 0
 			SubNavContainer.Size = UDim2.new(1, 0, 0, 32)
 			SubNavContainer.LayoutOrder = -100
-			SubNavContainer.Visible = false
-			SubNavContainer.ZIndex = 5
-
-			local nonAllCount = 0
-			local function checkNavVisibility()
-				SubNavContainer.Visible = (nonAllCount > 1)
-			end
+			SubNavContainer.Visible = true
+			SubNavContainer.ZIndex = 8
 
 			local SubNavScroll = Instance.new("ScrollingFrame")
 			SubNavScroll.Name = "SubNavScroll"
@@ -5112,10 +5110,6 @@ end
 					Icon = IconImg
 				}
 				table.insert(SubNavObj.Categories, name)
-				if name ~= "All" then
-					nonAllCount += 1
-				end
-				checkNavVisibility()
 			end
 
 			function SubNavObj:GetSubTab(catName)
