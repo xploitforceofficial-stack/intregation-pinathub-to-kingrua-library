@@ -104,6 +104,27 @@ local TabIcons = {
 	["info"] = "rbxassetid://10723415903",
 	["alert"] = "rbxassetid://10709752906",
 
+	-- Navigation & Category Icons
+	["movement"] = "rbxassetid://10747373176",
+	["fling"] = "rbxassetid://7733920644",
+	["emote"] = "rbxassetid://10747373176",
+	["fun"] = "rbxassetid://10734973351",
+	["streamer"] = "rbxassetid://10747374938",
+	["streamer mode"] = "rbxassetid://10747374938",
+	["avatar"] = "rbxassetid://10747373426",
+	["avatar tools"] = "rbxassetid://10747373426",
+	["camera"] = "rbxassetid://10747374938",
+	["lighting"] = "rbxassetid://10734973351",
+	["sun"] = "rbxassetid://10734973351",
+	["radar"] = "rbxassetid://7733964719",
+	["teleport"] = "rbxassetid://7733992789",
+	["escape"] = "rbxassetid://7733992789",
+	["aimbot"] = "rbxassetid://10709818534",
+	["killer aim"] = "rbxassetid://10734975486",
+	["survivor aim"] = "rbxassetid://10734977012",
+	["ability"] = "rbxassetid://7733920644",
+	["killer ability"] = "rbxassetid://7733920644",
+	["utilities"] = "rbxassetid://10747383470",
 
 	-- General Navigation & UI Icons
 	Main = "rbxassetid://10723407389",
@@ -137,27 +158,32 @@ local TabIcons = {
 
 -- Shared Icon Resolver for Tabs, Buttons, and UI Components
 local function ResolveIcon(iconInput, fallbackTitle)
+	local function lookupName(str)
+		if not str or str == "" then return nil end
+		if TabIcons[str] then return TabIcons[str] end
+		local low = string.lower(str)
+		if TabIcons[low] then return TabIcons[low] end
+		local clean = string.gsub(low, "^[%w_]+:", "")
+		clean = string.gsub(clean, "%-bold$", "")
+		clean = string.gsub(clean, "%-round$", "")
+		clean = string.gsub(clean, "%-rounded$", "")
+		clean = string.gsub(clean, "%s*%[beta%]", "")
+		clean = string.match(clean, "^%s*(.-)%s*$")
+		if TabIcons[clean] then return TabIcons[clean] end
+		return nil
+	end
+
 	if type(iconInput) == "string" then
 		local trimmed = string.match(iconInput, "^%s*(.-)%s*$") or iconInput
 		if string.sub(trimmed, 1, 13) == "rbxassetid://" or string.sub(trimmed, 1, 10) == "rbxasset://" or string.sub(trimmed, 1, 4) == "http" then
 			return trimmed
 		end
-		if TabIcons[trimmed] then
-			return TabIcons[trimmed]
-		end
-		local lowerName = string.lower(trimmed)
-		if TabIcons[lowerName] then
-			return TabIcons[lowerName]
-		end
+		local hit = lookupName(trimmed)
+		if hit then return hit end
 	end
 	if fallbackTitle then
-		if TabIcons[fallbackTitle] then
-			return TabIcons[fallbackTitle]
-		end
-		local lowerTitle = string.lower(fallbackTitle)
-		if TabIcons[lowerTitle] then
-			return TabIcons[lowerTitle]
-		end
+		local hit = lookupName(tostring(fallbackTitle))
+		if hit then return hit end
 	end
 	return "rbxassetid://10723407389" -- Default Lucide Home Icon
 end
@@ -1878,14 +1904,20 @@ function Library:NewWindow(ConfigWindow)
 			})
 			gapGradient.Parent = gapLine
 			table.insert(sectionGapLines, gapGradient)
+			return gapLine
 		end
 
 		Page.ChildAdded:Connect(function(child)
-			if not child:IsA("GuiObject") or child.Name == "SectionNeonGapLine" then return end
+			if not child:IsA("GuiObject") or child.Name == "SectionNeonGapLine" or child.Name == "SubNavContainer" then return end
 			sectionOrder += 1
 			child.LayoutOrder = sectionOrder * 2
 			if sectionOrder > 1 and Config.NeonGapLines ~= false then
-				AddSectionGapLine()
+				local gap = AddSectionGapLine()
+				if gap then
+					child:GetPropertyChangedSignal("Visible"):Connect(function()
+						gap.Visible = child.Visible
+					end)
+				end
 			end
 		end)
 
@@ -2046,7 +2078,26 @@ function Library:NewWindow(ConfigWindow)
 			ControlsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			ControlsLayout.Padding = UDim.new(0, 4)
 
-			local isCollapsed = false
+			local defaultOpen = true
+			if type(sectionNameOrConfig) == "table" then
+				if sectionNameOrConfig.Opened ~= nil then
+					defaultOpen = (sectionNameOrConfig.Opened == true)
+				elseif sectionNameOrConfig.DefaultOpen ~= nil then
+					defaultOpen = (sectionNameOrConfig.DefaultOpen == true)
+				elseif sectionNameOrConfig.Collapsed ~= nil then
+					defaultOpen = not (sectionNameOrConfig.Collapsed == true)
+				end
+			end
+
+			local isCollapsed = not defaultOpen
+			if isCollapsed then
+				Chevron.Rotation = 0
+				SectionCard.Size = UDim2.new(1, 0, 0, 34)
+			else
+				Chevron.Rotation = 90
+				SectionCard.Size = UDim2.new(1, 0, 0, 36)
+			end
+
 			local function UpdateSectionSize()
 				if not isCollapsed then
 					SectionCard.Size = UDim2.new(1, 0, 0, ControlsLayout.AbsoluteContentSize.Y + 44)
@@ -2054,16 +2105,47 @@ function Library:NewWindow(ConfigWindow)
 			end
 			ControlsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateSectionSize)
 
-			-- Collapsible toggle
-			SecHeader.MouseButton1Click:Connect(function()
-				isCollapsed = not isCollapsed
-				if isCollapsed then
+			-- -----------------------------------------------------------------------------
+			-- 12. SECTION CONTROLS (PinatHub MODERN DESIGN)
+			-- -----------------------------------------------------------------------------
+			local SecObj = {}
+			SecObj.Frame = SectionCard
+			SecObj.Card = SectionCard
+			SecObj.Header = SecHeader
+			SecObj.Controls = ControlsContainer
+			SecObj.ControlsLayout = ControlsLayout
+
+			function SecObj:Collapse()
+				if not isCollapsed then
+					isCollapsed = true
 					TweenService:Create(Chevron, TweenInfoFast, { Rotation = 0 }):Play()
 					TweenService:Create(SectionCard, TweenInfoFast, { Size = UDim2.new(1, 0, 0, 34) }):Play()
-				else
+				end
+			end
+
+			function SecObj:Expand()
+				if isCollapsed then
+					isCollapsed = false
 					TweenService:Create(Chevron, TweenInfoFast, { Rotation = 90 }):Play()
 					TweenService:Create(SectionCard, TweenInfoFast, { Size = UDim2.new(1, 0, 0, ControlsLayout.AbsoluteContentSize.Y + 44) }):Play()
 				end
+			end
+
+			function SecObj:ToggleCollapse()
+				if isCollapsed then
+					self:Expand()
+				else
+					self:Collapse()
+				end
+			end
+
+			function SecObj:SetVisible(state)
+				SectionCard.Visible = state
+			end
+
+			-- Collapsible toggle
+			SecHeader.MouseButton1Click:Connect(function()
+				SecObj:ToggleCollapse()
 			end)
 
 			local secData = {
@@ -2072,11 +2154,6 @@ function Library:NewWindow(ConfigWindow)
 				Elements = {}
 			}
 			table.insert(tabData.Sections, secData)
-
-			-- -----------------------------------------------------------------------------
-			-- 12. SECTION CONTROLS (PinatHub MODERN DESIGN)
-			-- -----------------------------------------------------------------------------
-			local SecObj = {}
 
 			-- 12.1 TOGGLE SWITCH (PinatHub Style: Optional Inline Keybind [None] + Elastic Switch)
 			function SecObj:AddToggle(toggleConfig)
@@ -4768,6 +4845,311 @@ end
 
 			return SecObj
 		end
+
+		-- -----------------------------------------------------------------------------
+		-- 11.1 SUB-TABS & CATEGORY PILL NAVIGATION SYSTEM
+		-- -----------------------------------------------------------------------------
+		function TabObj:AddSubNav(navConfig)
+			navConfig = navConfig or {}
+			local categories = navConfig.Categories or navConfig.Tabs or {}
+			local includeAll = (navConfig.IncludeAll ~= false)
+			local defaultCat = navConfig.Default or (includeAll and "All") or (categories[1] and (type(categories[1]) == "table" and (categories[1].Name or categories[1].Title or categories[1].Key) or categories[1])) or "All"
+			local onSelectCallback = navConfig.Callback or function() end
+
+			local SubNavContainer = Instance.new("Frame")
+			SubNavContainer.Name = "SubNavContainer"
+			SubNavContainer.Parent = Page
+			SubNavContainer.BackgroundTransparency = 1
+			SubNavContainer.BorderSizePixel = 0
+			SubNavContainer.Size = UDim2.new(1, 0, 0, 32)
+			SubNavContainer.LayoutOrder = -100
+			SubNavContainer.Visible = false
+			SubNavContainer.ZIndex = 5
+
+			local nonAllCount = 0
+			local function checkNavVisibility()
+				SubNavContainer.Visible = (nonAllCount > 1)
+			end
+
+			local SubNavScroll = Instance.new("ScrollingFrame")
+			SubNavScroll.Name = "SubNavScroll"
+			SubNavScroll.Parent = SubNavContainer
+			SubNavScroll.BackgroundTransparency = 1
+			SubNavScroll.BorderSizePixel = 0
+			SubNavScroll.Size = UDim2.new(1, 0, 1, 0)
+			SubNavScroll.ScrollBarThickness = 0
+			SubNavScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+			SubNavScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+			SubNavScroll.ScrollingDirection = Enum.ScrollingDirection.X
+
+			local SubNavLayout = Instance.new("UIListLayout")
+			SubNavLayout.Parent = SubNavScroll
+			SubNavLayout.FillDirection = Enum.FillDirection.Horizontal
+			SubNavLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			SubNavLayout.Padding = UDim.new(0, 6)
+			SubNavLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+			local SubNavPadding = Instance.new("UIPadding")
+			SubNavPadding.Parent = SubNavScroll
+			SubNavPadding.PaddingLeft = UDim.new(0, 2)
+			SubNavPadding.PaddingRight = UDim.new(0, 10)
+			SubNavPadding.PaddingTop = UDim.new(0, 2)
+			SubNavPadding.PaddingBottom = UDim.new(0, 4)
+
+			local SubNavObj = {
+				Container = SubNavContainer,
+				Scroll = SubNavScroll,
+				ActiveCategory = defaultCat,
+				Pills = {},
+				RegisteredSections = {},
+				Categories = {}
+			}
+
+			local function updatePillStyles()
+				for catName, pillData in pairs(SubNavObj.Pills) do
+					local isActive = (catName == SubNavObj.ActiveCategory)
+					local btn = pillData.Button
+					local stroke = pillData.Stroke
+					local label = pillData.Label
+					local icon = pillData.Icon
+
+					if isActive then
+						TweenService:Create(btn, TweenInfoFast, {
+							BackgroundColor3 = Theme.Accent,
+							BackgroundTransparency = 0.2
+						}):Play()
+						if stroke then
+							TweenService:Create(stroke, TweenInfoFast, {
+								Color = Theme.AccentGlow,
+								Transparency = 0
+							}):Play()
+						end
+						if label then
+							label.Font = Enum.Font.GothamBold
+							TweenService:Create(label, TweenInfoFast, {
+								TextColor3 = Theme.NeonWhite
+							}):Play()
+						end
+						if icon then
+							TweenService:Create(icon, TweenInfoFast, {
+								ImageColor3 = Theme.NeonWhite
+							}):Play()
+						end
+					else
+						TweenService:Create(btn, TweenInfoFast, {
+							BackgroundColor3 = Theme.Surface,
+							BackgroundTransparency = 0.45
+						}):Play()
+						if stroke then
+							TweenService:Create(stroke, TweenInfoFast, {
+								Color = Theme.BorderSoft,
+								Transparency = 0.5
+							}):Play()
+						end
+						if label then
+							label.Font = Enum.Font.Gotham
+							TweenService:Create(label, TweenInfoFast, {
+								TextColor3 = Theme.TextSecondary
+							}):Play()
+						end
+						if icon then
+							TweenService:Create(icon, TweenInfoFast, {
+								ImageColor3 = Theme.TextMuted
+							}):Play()
+						end
+					end
+				end
+			end
+
+			local function filterSections()
+				local active = SubNavObj.ActiveCategory
+				for _, reg in ipairs(SubNavObj.RegisteredSections) do
+					local matches = (active == "All") or (reg.Category == nil) or (reg.Category == "All") or (reg.Category == active)
+					if reg.Card then
+						reg.Card.Visible = matches
+					end
+					-- Automatically expand section when viewing its specific category
+					if matches and active ~= "All" and reg.SecObj and reg.SecObj.Expand then
+						reg.SecObj:Expand()
+					end
+				end
+			end
+
+			function SubNavObj:SelectCategory(catName)
+				if SubNavObj.ActiveCategory == catName then return end
+				SubNavObj.ActiveCategory = catName
+				updatePillStyles()
+				filterSections()
+				pcall(onSelectCallback, catName)
+			end
+
+			function SubNavObj:RegisterSection(catName, sectionCardOrObj, optionalSecObj)
+				local card = nil
+				local secObj = optionalSecObj
+				if typeof(sectionCardOrObj) == "Instance" then
+					card = sectionCardOrObj
+				elseif type(sectionCardOrObj) == "table" then
+					secObj = secObj or sectionCardOrObj
+					card = sectionCardOrObj.Card or sectionCardOrObj.Frame
+				end
+				if not card then return end
+
+				table.insert(SubNavObj.RegisteredSections, {
+					Category = catName,
+					Card = card,
+					SecObj = secObj
+				})
+
+				local matches = (SubNavObj.ActiveCategory == "All") or (catName == nil) or (catName == "All") or (catName == SubNavObj.ActiveCategory)
+				card.Visible = matches
+			end
+
+			local pillOrder = 0
+			function SubNavObj:AddCategory(catConfig)
+				local name = ""
+				local icon = nil
+				if type(catConfig) == "table" then
+					name = catConfig.Name or catConfig.Title or catConfig.Key or ""
+					icon = catConfig.Icon
+				else
+					name = tostring(catConfig or "")
+				end
+				if name == "" or SubNavObj.Pills[name] then return end
+
+				pillOrder += 1
+
+				local PillBtn = Instance.new("TextButton")
+				PillBtn.Name = "Pill_" .. name
+				PillBtn.Parent = SubNavScroll
+				PillBtn.AutoButtonColor = false
+				PillBtn.Text = ""
+				PillBtn.LayoutOrder = (name == "All") and 0 or pillOrder
+				PillBtn.Size = UDim2.new(0, 0, 0, 26)
+				PillBtn.AutomaticSize = Enum.AutomaticSize.X
+				PillBtn.BackgroundColor3 = (name == SubNavObj.ActiveCategory) and Theme.Accent or Theme.Surface
+				PillBtn.BackgroundTransparency = (name == SubNavObj.ActiveCategory) and 0.2 or 0.45
+				PillBtn.BorderSizePixel = 0
+
+				local PillCorner = Instance.new("UICorner")
+				PillCorner.CornerRadius = UDim.new(1, 0)
+				PillCorner.Parent = PillBtn
+
+				local PillStroke = Instance.new("UIStroke")
+				PillStroke.Color = (name == SubNavObj.ActiveCategory) and Theme.AccentGlow or Theme.BorderSoft
+				PillStroke.Thickness = 1
+				PillStroke.Transparency = (name == SubNavObj.ActiveCategory) and 0 or 0.5
+				PillStroke.Parent = PillBtn
+
+				local PillPadding = Instance.new("UIPadding")
+				PillPadding.Parent = PillBtn
+				PillPadding.PaddingLeft = UDim.new(0, icon and 8 or 12)
+				PillPadding.PaddingRight = UDim.new(0, 12)
+				PillPadding.PaddingTop = UDim.new(0, 0)
+				PillPadding.PaddingBottom = UDim.new(0, 0)
+
+				local ContentLayout = Instance.new("UIListLayout")
+				ContentLayout.Parent = PillBtn
+				ContentLayout.FillDirection = Enum.FillDirection.Horizontal
+				ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+				ContentLayout.Padding = UDim.new(0, 5)
+				ContentLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+				local IconImg
+				if icon then
+					local resolved = ResolveIcon(icon, name)
+					if resolved then
+						IconImg = Instance.new("ImageLabel")
+						IconImg.Name = "Icon"
+						IconImg.Parent = PillBtn
+						IconImg.BackgroundTransparency = 1
+						IconImg.Size = UDim2.new(0, 13, 0, 13)
+						IconImg.Image = resolved
+						IconImg.ImageColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextMuted
+						IconImg.ScaleType = Enum.ScaleType.Fit
+					end
+				end
+
+				local Label = Instance.new("TextLabel")
+				Label.Name = "Label"
+				Label.Parent = PillBtn
+				Label.BackgroundTransparency = 1
+				Label.Text = name
+				Label.Font = (name == SubNavObj.ActiveCategory) and Enum.Font.GothamBold or Enum.Font.Gotham
+				Label.TextSize = 11
+				Label.TextColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextSecondary
+				Label.Size = UDim2.new(0, 0, 1, 0)
+				Label.AutomaticSize = Enum.AutomaticSize.X
+				Label.TextYAlignment = Enum.TextYAlignment.Center
+
+				PillBtn.MouseEnter:Connect(function()
+					if SubNavObj.ActiveCategory ~= name then
+						TweenService:Create(PillBtn, TweenInfoFast, { BackgroundTransparency = 0.25 }):Play()
+						TweenService:Create(Label, TweenInfoFast, { TextColor3 = Theme.Text }):Play()
+						if IconImg then
+							TweenService:Create(IconImg, TweenInfoFast, { ImageColor3 = Theme.NeonGray }):Play()
+						end
+					end
+				end)
+
+				PillBtn.MouseLeave:Connect(function()
+					if SubNavObj.ActiveCategory ~= name then
+						TweenService:Create(PillBtn, TweenInfoFast, { BackgroundTransparency = 0.45 }):Play()
+						TweenService:Create(Label, TweenInfoFast, { TextColor3 = Theme.TextSecondary }):Play()
+						if IconImg then
+							TweenService:Create(IconImg, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+						end
+					end
+				end)
+
+				PillBtn.MouseButton1Click:Connect(function()
+					SubNavObj:SelectCategory(name)
+				end)
+
+				SubNavObj.Pills[name] = {
+					Button = PillBtn,
+					Stroke = PillStroke,
+					Label = Label,
+					Icon = IconImg
+				}
+				table.insert(SubNavObj.Categories, name)
+				if name ~= "All" then
+					nonAllCount += 1
+				end
+				checkNavVisibility()
+			end
+
+			function SubNavObj:GetSubTab(catName)
+				local proxy = {}
+				setmetatable(proxy, {
+					__index = function(_, k)
+						if k == "AddSection" or k == "Section" then
+							return function(_, secCfg)
+								local sec = TabObj:AddSection(secCfg)
+								SubNavObj:RegisterSection(catName, sec.Card or sec.Frame, sec)
+								return sec
+							end
+						end
+						return TabObj[k]
+					end
+				})
+				return proxy
+			end
+
+			if includeAll then
+				SubNavObj:AddCategory({ Name = "All", Icon = "rbxassetid://10723407389" })
+			end
+
+			for _, cat in ipairs(categories) do
+				SubNavObj:AddCategory(cat)
+			end
+
+			updatePillStyles()
+			return SubNavObj
+		end
+
+		TabObj.SubNav = TabObj.AddSubNav
+		TabObj.AddSubTabs = TabObj.AddSubNav
+		TabObj.SubTabs = TabObj.AddSubNav
 
 		TabObj.Section = TabObj.AddSection
 		return TabObj
