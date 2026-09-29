@@ -12,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local TextService = game:GetService("TextService")
 local LocalPlayer = Players.LocalPlayer
 
 -- -----------------------------------------------------------------------------
@@ -1998,9 +1999,6 @@ function Library:NewWindow(ConfigWindow)
 		-- 11. SECTION CREATION (PinatHub Style: Accent Title + Right Chevron)
 		-- -----------------------------------------------------------------------------
 		local TabObj = {}
-		TabObj.Page = Page
-		TabObj.Button = TabBtn
-		TabObj.Order = currentOrder
 
 		function TabObj:AddSection(sectionNameOrConfig)
 			local secTitle = "Section"
@@ -4866,8 +4864,20 @@ end
 			SubNavContainer.BorderSizePixel = 0
 			SubNavContainer.Size = UDim2.new(1, 0, 0, 32)
 			SubNavContainer.LayoutOrder = -100
-			SubNavContainer.Visible = true
-			SubNavContainer.ZIndex = 8
+			SubNavContainer.Visible = false
+			SubNavContainer.ZIndex = 5
+
+			local nonAllCount = 0
+			local function checkNavVisibility()
+				SubNavContainer.Visible = (nonAllCount > 1)
+				if SubNavContainer.Visible then
+					pcall(function() Library:UpdateScrolling(Page, PageListLayout) end)
+				end
+			end
+
+			SubNavContainer:GetPropertyChangedSignal("Visible"):Connect(function()
+				pcall(function() Library:UpdateScrolling(Page, PageListLayout) end)
+			end)
 
 			local SubNavScroll = Instance.new("ScrollingFrame")
 			SubNavScroll.Name = "SubNavScroll"
@@ -4886,6 +4896,10 @@ end
 			SubNavLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			SubNavLayout.Padding = UDim.new(0, 6)
 			SubNavLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+			SubNavLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+				SubNavScroll.CanvasSize = UDim2.new(0, SubNavLayout.AbsoluteContentSize.X + 24, 0, 0)
+			end)
 
 			local SubNavPadding = Instance.new("UIPadding")
 			SubNavPadding.Parent = SubNavScroll
@@ -4968,7 +4982,7 @@ end
 					end
 					-- Automatically expand section when viewing its specific category
 					if matches and active ~= "All" and reg.SecObj and reg.SecObj.Expand then
-						reg.SecObj:Expand()
+						pcall(function() reg.SecObj:Expand() end)
 					end
 				end
 			end
@@ -5016,14 +5030,16 @@ end
 
 				pillOrder += 1
 
+				local textBounds = TextService:GetTextSize(name, 11, Enum.Font.Gotham, Vector2.new(1000, 26))
+				local pillWidth = math.max(40, math.ceil(textBounds.X) + (icon and 32 or 24))
+
 				local PillBtn = Instance.new("TextButton")
 				PillBtn.Name = "Pill_" .. name
 				PillBtn.Parent = SubNavScroll
 				PillBtn.AutoButtonColor = false
 				PillBtn.Text = ""
 				PillBtn.LayoutOrder = (name == "All") and 0 or pillOrder
-				PillBtn.Size = UDim2.new(0, 0, 0, 26)
-				PillBtn.AutomaticSize = Enum.AutomaticSize.X
+				PillBtn.Size = UDim2.new(0, pillWidth, 0, 26)
 				PillBtn.BackgroundColor3 = (name == SubNavObj.ActiveCategory) and Theme.Accent or Theme.Surface
 				PillBtn.BackgroundTransparency = (name == SubNavObj.ActiveCategory) and 0.2 or 0.45
 				PillBtn.BorderSizePixel = 0
@@ -5075,8 +5091,7 @@ end
 				Label.Font = (name == SubNavObj.ActiveCategory) and Enum.Font.GothamBold or Enum.Font.Gotham
 				Label.TextSize = 11
 				Label.TextColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextSecondary
-				Label.Size = UDim2.new(0, 0, 1, 0)
-				Label.AutomaticSize = Enum.AutomaticSize.X
+				Label.Size = UDim2.new(1, icon and -20 or 0, 1, 0)
 				Label.TextYAlignment = Enum.TextYAlignment.Center
 
 				PillBtn.MouseEnter:Connect(function()
@@ -5110,6 +5125,10 @@ end
 					Icon = IconImg
 				}
 				table.insert(SubNavObj.Categories, name)
+				if name ~= "All" then
+					nonAllCount += 1
+				end
+				checkNavVisibility()
 			end
 
 			function SubNavObj:GetSubTab(catName)
@@ -5146,6 +5165,9 @@ end
 		TabObj.SubTabs = TabObj.AddSubNav
 
 		TabObj.Section = TabObj.AddSection
+		TabObj.Page = Page
+		TabObj.Container = Page
+		TabObj.Layout = PageListLayout
 		return TabObj
 	end
 
