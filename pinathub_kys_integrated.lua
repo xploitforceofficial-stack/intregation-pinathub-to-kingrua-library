@@ -10700,12 +10700,12 @@ end
 -- ============================================================
 -- STUN SOUNDS + STUN INDICATOR (Killer Stunned Notification) - from alvin
 -- ============================================================
-﻿    StunSounds = StunSounds or {
+    StunSounds = StunSounds or {
 
 -- ============================================================
 -- FULL ESP (Highlight-based ESP for players/objects) - from alvin
 -- ============================================================
-﻿    FullESP = FullESP or {
+    FullESP = FullESP or {
     Survivor = false, Killer = false,
     Generator = false, Pallet = false, Window = false, SCP = false,
     Distance = 500,
