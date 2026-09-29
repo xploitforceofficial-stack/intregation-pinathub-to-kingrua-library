@@ -5017,6 +5017,10 @@ end
 			end
 
 			local pillOrder = 0
+			SubNavObj.AddPill = function(self, ...)
+				return self:AddCategory(...)
+			end
+
 			function SubNavObj:AddCategory(catConfig)
 				local name = ""
 				local icon = nil
