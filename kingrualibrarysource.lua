@@ -12,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local TextService = game:GetService("TextService")
 local LocalPlayer = Players.LocalPlayer
 
 -- -----------------------------------------------------------------------------
@@ -62,19 +63,21 @@ local TabIcons = {
 	["cpu"] = "rbxassetid://10709813383",
 	["activity"] = "rbxassetid://10709752035",
 	["heart"] = "rbxassetid://10723406885",
-	["home"] = "rbxassetid://10723407389",
-	["search"] = "rbxassetid://10734943674",
+	["search"] = "rbxassetid://2804603877",
 	["bell"] = "rbxassetid://10709775704",
 	["flame"] = "rbxassetid://10723376114",
 	["database"] = "rbxassetid://10709818996",
-	["discord"] = "rbxassetid://10734950553",
+	["discord"] = "rbxassetid://18505728250",
+	["tiktok"] = "rbxassetid://114030178331137",
 	["message-circle"] = "rbxassetid://10734888000",
 	["video"] = "rbxassetid://10747374938",
 	["youtube"] = "rbxassetid://10747374938",
 	["globe"] = "rbxassetid://10723404337",
 	["clipboard-check"] = "rbxassetid://10709783474",
-	["zap"] = "rbxassetid://10747361761",
-	["lightning"] = "rbxassetid://10747361761",
+	["zap"] = "rbxassetid://7733920644",
+	["lightning"] = "rbxassetid://7733920644",
+	["automation"] = "rbxassetid://7733920644",
+	["bolt"] = "rbxassetid://7733920644",
 	["sparkles"] = "rbxassetid://10734973351",
 	["star"] = "rbxassetid://10734973351",
 	["box"] = "rbxassetid://10734954201",
@@ -102,12 +105,35 @@ local TabIcons = {
 	["info"] = "rbxassetid://10723415903",
 	["alert"] = "rbxassetid://10709752906",
 
+	-- Navigation & Category Icons
+	["movement"] = "rbxassetid://10747373176",
+	["fling"] = "rbxassetid://7733920644",
+	["emote"] = "rbxassetid://10747373176",
+	["fun"] = "rbxassetid://10734973351",
+	["streamer"] = "rbxassetid://10747374938",
+	["streamer mode"] = "rbxassetid://10747374938",
+	["avatar"] = "rbxassetid://10747373426",
+	["avatar tools"] = "rbxassetid://10747373426",
+	["camera"] = "rbxassetid://10747374938",
+	["lighting"] = "rbxassetid://10734973351",
+	["sun"] = "rbxassetid://10734973351",
+	["radar"] = "rbxassetid://7733964719",
+	["teleport"] = "rbxassetid://7733992789",
+	["escape"] = "rbxassetid://7733992789",
+	["aimbot"] = "rbxassetid://10709818534",
+	["killer aim"] = "rbxassetid://10734975486",
+	["survivor aim"] = "rbxassetid://10734977012",
+	["ability"] = "rbxassetid://7733920644",
+	["killer ability"] = "rbxassetid://7733920644",
+	["utilities"] = "rbxassetid://10747383470",
 
 	-- General Navigation & UI Icons
 	Main = "rbxassetid://10723407389",
 	Info = "rbxassetid://10723406988",            -- Help / Info circle
 	Survivor = "rbxassetid://10734975692",        -- Swords
 	Killer = "rbxassetid://10734962068",          -- Skull
+	Automation = "rbxassetid://7733920644",      -- Zap / Bolt
+	["Automation"] = "rbxassetid://7733920644",
 	ESP = "rbxassetid://10723346959",             -- Eye
 	Visuals = "rbxassetid://10723346959",         -- Eye
 	Teleport = "rbxassetid://7733992789",         -- Official Roblox Creator Store Map-Pin
@@ -120,40 +146,45 @@ local TabIcons = {
 	Config = "rbxassetid://10734963400",          -- Sliders
 	Player = "rbxassetid://10747373176",          -- User
 	Misc = "rbxassetid://10747383470",            -- Wrench
-	Credits = "rbxassetid://10723406988",         -- Help / Info
-	Search = "rbxassetid://10734943674",          -- Search (FIXED)
+	Search = "rbxassetid://2804603877",
 	Minimize = "rbxassetid://10734896206",
 	Maximize = "rbxassetid://10734914561",
 	Close = "rbxassetid://10747384394",
 	ChevronRight = "rbxassetid://10709791437",
 	ChevronDown = "rbxassetid://10709790948",
-	Discord = "rbxassetid://10734950553",
+	Discord = "rbxassetid://18505728250",
+	TikTok = "rbxassetid://114030178331137",
 	Cursor = "rbxassetid://10709818534"
 }
 
 -- Shared Icon Resolver for Tabs, Buttons, and UI Components
 local function ResolveIcon(iconInput, fallbackTitle)
+	local function lookupName(str)
+		if not str or str == "" then return nil end
+		if TabIcons[str] then return TabIcons[str] end
+		local low = string.lower(str)
+		if TabIcons[low] then return TabIcons[low] end
+		local clean = string.gsub(low, "^[%w_]+:", "")
+		clean = string.gsub(clean, "%-bold$", "")
+		clean = string.gsub(clean, "%-round$", "")
+		clean = string.gsub(clean, "%-rounded$", "")
+		clean = string.gsub(clean, "%s*%[beta%]", "")
+		clean = string.match(clean, "^%s*(.-)%s*$")
+		if TabIcons[clean] then return TabIcons[clean] end
+		return nil
+	end
+
 	if type(iconInput) == "string" then
 		local trimmed = string.match(iconInput, "^%s*(.-)%s*$") or iconInput
 		if string.sub(trimmed, 1, 13) == "rbxassetid://" or string.sub(trimmed, 1, 10) == "rbxasset://" or string.sub(trimmed, 1, 4) == "http" then
 			return trimmed
 		end
-		if TabIcons[trimmed] then
-			return TabIcons[trimmed]
-		end
-		local lowerName = string.lower(trimmed)
-		if TabIcons[lowerName] then
-			return TabIcons[lowerName]
-		end
+		local hit = lookupName(trimmed)
+		if hit then return hit end
 	end
 	if fallbackTitle then
-		if TabIcons[fallbackTitle] then
-			return TabIcons[fallbackTitle]
-		end
-		local lowerTitle = string.lower(fallbackTitle)
-		if TabIcons[lowerTitle] then
-			return TabIcons[lowerTitle]
-		end
+		local hit = lookupName(tostring(fallbackTitle))
+		if hit then return hit end
 	end
 	return "rbxassetid://10723407389" -- Default Lucide Home Icon
 end
@@ -883,39 +914,72 @@ function Library:NewWindow(ConfigWindow)
 	LeftHeaderContainer.Parent = Header
 	LeftHeaderContainer.BackgroundTransparency = 1
 	LeftHeaderContainer.Position = UDim2.new(0, 14, 0, 0)
-	LeftHeaderContainer.Size = UDim2.new(0, 320, 1, 0)
+	LeftHeaderContainer.Size = UDim2.new(0, 260, 1, 0)
 
 	local LeftLayout = Instance.new("UIListLayout")
 	LeftLayout.Parent = LeftHeaderContainer
 	LeftLayout.FillDirection = Enum.FillDirection.Horizontal
 	LeftLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	LeftLayout.Padding = UDim.new(0, 8)
+	LeftLayout.Padding = UDim.new(0, 10)
 
-	-- Logo Pinathub
+	-- Logo Pinathub (Refined 26x26, High Visual Hierarchy)
 	local BrandLogo = Instance.new("ImageLabel")
 	BrandLogo.Name = "BrandLogo"
 	BrandLogo.Parent = LeftHeaderContainer
-	BrandLogo.Size = UDim2.new(0, 22, 0, 22)
+	BrandLogo.Size = UDim2.new(0, 26, 0, 26)
 	BrandLogo.BackgroundTransparency = 1
 	BrandLogo.Image = PINATHUB_LOGO
 	BrandLogo.ImageColor3 = Color3.fromRGB(255, 255, 255)
 	BrandLogo.ScaleType = Enum.ScaleType.Fit
 	BrandLogo.LayoutOrder = 1
 
-	-- Title "Pinathub | Drain Water" (Clean, No Subtitle)
+	-- Title & Subtitle Branding Hierarchy Container
+	local BrandTitleContainer = Instance.new("Frame")
+	BrandTitleContainer.Name = "BrandTitleContainer"
+	BrandTitleContainer.Parent = LeftHeaderContainer
+	BrandTitleContainer.BackgroundTransparency = 1
+	BrandTitleContainer.Size = UDim2.new(0, 0, 0, 32)
+	BrandTitleContainer.AutomaticSize = Enum.AutomaticSize.X
+	BrandTitleContainer.LayoutOrder = 2
+
+	local TitleListLayout = Instance.new("UIListLayout")
+	TitleListLayout.Parent = BrandTitleContainer
+	TitleListLayout.FillDirection = Enum.FillDirection.Vertical
+	TitleListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	TitleListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	TitleListLayout.Padding = UDim.new(0, 0)
+
+	local mainTitle = Config.Title or "PinatHub"
+	if string.find(string.lower(mainTitle), "pinathub") then
+		mainTitle = "PinatHub"
+	end
+
 	local BrandName = Instance.new("TextLabel")
 	BrandName.Name = "BrandName"
-	BrandName.Parent = LeftHeaderContainer
+	BrandName.Parent = BrandTitleContainer
 	BrandName.BackgroundTransparency = 1
-	BrandName.Size = UDim2.new(0, 0, 1, 0)
+	BrandName.Size = UDim2.new(0, 0, 0, 16)
 	BrandName.AutomaticSize = Enum.AutomaticSize.X
 	BrandName.Font = Enum.Font.GothamBold
-	BrandName.Text = Config.Title
+	BrandName.Text = mainTitle
 	BrandName.TextColor3 = Theme.Text
 	BrandName.TextSize = 13
 	BrandName.TextXAlignment = Enum.TextXAlignment.Left
-	BrandName.LayoutOrder = 2
+	BrandName.LayoutOrder = 1
+
+	local BrandSub = Instance.new("TextLabel")
+	BrandSub.Name = "BrandSub"
+	BrandSub.Parent = BrandTitleContainer
+	BrandSub.BackgroundTransparency = 1
+	BrandSub.Size = UDim2.new(0, 0, 0, 13)
+	BrandSub.AutomaticSize = Enum.AutomaticSize.X
+	BrandSub.Font = Enum.Font.GothamMedium
+	BrandSub.Text = "by @viunze"
+	BrandSub.TextColor3 = Theme.TextMuted
+	BrandSub.TextSize = 10
+	BrandSub.TextXAlignment = Enum.TextXAlignment.Left
+	BrandSub.LayoutOrder = 2
 
 	-- Right Header Container (Badges + Minimize & Close Buttons)
 	local RightHeaderContainer = Instance.new("Frame")
@@ -974,7 +1038,7 @@ function Library:NewWindow(ConfigWindow)
 		return pill, pText
 	end
 
-	-- Executor Badge Only (VD | Premium Removed)
+	-- Executor Badge Only
 	local currentExecutor = DetectExecutor()
 	local execPill, execText = CreatePillBadge("Executor: " .. currentExecutor, 1)
 	execText.RichText = true
@@ -1100,38 +1164,109 @@ function Library:NewWindow(ConfigWindow)
 	SearchStroke.Parent = SearchFrame
 
 	local SearchIcon = Instance.new("ImageLabel")
-	SearchIcon.Name = "Icon"
+	SearchIcon.Name = "SearchIcon"
 	SearchIcon.Parent = SearchFrame
 	SearchIcon.AnchorPoint = Vector2.new(0, 0.5)
 	SearchIcon.Position = UDim2.new(0, 8, 0.5, 0)
-	SearchIcon.Size = UDim2.new(0, 13, 0, 13)
+	SearchIcon.Size = UDim2.new(0, 14, 0, 14)
 	SearchIcon.BackgroundTransparency = 1
-	SearchIcon.Image = TabIcons.Search
-	SearchIcon.ImageColor3 = Theme.TextMuted
+	SearchIcon.ImageTransparency = 0
+	SearchIcon.Image = "rbxassetid://2804603877"
+	SearchIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
 	SearchIcon.ScaleType = Enum.ScaleType.Fit
+	SearchIcon.ZIndex = 6
+	SearchIcon.Visible = true
 
 	local SearchBox = Instance.new("TextBox")
 	SearchBox.Name = "SearchBox"
 	SearchBox.Parent = SearchFrame
 	SearchBox.BackgroundTransparency = 1
 	SearchBox.Position = UDim2.new(0, 26, 0, 0)
-	SearchBox.Size = UDim2.new(1, -30, 1, 0)
+	SearchBox.Size = UDim2.new(1, -68, 1, 0)
 	SearchBox.Font = Enum.Font.Gotham
 	SearchBox.PlaceholderColor3 = Theme.TextMuted
-	SearchBox.PlaceholderText = "Search..."
+	SearchBox.PlaceholderText = "Search features..."
 	SearchBox.Text = ""
 	SearchBox.TextColor3 = Theme.Text
 	SearchBox.TextSize = 11
 	SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 	SearchBox.ClearTextOnFocus = false
+	SearchBox.ZIndex = 6
+
+	-- Keyboard Shortcut Badge (Ctrl K)
+	local KeyBadge = Instance.new("TextButton")
+	KeyBadge.Name = "KeyBadge"
+	KeyBadge.Parent = SearchFrame
+	KeyBadge.AnchorPoint = Vector2.new(1, 0.5)
+	KeyBadge.Position = UDim2.new(1, -6, 0.5, 0)
+	KeyBadge.Size = UDim2.new(0, 36, 0, 16)
+	KeyBadge.BackgroundColor3 = Theme.SurfaceActive
+	KeyBadge.BackgroundTransparency = 0.4
+	KeyBadge.BorderSizePixel = 0
+	KeyBadge.AutoButtonColor = false
+	KeyBadge.Text = ""
+	KeyBadge.ZIndex = 6
+
+	local KeyCorner = Instance.new("UICorner")
+	KeyCorner.CornerRadius = UDim.new(0, 4)
+	KeyCorner.Parent = KeyBadge
+
+	local KeyStroke = Instance.new("UIStroke")
+	KeyStroke.Color = Theme.BorderSoft
+	KeyStroke.Thickness = 0.8
+	KeyStroke.Transparency = 0.2
+	KeyStroke.Parent = KeyBadge
+
+	local KeyText = Instance.new("TextLabel")
+	KeyText.Name = "KeyText"
+	KeyText.Parent = KeyBadge
+	KeyText.BackgroundTransparency = 1
+	KeyText.Size = UDim2.new(1, 0, 1, 0)
+	KeyText.Font = Enum.Font.GothamBold
+	KeyText.Text = "Ctrl K"
+	KeyText.TextColor3 = Theme.TextMuted
+	KeyText.TextSize = 8.5
+	KeyText.TextXAlignment = Enum.TextXAlignment.Center
+	KeyText.ZIndex = 7
+
+	KeyBadge.MouseButton1Click:Connect(function()
+		pcall(function() SearchBox:CaptureFocus() end)
+	end)
 
 	SearchBox.Focused:Connect(function()
 		TweenService:Create(SearchStroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
-		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Theme.AccentGlow }):Play()
+		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+		TweenService:Create(KeyBadge, TweenInfoFast, { BackgroundTransparency = 0.8 }):Play()
+		TweenService:Create(KeyText, TweenInfoFast, { TextTransparency = 0.6 }):Play()
 	end)
 	SearchBox.FocusLost:Connect(function()
 		TweenService:Create(SearchStroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0 }):Play()
-		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+		TweenService:Create(KeyBadge, TweenInfoFast, { BackgroundTransparency = 0.4 }):Play()
+		TweenService:Create(KeyText, TweenInfoFast, { TextTransparency = 0 }):Play()
+	end)
+
+	local ctrlKConn
+	pcall(function()
+		ctrlKConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+			if gameProcessed then return end
+			if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.K then
+				local isCtrl = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
+				if isCtrl then
+					task.defer(function()
+						if SearchBox and SearchBox.Parent then
+							pcall(function() SearchBox:CaptureFocus() end)
+						end
+					end)
+				end
+			end
+		end)
+		table.insert(onCloseCallbacks, function()
+			if ctrlKConn then
+				pcall(function() ctrlKConn:Disconnect() end)
+				ctrlKConn = nil
+			end
+		end)
 	end)
 
 	-- Tab List (ScrollingFrame)
@@ -1141,7 +1276,7 @@ function Library:NewWindow(ConfigWindow)
 	TabList.BackgroundTransparency = 1
 	TabList.BorderSizePixel = 0
 	TabList.Position = UDim2.new(0, 0, 0, 46)
-	TabList.Size = UDim2.new(1, 0, 1, -90) -- Leaves 44px for Profile footer at bottom
+	TabList.Size = UDim2.new(1, 0, 1, -116) -- Leaves room for Search Frame (top) and Profile/Socials (bottom)
 	TabList.ScrollBarThickness = 2
 	TabList.ScrollBarImageColor3 = Theme.Border
 	TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -1160,13 +1295,13 @@ function Library:NewWindow(ConfigWindow)
 
 	self:UpdateScrolling(TabList, TabListLayout)
 
-	-- Bottom User Profile (PinatHub Feature: Avatar Headshot + "Welcome, <username>")
+	-- Bottom User Profile & Community (PinatHub Feature: Avatar + Welcome + Discord & TikTok)
 	local ProfileFooter = Instance.new("Frame")
 	ProfileFooter.Name = "ProfileFooter"
 	ProfileFooter.Parent = Sidebar
 	ProfileFooter.AnchorPoint = Vector2.new(0, 1)
 	ProfileFooter.Position = UDim2.new(0, 0, 1, 0)
-	ProfileFooter.Size = UDim2.new(1, 0, 0, 44)
+	ProfileFooter.Size = UDim2.new(1, 0, 0, 68)
 	ProfileFooter.BackgroundColor3 = Theme.Sidebar
 	ProfileFooter.BackgroundTransparency = 0.1
 	ProfileFooter.BorderSizePixel = 0
@@ -1182,9 +1317,9 @@ function Library:NewWindow(ConfigWindow)
 	local AvatarImage = Instance.new("ImageLabel")
 	AvatarImage.Name = "Avatar"
 	AvatarImage.Parent = ProfileFooter
-	AvatarImage.AnchorPoint = Vector2.new(0, 0.5)
-	AvatarImage.Position = UDim2.new(0, 10, 0.5, 0)
-	AvatarImage.Size = UDim2.new(0, 26, 0, 26)
+	AvatarImage.AnchorPoint = Vector2.new(0, 0)
+	AvatarImage.Position = UDim2.new(0, 10, 0, 8)
+	AvatarImage.Size = UDim2.new(0, 22, 0, 22)
 	AvatarImage.BackgroundColor3 = Theme.Surface
 	AvatarImage.BorderSizePixel = 0
 	pcall(function()
@@ -1204,15 +1339,152 @@ function Library:NewWindow(ConfigWindow)
 	WelcomeText.Name = "Welcome"
 	WelcomeText.Parent = ProfileFooter
 	WelcomeText.BackgroundTransparency = 1
-	WelcomeText.Position = UDim2.new(0, 42, 0, 0)
-	WelcomeText.Size = UDim2.new(1, -48, 1, 0)
+	WelcomeText.Position = UDim2.new(0, 38, 0, 8)
+	WelcomeText.Size = UDim2.new(1, -48, 0, 22)
 	WelcomeText.Font = Enum.Font.GothamBold
 	local displayName = LocalPlayer and (LocalPlayer.DisplayName or LocalPlayer.Name) or "Player"
 	WelcomeText.Text = "Welcome, " .. displayName
 	WelcomeText.TextColor3 = Theme.TextSecondary
-	WelcomeText.TextSize = 11
+	WelcomeText.TextSize = 10.5
 	WelcomeText.TextTruncate = Enum.TextTruncate.AtEnd
 	WelcomeText.TextXAlignment = Enum.TextXAlignment.Left
+
+	-- Compact Social Links Container
+	local SocialLinks = Instance.new("Frame")
+	SocialLinks.Name = "SocialLinks"
+	SocialLinks.Parent = ProfileFooter
+	SocialLinks.BackgroundTransparency = 1
+	SocialLinks.Position = UDim2.new(0, 10, 0, 36)
+	SocialLinks.Size = UDim2.new(1, -20, 0, 24)
+
+	local SocialLayout = Instance.new("UIListLayout")
+	SocialLayout.Parent = SocialLinks
+	SocialLayout.FillDirection = Enum.FillDirection.Horizontal
+	SocialLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	SocialLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	SocialLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	SocialLayout.Padding = UDim.new(0, 6)
+
+	local function CopyText(str)
+		local fn = setclipboard or toclipboard or (Clipboard and Clipboard.set) or (syn and syn.write_clipboard)
+		if fn then pcall(fn, str) end
+	end
+
+	local function CreateSocialBtn(name, iconAsset, linkUrl, labelText, order, onAction)
+		local btn = Instance.new("TextButton")
+		btn.Name = name
+		btn.Parent = SocialLinks
+		btn.Size = UDim2.new(0.5, -3, 0, 22)
+		btn.BackgroundColor3 = Theme.Surface
+		btn.BackgroundTransparency = 0.5
+		btn.BorderSizePixel = 0
+		btn.AutoButtonColor = false
+		btn.Text = ""
+		btn.LayoutOrder = order
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 4)
+		corner.Parent = btn
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Theme.BorderSoft
+		stroke.Thickness = 0.8
+		stroke.Transparency = 0.4
+		stroke.Parent = btn
+
+		local btnLayout = Instance.new("UIListLayout")
+		btnLayout.Parent = btn
+		btnLayout.FillDirection = Enum.FillDirection.Horizontal
+		btnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+		btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		btnLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		btnLayout.Padding = UDim.new(0, 4)
+
+		local icon = Instance.new("ImageLabel")
+		icon.Name = "Icon"
+		icon.Parent = btn
+		icon.Size = UDim2.new(0, 14, 0, 14)
+		icon.BackgroundTransparency = 1
+		icon.ImageTransparency = 0
+		icon.Image = iconAsset
+		icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.ZIndex = 7
+		icon.Visible = true
+		icon.LayoutOrder = 1
+
+		local txt = Instance.new("TextLabel")
+		txt.Name = "Label"
+		txt.Parent = btn
+		txt.BackgroundTransparency = 1
+		txt.Size = UDim2.new(0, 0, 1, 0)
+		txt.AutomaticSize = Enum.AutomaticSize.X
+		txt.Font = Enum.Font.GothamBold
+		txt.Text = labelText
+		txt.TextColor3 = Theme.TextSecondary
+		txt.TextSize = 9
+		txt.ZIndex = 7
+		txt.LayoutOrder = 2
+
+		btn.MouseEnter:Connect(function()
+			TweenService:Create(btn, TweenInfoFast, { BackgroundTransparency = 0.2, BackgroundColor3 = Theme.SurfaceHover }):Play()
+			TweenService:Create(stroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
+			txt.TextColor3 = Theme.Text
+		end)
+		btn.MouseLeave:Connect(function()
+			TweenService:Create(btn, TweenInfoFast, { BackgroundTransparency = 0.5, BackgroundColor3 = Theme.Surface }):Play()
+			TweenService:Create(stroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0.4 }):Play()
+			txt.TextColor3 = Theme.TextSecondary
+		end)
+
+		btn.MouseButton1Click:Connect(function()
+			if onAction then
+				onAction()
+			else
+				CopyText(linkUrl)
+			end
+		end)
+
+		return btn
+	end
+
+	-- Discord Social Button (Asset ID: 18505728250, Invite: Y6Kjfu5XPN)
+	local discordInvite = (Config and Config.Discord) or "https://discord.gg/Y6Kjfu5XPN"
+	if not string.find(discordInvite, "Y6Kjfu5XPN") then
+		discordInvite = "https://discord.gg/Y6Kjfu5XPN"
+	end
+	CreateSocialBtn("DiscordBtn", "rbxassetid://18505728250", discordInvite, "Discord", 1, function()
+		CopyText(discordInvite)
+		pcall(function()
+			local req = (syn and syn.request) or (http and http.request) or request or http_request
+			if req then
+				req({
+					Url = "http://127.0.0.1:6463/rpc?v=1",
+					Method = "POST",
+					Headers = { ["Content-Type"] = "application/json", ["Origin"] = "https://discord.com" },
+					Body = HttpService:JSONEncode({ cmd = "INVITE_BROWSER", args = { code = "Y6Kjfu5XPN" }, nonce = HttpService:GenerateGUID(false) })
+				})
+			end
+		end)
+		Library:Notify({
+			Title = "Discord Invite",
+			Content = "Copied discord.gg/Y6Kjfu5XPN to clipboard!",
+			Type = "Info",
+			Duration = 3
+		})
+	end)
+
+	-- TikTok Social Button (Asset ID: 114030178331137, Username: @viunze)
+	local tiktokUrl = (Config and Config.TikTok) or "https://www.tiktok.com/@viunze"
+	CreateSocialBtn("TikTokBtn", "rbxassetid://114030178331137", tiktokUrl, "TikTok", 2, function()
+		CopyText(tiktokUrl)
+		Library:Notify({
+			Title = "TikTok Profile",
+			Content = "Copied tiktok.com/@viunze to clipboard!",
+			Type = "Info",
+			Duration = 3
+		})
+	end)
 
 	-- 8. Content Area
 	local Content = Instance.new("Frame")
@@ -1633,14 +1905,20 @@ function Library:NewWindow(ConfigWindow)
 			})
 			gapGradient.Parent = gapLine
 			table.insert(sectionGapLines, gapGradient)
+			return gapLine
 		end
 
 		Page.ChildAdded:Connect(function(child)
-			if not child:IsA("GuiObject") or child.Name == "SectionNeonGapLine" then return end
+			if not child:IsA("GuiObject") or child.Name == "SectionNeonGapLine" or child.Name == "SubNavContainer" then return end
 			sectionOrder += 1
 			child.LayoutOrder = sectionOrder * 2
 			if sectionOrder > 1 and Config.NeonGapLines ~= false then
-				AddSectionGapLine()
+				local gap = AddSectionGapLine()
+				if gap then
+					child:GetPropertyChangedSignal("Visible"):Connect(function()
+						gap.Visible = child.Visible
+					end)
+				end
 			end
 		end)
 
@@ -1801,7 +2079,26 @@ function Library:NewWindow(ConfigWindow)
 			ControlsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			ControlsLayout.Padding = UDim.new(0, 4)
 
-			local isCollapsed = false
+			local defaultOpen = true
+			if type(sectionNameOrConfig) == "table" then
+				if sectionNameOrConfig.Opened ~= nil then
+					defaultOpen = (sectionNameOrConfig.Opened == true)
+				elseif sectionNameOrConfig.DefaultOpen ~= nil then
+					defaultOpen = (sectionNameOrConfig.DefaultOpen == true)
+				elseif sectionNameOrConfig.Collapsed ~= nil then
+					defaultOpen = not (sectionNameOrConfig.Collapsed == true)
+				end
+			end
+
+			local isCollapsed = not defaultOpen
+			if isCollapsed then
+				Chevron.Rotation = 0
+				SectionCard.Size = UDim2.new(1, 0, 0, 34)
+			else
+				Chevron.Rotation = 90
+				SectionCard.Size = UDim2.new(1, 0, 0, 36)
+			end
+
 			local function UpdateSectionSize()
 				if not isCollapsed then
 					SectionCard.Size = UDim2.new(1, 0, 0, ControlsLayout.AbsoluteContentSize.Y + 44)
@@ -1809,16 +2106,47 @@ function Library:NewWindow(ConfigWindow)
 			end
 			ControlsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateSectionSize)
 
-			-- Collapsible toggle
-			SecHeader.MouseButton1Click:Connect(function()
-				isCollapsed = not isCollapsed
-				if isCollapsed then
+			-- -----------------------------------------------------------------------------
+			-- 12. SECTION CONTROLS (PinatHub MODERN DESIGN)
+			-- -----------------------------------------------------------------------------
+			local SecObj = {}
+			SecObj.Frame = SectionCard
+			SecObj.Card = SectionCard
+			SecObj.Header = SecHeader
+			SecObj.Controls = ControlsContainer
+			SecObj.ControlsLayout = ControlsLayout
+
+			function SecObj:Collapse()
+				if not isCollapsed then
+					isCollapsed = true
 					TweenService:Create(Chevron, TweenInfoFast, { Rotation = 0 }):Play()
 					TweenService:Create(SectionCard, TweenInfoFast, { Size = UDim2.new(1, 0, 0, 34) }):Play()
-				else
+				end
+			end
+
+			function SecObj:Expand()
+				if isCollapsed then
+					isCollapsed = false
 					TweenService:Create(Chevron, TweenInfoFast, { Rotation = 90 }):Play()
 					TweenService:Create(SectionCard, TweenInfoFast, { Size = UDim2.new(1, 0, 0, ControlsLayout.AbsoluteContentSize.Y + 44) }):Play()
 				end
+			end
+
+			function SecObj:ToggleCollapse()
+				if isCollapsed then
+					self:Expand()
+				else
+					self:Collapse()
+				end
+			end
+
+			function SecObj:SetVisible(state)
+				SectionCard.Visible = state
+			end
+
+			-- Collapsible toggle
+			SecHeader.MouseButton1Click:Connect(function()
+				SecObj:ToggleCollapse()
 			end)
 
 			local secData = {
@@ -1827,11 +2155,6 @@ function Library:NewWindow(ConfigWindow)
 				Elements = {}
 			}
 			table.insert(tabData.Sections, secData)
-
-			-- -----------------------------------------------------------------------------
-			-- 12. SECTION CONTROLS (PinatHub MODERN DESIGN)
-			-- -----------------------------------------------------------------------------
-			local SecObj = {}
 
 			-- 12.1 TOGGLE SWITCH (PinatHub Style: Optional Inline Keybind [None] + Elastic Switch)
 			function SecObj:AddToggle(toggleConfig)
@@ -2692,6 +3015,32 @@ function Library:NewWindow(ConfigWindow)
 				TitleLabel.TextSize = 12
 				TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+				local tsDecimals = (function()
+					local function countDec(val)
+						if not val then return 0 end
+						local s = tostring(val)
+						local dot = s:find("%.")
+						return dot and (#s - dot) or 0
+					end
+					if type(cfg.Decimals) == "number" and cfg.Decimals >= 0 then return math.min(math.floor(cfg.Decimals), 6) end
+					local incDec = countDec(cfg.Increment)
+					if incDec > 0 then return math.min(incDec, 6) end
+					local minDec = countDec(cfg.Min)
+					local defDec = countDec(cfg.DefaultSlider)
+					local maxDec = math.max(minDec, defDec)
+					if maxDec > 0 then return math.min(maxDec, 6) end
+					return 0
+				end)()
+
+				local function FormatTSValue(val)
+					val = tonumber(val) or 0
+					if tsDecimals > 0 then
+						return string.format("%." .. tsDecimals .. "f", val)
+					else
+						return tostring(math.floor(val + 0.5))
+					end
+				end
+
 				local ValLabel = Instance.new("TextLabel")
 				ValLabel.Name = "Value"
 				ValLabel.Parent = ItemFrame
@@ -2700,7 +3049,7 @@ function Library:NewWindow(ConfigWindow)
 				ValLabel.Size = UDim2.new(0, 50, 0, 16)
 				ValLabel.BackgroundTransparency = 1
 				ValLabel.Font = Enum.Font.Gotham
-				ValLabel.Text = tostring(cfg.DefaultSlider) .. cfg.Suffix
+				ValLabel.Text = FormatTSValue(cfg.DefaultSlider or cfg.Min) .. cfg.Suffix
 				ValLabel.TextColor3 = Theme.TextSecondary
 				ValLabel.TextSize = 11
 				ValLabel.TextXAlignment = Enum.TextXAlignment.Right
@@ -2773,10 +3122,22 @@ function Library:NewWindow(ConfigWindow)
 				end
 
 				local function UpdateS(val)
+					val = tonumber(val) or cfg.Min
+					if cfg.Increment and cfg.Increment > 0 then
+						local steps = math.floor((val - cfg.Min) / cfg.Increment + 0.5)
+						val = cfg.Min + (steps * cfg.Increment)
+						if tsDecimals > 0 then
+							local mult = 10 ^ tsDecimals
+							local rounded = math.floor(val * mult + 0.5) / mult
+							val = tonumber(string.format("%." .. tsDecimals .. "f", rounded)) or rounded
+						else
+							val = math.floor(val + 0.5)
+						end
+					end
 					sVal = math.clamp(val, cfg.Min, cfg.Max)
 					local pct = (sVal - cfg.Min) / math.max(cfg.Max - cfg.Min, 1)
 					Fill.Size = UDim2.new(pct, 0, 1, 0)
-					ValLabel.Text = tostring(math.floor(sVal)) .. cfg.Suffix
+					ValLabel.Text = FormatTSValue(sVal) .. cfg.Suffix
 				end
 
 				UpdateT(true)
@@ -2960,6 +3321,51 @@ function Library:NewWindow(ConfigWindow)
 
 				if cfg.Desc and cfg.Description == "" then cfg.Description = cfg.Desc end
 
+				local function GetDecimals(inc, dec, minVal, defVal)
+					if type(dec) == "number" and dec >= 0 then return math.min(math.floor(dec), 6) end
+					local function countDec(val)
+						if not val then return 0 end
+						local s = tostring(val)
+						local dot = s:find("%.")
+						return dot and (#s - dot) or 0
+					end
+					local incDec = countDec(inc)
+					if incDec > 0 then return math.min(incDec, 6) end
+					local minDec = countDec(minVal)
+					local defDec = countDec(defVal)
+					local maxDec = math.max(minDec, defDec)
+					if maxDec > 0 then return math.min(maxDec, 6) end
+					return 0
+				end
+
+				local decimals = GetDecimals(cfg.Increment, cfg.Decimals or cfg.Precision or cfg.Rounding, cfg.Min, cfg.Default)
+
+				local function Round(num, inc, dec)
+					local incVal = tonumber(inc)
+					num = tonumber(num) or 0
+					if not incVal or incVal <= 0 then incVal = 1 end
+					local steps = math.floor((num - cfg.Min) / incVal + 0.5)
+					local raw = cfg.Min + (steps * incVal)
+					local d = (type(dec) == "number") and dec or decimals
+					if d > 0 then
+						local mult = 10 ^ d
+						local rounded = math.floor(raw * mult + 0.5) / mult
+						return tonumber(string.format("%." .. d .. "f", rounded)) or rounded
+					else
+						return math.floor(raw + 0.5)
+					end
+				end
+
+				local function FormatValue(val, inc, dec)
+					val = tonumber(val) or 0
+					local d = (type(dec) == "number") and dec or decimals
+					if d > 0 then
+						return string.format("%." .. d .. "f", val)
+					else
+						return tostring(math.floor(val + 0.5))
+					end
+				end
+
 				local ItemFrame = Instance.new("Frame")
 				ItemFrame.Name = "Slider_" .. cfg.Title
 				ItemFrame.Parent = ControlsContainer
@@ -2998,7 +3404,7 @@ function Library:NewWindow(ConfigWindow)
 				ValueInput.Size = UDim2.new(0, 50, 0, 16)
 				ValueInput.BackgroundTransparency = 1
 				ValueInput.Font = Enum.Font.GothamBold
-				ValueInput.Text = tostring(cfg.Default)
+				ValueInput.Text = FormatValue(cfg.Default, cfg.Increment, decimals)
 				ValueInput.TextColor3 = Theme.AccentGlow
 				ValueInput.TextSize = 11
 				ValueInput.TextXAlignment = Enum.TextXAlignment.Right
@@ -3042,15 +3448,11 @@ function Library:NewWindow(ConfigWindow)
 				local SliderState = { Value = cfg.Default }
 				local dragging = false
 
-				local function Round(num, inc)
-					return math.floor(num / inc + 0.5) * inc
-				end
-
 				function SliderState:Set(value)
-					value = math.clamp(Round(value, cfg.Increment), cfg.Min, cfg.Max)
+					value = math.clamp(Round(value, cfg.Increment, decimals), cfg.Min, cfg.Max)
 					self.Value = value
-					ValueInput.Text = tostring(value)
-					local scale = (value - cfg.Min) / (cfg.Max - cfg.Min)
+					ValueInput.Text = FormatValue(value, cfg.Increment, decimals)
+					local scale = (value - cfg.Min) / math.max(cfg.Max - cfg.Min, 0.0001)
 					TweenService:Create(RailFill, TweenInfoFast, { Size = UDim2.fromScale(scale, 1) }):Play()
 					TweenService:Create(Thumb, TweenInfoFast, { Position = UDim2.new(scale, 0, 0.5, 0) }):Play()
 					pcall(cfg.Callback, value)
@@ -3079,7 +3481,7 @@ function Library:NewWindow(ConfigWindow)
 
 				ValueInput.FocusLost:Connect(function()
 					local val = tonumber(ValueInput.Text)
-					if val then SliderState:Set(val) else ValueInput.Text = tostring(SliderState.Value) end
+					if val then SliderState:Set(val) else ValueInput.Text = FormatValue(SliderState.Value, cfg.Increment, decimals) end
 				end)
 
 				SliderState:Set(cfg.Default)
@@ -3993,10 +4395,779 @@ function Library:NewWindow(ConfigWindow)
 			SecObj.AddTextInput = SecObj.AddInput
 			SecObj.TextInput = SecObj.AddInput
 
+-- =========================================================================
+-- SPECIALIZED UI EXTENSIONS FOR PINATHUB VIOLENCE DISTRICT (from otherscript.lua)
+-- =========================================================================
+
+-- 1. Custom Background Manager
+function SecObj:AddCustomBgManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Custom Background Manager",
+        DefaultAsset = "",
+        DefaultOverlay = 40,
+        DefaultScale = "Crop",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "CustomBgContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 110)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local cStroke = Instance.new("UIStroke")
+    cStroke.Color = Theme.BorderSoft
+    cStroke.Thickness = 1
+    cStroke.Parent = container
+
+    local preview = Instance.new("ImageLabel")
+    preview.Name = "BgPreview"
+    preview.Parent = container
+    preview.Position = UDim2.new(0, 8, 0, 8)
+    preview.Size = UDim2.new(0, 94, 0, 94)
+    preview.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    preview.BorderSizePixel = 0
+    preview.ScaleType = Enum.ScaleType[cfg.DefaultScale] or Enum.ScaleType.Crop
+    preview.Image = cfg.DefaultAsset ~= "" and cfg.DefaultAsset or "rbxassetid://118264723961739"
+    local prevCorner = Instance.new("UICorner")
+    prevCorner.CornerRadius = UDim.new(0, 4)
+    prevCorner.Parent = preview
+
+    local assetBox = Instance.new("TextBox")
+    assetBox.Name = "AssetInput"
+    assetBox.Parent = container
+    assetBox.Position = UDim2.new(0, 110, 0, 12)
+    assetBox.Size = UDim2.new(1, -118, 0, 28)
+    assetBox.BackgroundColor3 = Theme.Surface
+    assetBox.TextColor3 = Theme.TextPrimary
+    assetBox.PlaceholderText = "Roblox Asset ID (rbxassetid://...)"
+    assetBox.PlaceholderColor3 = Theme.TextMuted
+    assetBox.Font = Enum.Font.Gotham
+    assetBox.TextSize = 11
+    assetBox.Text = cfg.DefaultAsset
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 4)
+    boxCorner.Parent = assetBox
+
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Name = "ApplyBg"
+    applyBtn.Parent = container
+    applyBtn.Position = UDim2.new(0, 110, 0, 48)
+    applyBtn.Size = UDim2.new(1, -118, 0, 26)
+    applyBtn.BackgroundColor3 = Theme.Accent
+    applyBtn.TextColor3 = Color3.new(1, 1, 1)
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextSize = 11
+    applyBtn.Text = "Apply Background"
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = applyBtn
+
+    local statusLbl = Instance.new("TextLabel")
+    statusLbl.Name = "StatusLbl"
+    statusLbl.Parent = container
+    statusLbl.Position = UDim2.new(0, 110, 0, 80)
+    statusLbl.Size = UDim2.new(1, -118, 0, 18)
+    statusLbl.BackgroundTransparency = 1
+    statusLbl.Font = Enum.Font.Gotham
+    statusLbl.TextSize = 10
+    statusLbl.TextColor3 = Theme.TextSecondary
+    statusLbl.TextXAlignment = Enum.TextXAlignment.Left
+    statusLbl.Text = "Scale: " .. tostring(cfg.DefaultScale) .. " | Overlay: " .. tostring(cfg.DefaultOverlay) .. "%"
+
+    applyBtn.MouseButton1Click:Connect(function()
+        local raw = assetBox.Text:gsub("%s+", "")
+        local id = raw
+        if raw:match("^%d+$") then
+            id = "rbxassetid://" .. raw
+        end
+        preview.Image = id
+        statusLbl.Text = "Background Updated!"
+        cfg.Callback({ AssetId = id, Overlay = cfg.DefaultOverlay, ScaleType = cfg.DefaultScale })
+    end)
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        SetAsset = function(_, asset) assetBox.Text = asset; preview.Image = asset end,
+        SetStatus = function(_, txt) statusLbl.Text = txt end
+    }
+end
+
+-- 2. Custom Emote Wheel Manager (8-slot wheel)
+function SecObj:AddEmoteWheelManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Emote Wheel Manager",
+        Slots = { "KWIK FLIP", "Schadenfreude (laugh)", "Wave", "Pop off", "Backflip", "Griddy", "The Dab", "California girls" },
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "EmoteWheelContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 140)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 20)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "EMOTE WHEEL SLOTS (8 SLOTS)"
+
+    local grid = Instance.new("Frame")
+    grid.Parent = container
+    grid.Position = UDim2.new(0, 8, 0, 26)
+    grid.Size = UDim2.new(1, -16, 0, 80)
+    grid.BackgroundTransparency = 1
+
+    local uigrid = Instance.new("UIGridLayout")
+    uigrid.Parent = grid
+    uigrid.CellSize = UDim2.new(0.23, 0, 0, 36)
+    uigrid.CellPadding = UDim2.new(0.02, 0, 0, 4)
+
+    local slotButtons = {}
+    for i = 1, 8 do
+        local slotName = cfg.Slots[i] or ("Slot " .. i)
+        local btn = Instance.new("TextButton")
+        btn.Name = "Slot_" .. i
+        btn.Parent = grid
+        btn.BackgroundColor3 = Theme.Surface
+        btn.TextColor3 = Theme.TextPrimary
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 10
+        btn.Text = tostring(i) .. ". " .. slotName:sub(1, 10)
+        btn.ClipsDescendants = true
+        local bCorner = Instance.new("UICorner")
+        bCorner.CornerRadius = UDim.new(0, 4)
+        bCorner.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            cfg.Callback({ Slot = i, Name = slotName })
+        end)
+        slotButtons[i] = btn
+    end
+
+    local actionRow = Instance.new("Frame")
+    actionRow.Parent = container
+    actionRow.Position = UDim2.new(0, 8, 0, 110)
+    actionRow.Size = UDim2.new(1, -16, 0, 24)
+    actionRow.BackgroundTransparency = 1
+
+    local openWheelBtn = Instance.new("TextButton")
+    openWheelBtn.Parent = actionRow
+    openWheelBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    openWheelBtn.BackgroundColor3 = Theme.Accent
+    openWheelBtn.TextColor3 = Color3.new(1, 1, 1)
+    openWheelBtn.Font = Enum.Font.GothamBold
+    openWheelBtn.TextSize = 10
+    openWheelBtn.Text = "Open Emote Wheel"
+    local oCorner = Instance.new("UICorner")
+    oCorner.CornerRadius = UDim.new(0, 4)
+    oCorner.Parent = openWheelBtn
+
+    local stopAnimBtn = Instance.new("TextButton")
+    stopAnimBtn.Parent = actionRow
+    stopAnimBtn.Position = UDim2.new(0.52, 0, 0, 0)
+    stopAnimBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    stopAnimBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    stopAnimBtn.TextColor3 = Color3.new(1, 1, 1)
+    stopAnimBtn.Font = Enum.Font.GothamBold
+    stopAnimBtn.TextSize = 10
+    stopAnimBtn.Text = "Stop Animation"
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(0, 4)
+    sCorner.Parent = stopAnimBtn
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        OnOpenWheel = function(_, cb) openWheelBtn.MouseButton1Click:Connect(cb) end,
+        OnStopAnim = function(_, cb) stopAnimBtn.MouseButton1Click:Connect(cb) end
+    }
+end
+
+-- 3. Perk Loadout Manager (3 slots + Loadout Selector)
+function SecObj:AddPerkLoadoutManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Survivor Perk Loadout",
+        Perk1 = "None",
+        Perk2 = "None",
+        Perk3 = "None",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "PerkLoadoutContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 80)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "PERK SLOTS (SURVIVOR PERKS)"
+
+    local row = Instance.new("Frame")
+    row.Parent = container
+    row.Position = UDim2.new(0, 8, 0, 26)
+    row.Size = UDim2.new(1, -16, 0, 48)
+    row.BackgroundTransparency = 1
+
+    local pButtons = {}
+    for i = 1, 3 do
+        local pBtn = Instance.new("TextButton")
+        pBtn.Name = "PerkSlot_" .. i
+        pBtn.Parent = row
+        pBtn.Position = UDim2.new((i - 1) * 0.34, 0, 0, 0)
+        pBtn.Size = UDim2.new(0.31, 0, 0, 42)
+        pBtn.BackgroundColor3 = Theme.Surface
+        pBtn.TextColor3 = Theme.TextPrimary
+        pBtn.Font = Enum.Font.GothamMedium
+        pBtn.TextSize = 10
+        pBtn.Text = "Slot " .. i .. "\n" .. (i == 1 and cfg.Perk1 or (i == 2 and cfg.Perk2 or cfg.Perk3))
+        local pbCorner = Instance.new("UICorner")
+        pbCorner.CornerRadius = UDim.new(0, 4)
+        pbCorner.Parent = pBtn
+        pButtons[i] = pBtn
+    end
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        SetPerks = function(_, p1, p2, p3)
+            pButtons[1].Text = "Slot 1\n" .. tostring(p1)
+            pButtons[2].Text = "Slot 2\n" .. tostring(p2)
+            pButtons[3].Text = "Slot 3\n" .. tostring(p3)
+        end
+    }
+end
+
+-- 4. Visual Preset Manager (Ambient Color & Lighting Preset)
+function SecObj:AddVisualPresetManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Lighting Visual Presets",
+        Presets = { "Default", "Cinematic", "Vibrant", "Grim Noir", "Cyberpunk", "Midnight" },
+        CurrentPreset = "Default",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "VisualPresetContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 72)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "LIGHTING & COLOR PRESET CONTROLLER"
+
+    local grid = Instance.new("Frame")
+    grid.Parent = container
+    grid.Position = UDim2.new(0, 8, 0, 26)
+    grid.Size = UDim2.new(1, -16, 0, 40)
+    grid.BackgroundTransparency = 1
+
+    local layout = Instance.new("UIGridLayout")
+    layout.Parent = grid
+    layout.CellSize = UDim2.new(0.31, 0, 0, 18)
+    layout.CellPadding = UDim2.new(0.02, 0, 0, 3)
+
+    for _, presetName in ipairs(cfg.Presets) do
+        local btn = Instance.new("TextButton")
+        btn.Name = "Preset_" .. presetName
+        btn.Parent = grid
+        btn.BackgroundColor3 = (presetName == cfg.CurrentPreset) and Theme.Accent or Theme.Surface
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 9
+        btn.Text = presetName
+        local bCorner = Instance.new("UICorner")
+        bCorner.CornerRadius = UDim.new(0, 4)
+        bCorner.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            for _, child in ipairs(grid:GetChildren()) do
+                if child:IsA("TextButton") then child.BackgroundColor3 = Theme.Surface end
+            end
+            btn.BackgroundColor3 = Theme.Accent
+            cfg.Callback(presetName)
+        end)
+    end
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {}
+end
+
+-- 5. Fog Manager (Color + Fog Start & End)
+function SecObj:AddFogManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Custom Fog Controller",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Fog Controller", Desc = "Managed dynamically via Lighting settings below." })
+end
+
+-- 6. Bloom Manager (Intensity, Size, Threshold)
+function SecObj:AddBloomManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Bloom Controller",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Bloom Controller", Desc = "Adjust bloom parameters in real-time." })
+end
+
+-- 7. Info Banner Configurator
+function SecObj:AddInfoBannerConfig(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Info Banner Configuration",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Info Banner", Desc = "HUD display: Map, Killer, Perks, FPS, Ping." })
+end
+
+-- 8. Aimbot Preview with Calibration Canvas
+function SecObj:AddAimbotPreview(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Aimbot Calibration & FOV Preview",
+        DefaultRadius = 150,
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "AimbotPreviewContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 90)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "AIMBOT TARGET RETICLE & FOV PREVIEW"
+
+    local canvas = Instance.new("Frame")
+    canvas.Parent = container
+    canvas.Position = UDim2.new(0, 8, 0, 24)
+    canvas.Size = UDim2.new(0, 60, 0, 60)
+    canvas.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    local canCorner = Instance.new("UICorner")
+    canCorner.CornerRadius = UDim.new(1, 0)
+    canCorner.Parent = canvas
+    local canStroke = Instance.new("UIStroke")
+    canStroke.Color = Theme.Accent
+    canStroke.Thickness = 1.5
+    canStroke.Parent = canvas
+
+    local centerDot = Instance.new("Frame")
+    centerDot.Parent = canvas
+    centerDot.AnchorPoint = Vector2.new(0.5, 0.5)
+    centerDot.Position = UDim2.new(0.5, 0, 0.5, 0)
+    centerDot.Size = UDim2.new(0, 4, 0, 4)
+    centerDot.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = centerDot
+
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Parent = container
+    infoLabel.Position = UDim2.new(0, 80, 0, 28)
+    infoLabel.Size = UDim2.new(1, -88, 0, 48)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextSize = 11
+    infoLabel.TextColor3 = Theme.TextSecondary
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    infoLabel.Text = "FOV Circle active on screen.\nHorizontal / Vertical offsets calibrated dynamically for ballistics."
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {}
+end
+
+-- 9. Stalker Killer Manager
+function SecObj:AddStalkerManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Stalker Ability Suite",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Stalker Suite", Desc = "Controls for Stalker killer abilities (cooldown bypass, grab, corrupt)." })
+end
+
+
 			return SecObj
 		end
 
+		-- -----------------------------------------------------------------------------
+		-- 11.1 SUB-TABS & CATEGORY PILL NAVIGATION SYSTEM
+		-- -----------------------------------------------------------------------------
+		function TabObj:AddSubNav(navConfig)
+			navConfig = navConfig or {}
+			local categories = navConfig.Categories or navConfig.Tabs or {}
+			local includeAll = (navConfig.IncludeAll ~= false)
+			local defaultCat = navConfig.Default or (includeAll and "All") or (categories[1] and (type(categories[1]) == "table" and (categories[1].Name or categories[1].Title or categories[1].Key) or categories[1])) or "All"
+			local onSelectCallback = navConfig.Callback or function() end
+
+			local SubNavContainer = Instance.new("Frame")
+			SubNavContainer.Name = "SubNavContainer"
+			SubNavContainer.Parent = Page
+			SubNavContainer.BackgroundTransparency = 1
+			SubNavContainer.BorderSizePixel = 0
+			SubNavContainer.Size = UDim2.new(1, 0, 0, 32)
+			SubNavContainer.LayoutOrder = -100
+			SubNavContainer.Visible = false
+			SubNavContainer.ZIndex = 5
+
+			local nonAllCount = 0
+			local function checkNavVisibility()
+				SubNavContainer.Visible = (nonAllCount > 1)
+				if SubNavContainer.Visible then
+					pcall(function() Library:UpdateScrolling(Page, PageListLayout) end)
+				end
+			end
+
+			SubNavContainer:GetPropertyChangedSignal("Visible"):Connect(function()
+				pcall(function() Library:UpdateScrolling(Page, PageListLayout) end)
+			end)
+
+			local SubNavScroll = Instance.new("ScrollingFrame")
+			SubNavScroll.Name = "SubNavScroll"
+			SubNavScroll.Parent = SubNavContainer
+			SubNavScroll.BackgroundTransparency = 1
+			SubNavScroll.BorderSizePixel = 0
+			SubNavScroll.Size = UDim2.new(1, 0, 1, 0)
+			SubNavScroll.ScrollBarThickness = 0
+			SubNavScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+			SubNavScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+			SubNavScroll.ScrollingDirection = Enum.ScrollingDirection.X
+
+			local SubNavLayout = Instance.new("UIListLayout")
+			SubNavLayout.Parent = SubNavScroll
+			SubNavLayout.FillDirection = Enum.FillDirection.Horizontal
+			SubNavLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			SubNavLayout.Padding = UDim.new(0, 6)
+			SubNavLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+			SubNavLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+				SubNavScroll.CanvasSize = UDim2.new(0, SubNavLayout.AbsoluteContentSize.X + 24, 0, 0)
+			end)
+
+			local SubNavPadding = Instance.new("UIPadding")
+			SubNavPadding.Parent = SubNavScroll
+			SubNavPadding.PaddingLeft = UDim.new(0, 2)
+			SubNavPadding.PaddingRight = UDim.new(0, 10)
+			SubNavPadding.PaddingTop = UDim.new(0, 2)
+			SubNavPadding.PaddingBottom = UDim.new(0, 4)
+
+			local SubNavObj = {
+				Container = SubNavContainer,
+				Scroll = SubNavScroll,
+				ActiveCategory = defaultCat,
+				Pills = {},
+				RegisteredSections = {},
+				Categories = {}
+			}
+
+			local function updatePillStyles()
+				for catName, pillData in pairs(SubNavObj.Pills) do
+					local isActive = (catName == SubNavObj.ActiveCategory)
+					local btn = pillData.Button
+					local stroke = pillData.Stroke
+					local label = pillData.Label
+					local icon = pillData.Icon
+
+					if isActive then
+						TweenService:Create(btn, TweenInfoFast, {
+							BackgroundColor3 = Theme.Accent,
+							BackgroundTransparency = 0.2
+						}):Play()
+						if stroke then
+							TweenService:Create(stroke, TweenInfoFast, {
+								Color = Theme.AccentGlow,
+								Transparency = 0
+							}):Play()
+						end
+						if label then
+							label.Font = Enum.Font.GothamBold
+							TweenService:Create(label, TweenInfoFast, {
+								TextColor3 = Theme.NeonWhite
+							}):Play()
+						end
+						if icon then
+							TweenService:Create(icon, TweenInfoFast, {
+								ImageColor3 = Theme.NeonWhite
+							}):Play()
+						end
+					else
+						TweenService:Create(btn, TweenInfoFast, {
+							BackgroundColor3 = Theme.Surface,
+							BackgroundTransparency = 0.45
+						}):Play()
+						if stroke then
+							TweenService:Create(stroke, TweenInfoFast, {
+								Color = Theme.BorderSoft,
+								Transparency = 0.5
+							}):Play()
+						end
+						if label then
+							label.Font = Enum.Font.Gotham
+							TweenService:Create(label, TweenInfoFast, {
+								TextColor3 = Theme.TextSecondary
+							}):Play()
+						end
+						if icon then
+							TweenService:Create(icon, TweenInfoFast, {
+								ImageColor3 = Theme.TextMuted
+							}):Play()
+						end
+					end
+				end
+			end
+
+			local function filterSections()
+				local active = SubNavObj.ActiveCategory
+				for _, reg in ipairs(SubNavObj.RegisteredSections) do
+					local matches = (active == "All") or (reg.Category == nil) or (reg.Category == "All") or (reg.Category == active)
+					if reg.Card then
+						reg.Card.Visible = matches
+					end
+					-- Automatically expand section when viewing its specific category
+					if matches and active ~= "All" and reg.SecObj and reg.SecObj.Expand then
+						pcall(function() reg.SecObj:Expand() end)
+					end
+				end
+			end
+
+			function SubNavObj:SelectCategory(catName)
+				if SubNavObj.ActiveCategory == catName then return end
+				SubNavObj.ActiveCategory = catName
+				updatePillStyles()
+				filterSections()
+				pcall(onSelectCallback, catName)
+			end
+
+			function SubNavObj:RegisterSection(catName, sectionCardOrObj, optionalSecObj)
+				local card = nil
+				local secObj = optionalSecObj
+				if typeof(sectionCardOrObj) == "Instance" then
+					card = sectionCardOrObj
+				elseif type(sectionCardOrObj) == "table" then
+					secObj = secObj or sectionCardOrObj
+					card = sectionCardOrObj.Card or sectionCardOrObj.Frame
+				end
+				if not card then return end
+
+				table.insert(SubNavObj.RegisteredSections, {
+					Category = catName,
+					Card = card,
+					SecObj = secObj
+				})
+
+				local matches = (SubNavObj.ActiveCategory == "All") or (catName == nil) or (catName == "All") or (catName == SubNavObj.ActiveCategory)
+				card.Visible = matches
+			end
+
+			local pillOrder = 0
+			function SubNavObj:AddCategory(catConfig)
+				local name = ""
+				local icon = nil
+				if type(catConfig) == "table" then
+					name = catConfig.Name or catConfig.Title or catConfig.Key or ""
+					icon = catConfig.Icon
+				else
+					name = tostring(catConfig or "")
+				end
+				if name == "" or SubNavObj.Pills[name] then return end
+
+				pillOrder += 1
+
+				local textBounds = TextService:GetTextSize(name, 11, Enum.Font.Gotham, Vector2.new(1000, 26))
+				local pillWidth = math.max(40, math.ceil(textBounds.X) + (icon and 32 or 24))
+
+				local PillBtn = Instance.new("TextButton")
+				PillBtn.Name = "Pill_" .. name
+				PillBtn.Parent = SubNavScroll
+				PillBtn.AutoButtonColor = false
+				PillBtn.Text = ""
+				PillBtn.LayoutOrder = (name == "All") and 0 or pillOrder
+				PillBtn.Size = UDim2.new(0, pillWidth, 0, 26)
+				PillBtn.BackgroundColor3 = (name == SubNavObj.ActiveCategory) and Theme.Accent or Theme.Surface
+				PillBtn.BackgroundTransparency = (name == SubNavObj.ActiveCategory) and 0.2 or 0.45
+				PillBtn.BorderSizePixel = 0
+
+				local PillCorner = Instance.new("UICorner")
+				PillCorner.CornerRadius = UDim.new(1, 0)
+				PillCorner.Parent = PillBtn
+
+				local PillStroke = Instance.new("UIStroke")
+				PillStroke.Color = (name == SubNavObj.ActiveCategory) and Theme.AccentGlow or Theme.BorderSoft
+				PillStroke.Thickness = 1
+				PillStroke.Transparency = (name == SubNavObj.ActiveCategory) and 0 or 0.5
+				PillStroke.Parent = PillBtn
+
+				local PillPadding = Instance.new("UIPadding")
+				PillPadding.Parent = PillBtn
+				PillPadding.PaddingLeft = UDim.new(0, icon and 8 or 12)
+				PillPadding.PaddingRight = UDim.new(0, 12)
+				PillPadding.PaddingTop = UDim.new(0, 0)
+				PillPadding.PaddingBottom = UDim.new(0, 0)
+
+				local ContentLayout = Instance.new("UIListLayout")
+				ContentLayout.Parent = PillBtn
+				ContentLayout.FillDirection = Enum.FillDirection.Horizontal
+				ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+				ContentLayout.Padding = UDim.new(0, 5)
+				ContentLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+				local IconImg
+				if icon then
+					local resolved = ResolveIcon(icon, name)
+					if resolved then
+						IconImg = Instance.new("ImageLabel")
+						IconImg.Name = "Icon"
+						IconImg.Parent = PillBtn
+						IconImg.BackgroundTransparency = 1
+						IconImg.Size = UDim2.new(0, 13, 0, 13)
+						IconImg.Image = resolved
+						IconImg.ImageColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextMuted
+						IconImg.ScaleType = Enum.ScaleType.Fit
+					end
+				end
+
+				local Label = Instance.new("TextLabel")
+				Label.Name = "Label"
+				Label.Parent = PillBtn
+				Label.BackgroundTransparency = 1
+				Label.Text = name
+				Label.Font = (name == SubNavObj.ActiveCategory) and Enum.Font.GothamBold or Enum.Font.Gotham
+				Label.TextSize = 11
+				Label.TextColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextSecondary
+				Label.Size = UDim2.new(1, icon and -20 or 0, 1, 0)
+				Label.TextYAlignment = Enum.TextYAlignment.Center
+
+				PillBtn.MouseEnter:Connect(function()
+					if SubNavObj.ActiveCategory ~= name then
+						TweenService:Create(PillBtn, TweenInfoFast, { BackgroundTransparency = 0.25 }):Play()
+						TweenService:Create(Label, TweenInfoFast, { TextColor3 = Theme.Text }):Play()
+						if IconImg then
+							TweenService:Create(IconImg, TweenInfoFast, { ImageColor3 = Theme.NeonGray }):Play()
+						end
+					end
+				end)
+
+				PillBtn.MouseLeave:Connect(function()
+					if SubNavObj.ActiveCategory ~= name then
+						TweenService:Create(PillBtn, TweenInfoFast, { BackgroundTransparency = 0.45 }):Play()
+						TweenService:Create(Label, TweenInfoFast, { TextColor3 = Theme.TextSecondary }):Play()
+						if IconImg then
+							TweenService:Create(IconImg, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+						end
+					end
+				end)
+
+				PillBtn.MouseButton1Click:Connect(function()
+					SubNavObj:SelectCategory(name)
+				end)
+
+				SubNavObj.Pills[name] = {
+					Button = PillBtn,
+					Stroke = PillStroke,
+					Label = Label,
+					Icon = IconImg
+				}
+				table.insert(SubNavObj.Categories, name)
+				if name ~= "All" then
+					nonAllCount += 1
+				end
+				checkNavVisibility()
+			end
+
+			function SubNavObj:GetSubTab(catName)
+				local proxy = {}
+				setmetatable(proxy, {
+					__index = function(_, k)
+						if k == "AddSection" or k == "Section" then
+							return function(_, secCfg)
+								local sec = TabObj:AddSection(secCfg)
+								SubNavObj:RegisterSection(catName, sec.Card or sec.Frame, sec)
+								return sec
+							end
+						end
+						return TabObj[k]
+					end
+				})
+				return proxy
+			end
+
+			if includeAll then
+				SubNavObj:AddCategory({ Name = "All", Icon = "rbxassetid://10723407389" })
+			end
+
+			for _, cat in ipairs(categories) do
+				SubNavObj:AddCategory(cat)
+			end
+
+			updatePillStyles()
+			return SubNavObj
+		end
+
+		TabObj.SubNav = TabObj.AddSubNav
+		TabObj.AddSubTabs = TabObj.AddSubNav
+		TabObj.SubTabs = TabObj.AddSubNav
+
 		TabObj.Section = TabObj.AddSection
+		TabObj.Page = Page
+		TabObj.Container = Page
+		TabObj.Layout = PageListLayout
 		return TabObj
 	end
 

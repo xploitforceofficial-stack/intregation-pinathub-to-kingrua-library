@@ -56,7 +56,7 @@ local function KYS_MakeDraggable(guiObject)
 end
 local PinatHubAdapter
 local function loadPinatHubSource()
-    local sourceUrl = "https://raw.githubusercontent.com/xploitforceofficial-stack/intregation-pinathub-to-kingrua-library/refs/heads/main/kingrualibrarysource.lua?t=" .. os.time()
+    local sourceUrl = "https://raw.githubusercontent.com/xploitforceofficial-stack/intregation-pinathub-to-kingrua-library/refs/heads/main/kingrualibrarysource.lua"
     if readfile and isfile and isfile("kingrualibrarysource.lua") then
         local source = readfile("kingrualibrarysource.lua")
         local fn, compileErr = loadstring(source)
