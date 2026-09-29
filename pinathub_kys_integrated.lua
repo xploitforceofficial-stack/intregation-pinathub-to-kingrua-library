@@ -59,11 +59,19 @@ local function loadPinatHubSource()
     local sourceUrl = "https://raw.githubusercontent.com/xploitforceofficial-stack/intregation-pinathub-to-kingrua-library/refs/heads/main/kingrualibrarysource.lua?t=" .. os.time()
     if readfile and isfile and isfile("kingrualibrarysource.lua") then
         local source = readfile("kingrualibrarysource.lua")
-        local fn, compileErr = loadstring(source)
-        if not fn then error(compileErr) end
-        return fn()
+        if string.find(source, "AddSubNav", 1, true) and string.find(source, "TextService", 1, true) then
+            local fn = loadstring(source)
+            if fn then
+                local ok, res = pcall(fn)
+                if ok and res then return res end
+            end
+        end
     end
-    local source = game:HttpGet(sourceUrl)
+    local ok, source = pcall(function() return game:HttpGet(sourceUrl) end)
+    if not ok or not source or source == "" then
+        sourceUrl = "https://raw.githubusercontent.com/stokompetgacor23-dotcom/intregation-pinathub-to-kingrua-library/refs/heads/main/kingrualibrarysource.lua?t=" .. os.time()
+        source = game:HttpGet(sourceUrl)
+    end
     local fn, compileErr = loadstring(source)
     if not fn then error(compileErr) end
     return fn()
@@ -5048,33 +5056,37 @@ if Window then
         return adapter
     end
 
-    local Tabs = {
-        Survivor = Window:AddTab({ Title = "Survivor", Icon = "shield", Desc = "Survivor features" }),
-        Killer = Window:AddTab({ Title = "Killer", Icon = "skull", Desc = "Killer features" }),
-        Automation = Window:AddTab({ Title = "Automation", Icon = "zap", Desc = "Automation features" }),
-        Aim = Window:AddTab({ Title = "Aim", Icon = "crosshair", Desc = "Aim assistance controls" }),
-        Visual = Window:AddTab({ Title = "Visual", Icon = "eye", Desc = "Visual and ESP controls" }),
-        Mapping = Window:AddTab({ Title = "Mapping", Icon = "map", Desc = "Teleport and radar controls" }),
-        Player = Window:AddTab({ Title = "Player", Icon = "user", Desc = "Player utility controls" }),
-        Settings = Window:AddTab({ Title = "Settings", Icon = "settings", Desc = "Profiles and preferences" }),
-    }
+    local Tabs = {}
+    Tabs.Survivor = Window:AddTab({ Title = "Survivor", Icon = "shield", Desc = "Survivor features" })
+    Tabs.Killer = Window:AddTab({ Title = "Killer", Icon = "skull", Desc = "Killer features" })
+    Tabs.Automation = Window:AddTab({ Title = "Automation", Icon = "zap", Desc = "Automation features" })
+    Tabs.Aim = Window:AddTab({ Title = "Aim", Icon = "crosshair", Desc = "Aim assistance controls" })
+    Tabs.Visual = Window:AddTab({ Title = "Visual", Icon = "eye", Desc = "Visual and ESP controls" })
+    Tabs.Mapping = Window:AddTab({ Title = "Mapping", Icon = "map", Desc = "Teleport and radar controls" })
+    Tabs.Player = Window:AddTab({ Title = "Player", Icon = "user", Desc = "Player utility controls" })
+    Tabs.Settings = Window:AddTab({ Title = "Settings", Icon = "settings", Desc = "Profiles and preferences" })
 
     local TabSubNavs = {}
     local function getOrCreateSubNav(targetTab, categoryName, categoryIcon)
-        if not targetTab or type(targetTab.AddSubNav) ~= "function" then return nil end
+        if not targetTab then return nil end
+        local addNav = targetTab.AddSubNav or targetTab.AddSubTabs or targetTab.SubNav or targetTab.SubTabs
+        if type(addNav) ~= "function" then return nil end
         local subNav = TabSubNavs[targetTab]
         if not subNav then
-            subNav = targetTab:AddSubNav({
+            subNav = addNav(targetTab, {
                 IncludeAll = true,
                 Default = "All"
             })
             TabSubNavs[targetTab] = subNav
         end
-        if categoryName then
-            subNav:AddCategory({
-                Name = categoryName,
-                Icon = categoryIcon
-            })
+        if categoryName and subNav then
+            local addCat = subNav.AddCategory or subNav.AddPill
+            if type(addCat) == "function" then
+                addCat(subNav, {
+                    Name = categoryName,
+                    Icon = categoryIcon
+                })
+            end
         end
         return subNav
     end
