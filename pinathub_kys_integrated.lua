@@ -4073,66 +4073,200 @@ function GB_IsPromptVisible()
     return ok and frame and frame.Visible
 end
 function GB_UpdateButton()
-    if GenBypass.Button then
-        GenBypass.Button.Visible = GenBypass.Enabled and isMobile
+    if GenBypass.Enabled then
+        if not GenBypass._Wrap or not GenBypass.UI or not GenBypass.UI.Parent then
+            GB_CreateButton(); task.wait(0.05)
+        end
+        if GenBypass._ShowCard then GenBypass._ShowCard() end
+    else
+        if GenBypass._HideCard then GenBypass._HideCard() end
     end
 end
 function GB_CreateButton()
-    local oldUI = LocalPlayer.PlayerGui:FindFirstChild("BypassGenUI")
-    if oldUI then oldUI:Destroy() end
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return end
+    local oldUI = pg:FindFirstChild("BypassGenUI"); if oldUI then oldUI:Destroy() end
+    if GenBypass._StopAnim then pcall(GenBypass._StopAnim); GenBypass._StopAnim = nil end
     GenBypass.UI = Instance.new("ScreenGui")
     GenBypass.UI.Name = "BypassGenUI"
     GenBypass.UI.ResetOnSpawn = false
     GenBypass.UI.IgnoreGuiInset = true
-    GenBypass.UI.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    GenBypass.Button = Instance.new("ImageButton")
-    GenBypass.Button.Name = "BypassGenButton"
-    GenBypass.Button.Size = UDim2.new(0, 60, 0, 60)
-    GenBypass.Button.Position = UDim2.new(0.88, 0, 0.55, 0)
-    GenBypass.Button.AnchorPoint = Vector2.new(0.5, 0.5)
-    GenBypass.Button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    GenBypass.Button.BackgroundTransparency = 0.15
-    GenBypass.Button.AutoButtonColor = true
-    GenBypass.Button.Visible = false
-    GenBypass.Button.ZIndex = 10
-    GenBypass.Button.Parent = GenBypass.UI
-    Instance.new("UICorner", GenBypass.Button).CornerRadius = UDim.new(1, 0)
-    local s = Instance.new("UIStroke", GenBypass.Button)
-    s.Color = Color3.fromRGB(255, 255, 255)
-    s.Thickness = 2; s.Transparency = 0.2
-    local lbl = Instance.new("TextLabel", GenBypass.Button)
-    lbl.Size = UDim2.new(1, 0, 1, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = "BYPASS"
-    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    lbl.TextScaled = true
-    lbl.Font = Enum.Font.GothamBlack
-    lbl.ZIndex = 11
-    local function applyShine(obj, baseColor)
-        local grad = Instance.new("UIGradient", obj)
-        grad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, baseColor),
-            ColorSequenceKeypoint.new(0.4, baseColor),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-            ColorSequenceKeypoint.new(0.6, baseColor),
-            ColorSequenceKeypoint.new(1, baseColor)
-        })
-        grad.Rotation = 45
-        grad.Offset = Vector2.new(-1, -1)
-        task.spawn(function()
-            local TweenService = game:GetService("TweenService")
-            local ti = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1)
-            local tw = TweenService:Create(grad, ti, { Offset = Vector2.new(1, 1) })
-            tw:Play()
+    GenBypass.UI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    GenBypass.UI.DisplayOrder = 100
+    GenBypass.UI.Parent = pg
+    local wrap = Instance.new("Frame")
+    wrap.Name = "Wrap"; wrap.AnchorPoint = Vector2.new(1, 0)
+    wrap.Position = UDim2.new(1, -20, 0.48, 0)
+    wrap.Size = UDim2.fromOffset(110, 110)
+    wrap.BackgroundTransparency = 1; wrap.Active = true
+    wrap.ZIndex = 2; wrap.Parent = GenBypass.UI
+    local glow = Instance.new("Frame")
+    glow.Name = "Glow"; glow.AnchorPoint = Vector2.new(0.5, 0.5)
+    glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glow.Size = UDim2.fromOffset(88, 88)
+    glow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    glow.BackgroundTransparency = 0.85; glow.BorderSizePixel = 0
+    glow.ZIndex = 1; glow.Parent = wrap
+    Instance.new("UICorner", glow).CornerRadius = UDim.new(1, 0)
+    local mainCircle = Instance.new("Frame")
+    mainCircle.Name = "MainCircle"; mainCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+    mainCircle.Size = UDim2.fromOffset(64, 64)
+    mainCircle.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+    mainCircle.BackgroundTransparency = 0.05; mainCircle.BorderSizePixel = 0
+    mainCircle.ZIndex = 4; mainCircle.Parent = wrap
+    Instance.new("UICorner", mainCircle).CornerRadius = UDim.new(1, 0)
+    local mainGrad = Instance.new("UIGradient")
+    mainGrad.Rotation = 135
+    mainGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 36)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 10)),
+    })
+    mainGrad.Parent = mainCircle
+    local mainStroke = Instance.new("UIStroke", mainCircle)
+    mainStroke.Name = "MainStroke"; mainStroke.Color = Color3.fromRGB(255, 255, 255)
+    mainStroke.Thickness = 1.6; mainStroke.Transparency = 0.15
+    mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    local genText = Instance.new("TextLabel")
+    genText.Name = "GenText"; genText.AnchorPoint = Vector2.new(0.5, 0.5)
+    genText.Position = UDim2.new(0.5, 0, 0.5, 0)
+    genText.Size = UDim2.fromOffset(60, 30)
+    genText.BackgroundTransparency = 1; genText.Font = Enum.Font.GothamBlack
+    genText.Text = "GEN"; genText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    genText.TextSize = 20; genText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    genText.TextStrokeTransparency = 0.5
+    genText.ZIndex = 7; genText.Parent = wrap
+    local actionBtn = Instance.new("TextButton")
+    actionBtn.Name = "ActionBtn"; actionBtn.Size = UDim2.fromScale(1, 1)
+    actionBtn.BackgroundTransparency = 1; actionBtn.Text = ""
+    actionBtn.AutoButtonColor = false; actionBtn.ZIndex = 10; actionBtn.Parent = wrap
+    mainCircle.Size = UDim2.fromOffset(0, 0)
+    glow.Size = UDim2.fromOffset(0, 0)
+    genText.TextTransparency = 1; genText.TextStrokeTransparency = 1
+    GenBypass._Wrap = wrap; GenBypass._Glow = glow
+    GenBypass._MainCircle = mainCircle; GenBypass._MainStroke = mainStroke
+    GenBypass._GenText = genText; GenBypass._ActionBtn = actionBtn
+    GenBypass.Button = actionBtn
+    local TweenServiceGB = game:GetService("TweenService")
+    local function ShowCard()
+        wrap.Visible = true
+        TweenServiceGB:Create(glow, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(88, 88), BackgroundTransparency = 0.85,
+        }):Play()
+        TweenServiceGB:Create(mainCircle, TweenInfo.new(0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(64, 64), BackgroundTransparency = 0.05,
+        }):Play()
+        TweenServiceGB:Create(genText, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            TextTransparency = 0, TextStrokeTransparency = 0.5,
+        }):Play()
+    end
+    local function HideCard()
+        TweenServiceGB:Create(glow, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1,
+        }):Play()
+        TweenServiceGB:Create(mainCircle, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1,
+        }):Play()
+        TweenServiceGB:Create(genText, TweenInfo.new(0.2), {
+            TextTransparency = 1, TextStrokeTransparency = 1,
+        }):Play()
+        task.delay(0.3, function()
+            if GenBypass._StopAnim then pcall(GenBypass._StopAnim); GenBypass._StopAnim = nil end
+            if GenBypass.UI then pcall(function() GenBypass.UI:Destroy() end); GenBypass.UI = nil end
+            GenBypass._Wrap = nil; GenBypass._ShowCard = nil
+            GenBypass._HideCard = nil; GenBypass._SetStatus = nil
         end)
     end
-    applyShine(GenBypass.Button, Color3.fromRGB(20, 0, 30))
-    applyShine(lbl, Color3.fromRGB(255, 0, 255))
-    applyShine(s, Color3.fromRGB(255, 0, 255))
-    GenBypass.Button.MouseButton1Click:Connect(function()
+    GenBypass._ShowCard = ShowCard; GenBypass._HideCard = HideCard
+    local animActive = true
+    GenBypass._StopAnim = function() animActive = false end
+    task.spawn(function()
+        local t = 0
+        while animActive and wrap.Parent do
+            t = t + 0.035
+            if GenBypass.Enabled then
+                local pulse = (math.sin(t * 3) + 1) * 0.5
+                mainStroke.Transparency = 0.35 - pulse * 0.2
+                mainStroke.Thickness = 1.6 + pulse * 0.4
+                glow.BackgroundTransparency = 0.85 - pulse * 0.12
+                glow.Size = UDim2.fromOffset(88 + pulse * 5, 88 + pulse * 5)
+                genText.Rotation = math.sin(t * 1.2) * 1.5
+            end
+            task.wait(0.03)
+        end
+    end)
+    local function SetStatus(mode)
+        if mode == "ready" then
+            mainStroke.Color = Color3.fromRGB(120, 255, 160)
+            genText.TextColor3 = Color3.fromRGB(120, 255, 160)
+            glow.BackgroundColor3 = Color3.fromRGB(120, 255, 160)
+        elseif mode == "busy" then
+            mainStroke.Color = Color3.fromRGB(255, 200, 100)
+            genText.TextColor3 = Color3.fromRGB(255, 200, 100)
+            glow.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+        elseif mode == "searching" then
+            mainStroke.Color = Color3.fromRGB(150, 200, 255)
+            genText.TextColor3 = Color3.fromRGB(150, 200, 255)
+            glow.BackgroundColor3 = Color3.fromRGB(150, 200, 255)
+        else
+            mainStroke.Color = Color3.fromRGB(255, 255, 255)
+            genText.TextColor3 = Color3.fromRGB(255, 255, 255)
+            glow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end
+    GenBypass._SetStatus = SetStatus
+    local drag = false
+    local dStart, sPos
+    local dragDist = 0
+    wrap.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+            drag = true; dStart = inp.Position; sPos = wrap.Position; dragDist = 0
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(inp)
+        if not drag then return end
+        if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+            local d = inp.Position - dStart
+            dragDist = math.abs(d.X) + math.abs(d.Y)
+            wrap.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset + d.X, sPos.Y.Scale, sPos.Y.Offset + d.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+            drag = false
+        end
+    end)
+    actionBtn.MouseButton1Up:Connect(function()
         if not GenBypass.Enabled then return end
-        local bestPoint, bestDist = GB_GetNearestPoint()
-        if bestPoint and bestDist <= 8 then GB_DoRepair(bestPoint) end
+        if dragDist > 6 then return end
+        TweenServiceGB:Create(mainCircle, TweenInfo.new(0.08), { Size = UDim2.fromOffset(54, 54) }):Play()
+        task.delay(0.1, function()
+            TweenServiceGB:Create(mainCircle, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(64, 64) }):Play()
+        end)
+        local ripple = Instance.new("Frame")
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ripple.Size = UDim2.fromOffset(64, 64)
+        ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ripple.BackgroundTransparency = 0.55; ripple.BorderSizePixel = 0
+        ripple.ZIndex = 3; ripple.Parent = wrap
+        Instance.new("UICorner", ripple).CornerRadius = UDim.new(1, 0)
+        TweenServiceGB:Create(ripple, TweenInfo.new(0.6), { Size = UDim2.fromOffset(160, 160), BackgroundTransparency = 1 }):Play()
+        task.delay(0.6, function() if ripple then ripple:Destroy() end end)
+        SetStatus("searching")
+        local bp, bd = GB_GetNearestPoint()
+        if bp and bd <= GenBypass.TriggerRange then
+            SetStatus("busy")
+            task.spawn(function()
+                GB_DoRepair(bp); task.wait(0.5); SetStatus("ready")
+            end)
+        else
+            task.wait(0.6); SetStatus("standby")
+        end
+    end)
+    task.spawn(function()
+        task.wait(0.1)
+        if GenBypass.Enabled then ShowCard() end
     end)
 end
 GB_CreateButton()
@@ -4334,7 +4468,7 @@ end
 --====================================================--
 -- SILENT VEIL SPEAR (ADVANCED BALLISTIC SOLVER)
 -- Physics Kinematic Pitch Solver + Lead Ping Compensation
--- Synchronized from alvin coding jelek-1.lua (ALFzxzzz / W424)
+-- Synchronized from alvin coding jelek-1.lua (PinatHub)
 --====================================================--
 VD.VeilEnabled          = VD.VeilEnabled or false
 VD.VeilShowFOV          = (VD.VeilShowFOV ~= nil and VD.VeilShowFOV) or true
@@ -5278,7 +5412,7 @@ do
             VD.MoonwalkBoostPower = v
         end
     })
-    movSection:AddToggle({ Default = false, Name = "Invisible Character (MengHub)", Locked = false, TextLocked = "", Flag = "Invisible Not Visual", Callback = function(v) 
+    movSection:AddToggle({ Default = false, Name = "Invisible Character (PinatHub)", Locked = false, TextLocked = "", Flag = "Invisible Not Visual", Callback = function(v) 
         VD.InvisibleNotVisual = v
         VD.Invis_Enabled = v
         pcall(VD_SetInvisibleNotVisual, v)
@@ -7597,14 +7731,14 @@ local VD_InvisibleNV = {
     Position = Vector3.new(-25.95, 84, 3537.55),
 }
 
-local MV = getgenv().GlutoInvis
+local MV = getgenv().PinatHubInvis
 if not MV then
     MV = {
         Enabled = false, Loading = false, Ready = false, API = nil,
         _lastToggle = 0, _retries = 0, _retryMax = 3,
         _retryDelay = 2, _queueState = nil,
     }
-    getgenv().GlutoInvis = MV
+    getgenv().PinatHubInvis = MV
 end
 
 local INVIS_URL = "https://leekguy.vercel.app/roblox/menghub/crack_obf_invisible_93978595733734.lua"
@@ -7639,8 +7773,8 @@ local function Invis_Cleanup()
 end
 
 local function Invis_RefreshButton()
-    if getgenv().Gluto_InvisBtn_UpdateVisual then
-        pcall(getgenv().Gluto_InvisBtn_UpdateVisual)
+    if getgenv().PinatHub_InvisBtn_UpdateVisual then
+        pcall(getgenv().PinatHub_InvisBtn_UpdateVisual)
     end
 end
 
@@ -7648,13 +7782,13 @@ local function Invis_LoadAPI()
     if _G.MengHub and _G.MengHub.Invisible and Invis_ValidateAPI(_G.MengHub.Invisible) then
         MV.API = _G.MengHub.Invisible
         MV.Ready = true
-        print("[GlutoInvis] MengHub API sudah tersedia di _G")
+        print("[PinatHub] Invisible API sudah tersedia")
         return true
     end
     MV.Loading = true; MV.Ready = false
     for attempt = 1, MV._retryMax do
         MV._retries = attempt
-        print(("[GlutoInvis] Loading API... (%d/%d)"):format(attempt, MV._retryMax))
+        print(("[PinatHub] Loading API... (%d/%d)"):format(attempt, MV._retryMax))
         local ok, err = pcall(function()
             loadstring(game:HttpGet(INVIS_URL))()
         end)
@@ -7662,7 +7796,7 @@ local function Invis_LoadAPI()
         if ok and _G.MengHub and _G.MengHub.Invisible and Invis_ValidateAPI(_G.MengHub.Invisible) then
             MV.API = _G.MengHub.Invisible
             MV.Ready = true; MV.Loading = false
-            print(("[GlutoInvis] API loaded OK (attempt %d)"):format(attempt))
+            print(("[PinatHub] API loaded OK (attempt %d)"):format(attempt))
             Invis_RefreshButton()
             if MV._queueState ~= nil then
                 local queued = MV._queueState
@@ -7675,12 +7809,12 @@ local function Invis_LoadAPI()
             end
             return true
         else
-            warn(("[GlutoInvis] Attempt %d gagal: %s"):format(attempt, tostring(err)))
+            warn(("[PinatHub] Attempt %d gagal: %s"):format(attempt, tostring(err)))
             if attempt < MV._retryMax then task.wait(MV._retryDelay) end
         end
     end
     MV.Loading = false; MV.Ready = false
-    print("[GlutoInvis] Semua retry gagal")
+    print("[PinatHub] Semua retry gagal")
     Invis_RefreshButton()
     return false
 end
@@ -7722,7 +7856,7 @@ function Invisible_SetState(state, fromButton)
     if state then
         local ok, err = pcall(function() MV.API.enable() end)
         if not ok then
-            warn("[GlutoInvis] enable error:", err)
+            warn("[PinatHub] enable error:", err)
             MV.Enabled = false
             VD.Invis_Enabled = false
             VD.InvisibleNotVisual = false
@@ -7847,7 +7981,7 @@ function VD_UpdateInfiniteLunge()
 end
 function VD_UpdateInvisibleNotVisual()
     local isEnabled = (VD.InvisibleNotVisual or VD.Invis_Enabled) and true or false
-    local MV = getgenv().GlutoInvis
+    local MV = getgenv().PinatHubInvis
     if not isEnabled then
         if MV and MV.Enabled then
             Invisible_SetState(false, false)
