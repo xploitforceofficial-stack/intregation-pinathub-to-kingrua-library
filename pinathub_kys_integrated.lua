@@ -10544,7 +10544,29 @@ function TrollTeleport_SetEnabled(v)
 -- LOCK POV - from alvin
 -- ============================================================
 LockPOV = { Enabled = false, LockedFOV = 80, OriginalFOV = nil, Connection = nil }
-function LockPOV_Set(
+function LockPOV_Set(v, fov)
+    if fov then LockPOV.LockedFOV = fov end
+    LockPOV.Enabled = v and true or false
+    if LockPOV.Enabled then
+        local cam = workspace.CurrentCamera
+        if cam then LockPOV.OriginalFOV = cam.FieldOfView end
+        if LockPOV.Connection then LockPOV.Connection:Disconnect() end
+        LockPOV.Connection = game:GetService("RunService").RenderStepped:Connect(function()
+            if not LockPOV.Enabled then
+                if LockPOV.Connection then LockPOV.Connection:Disconnect(); LockPOV.Connection = nil end
+                local cam2 = workspace.CurrentCamera
+                if cam2 and LockPOV.OriginalFOV then cam2.FieldOfView = LockPOV.OriginalFOV end
+                return
+            end
+            local cam3 = workspace.CurrentCamera
+            if cam3 then cam3.FieldOfView = LockPOV.LockedFOV end
+        end)
+    else
+        if LockPOV.Connection then LockPOV.Connection:Disconnect(); LockPOV.Connection = nil end
+        local cam = workspace.CurrentCamera
+        if cam and LockPOV.OriginalFOV then cam.FieldOfView = LockPOV.OriginalFOV end
+    end
+end
 
 -- ============================================================
 -- JERK TOOL - from alvin
@@ -10600,7 +10622,11 @@ do
             end
         end)
     end
-    function JerkOff_SetEnabled(
+    function JerkOff_SetEnabled(v)
+    JerkTool.Enabled = v and true or false
+    jerkRunning = JerkTool.Enabled
+    if v then JerkOff_Create() else JerkOff_Destroy() end
+end
 
 -- ============================================================
 -- EMOTE SYSTEM - from alvin
@@ -10664,7 +10690,12 @@ function EmoteSystem_SetEnabled(v)
     _ES.Enabled = v and true or false
     if _ES.Enabled then EmoteSystem_Play() else EmoteSystem_Stop() end
 end
-function EmoteSystem_SelectEmote(
+function EmoteSystem_SelectEmote(name)
+    if EmoteSystem.Data[name] then
+        EmoteSystem.SelectedEmote = name
+        if EmoteSystem.Enabled then EmoteSystem_Play() end
+    end
+end
 
 -- ============================================================
 -- STUN SOUNDS + STUN INDICATOR (Killer Stunned Notification) - from alvin
