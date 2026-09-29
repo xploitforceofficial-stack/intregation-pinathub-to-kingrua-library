@@ -10700,926 +10700,1215 @@ end
 -- ============================================================
 -- STUN SOUNDS + STUN INDICATOR (Killer Stunned Notification) - from alvin
 -- ============================================================
-    StunSounds = StunSounds or {
+-- ============================================================
+-- STUN SOUNDS + STUN INDICATOR (Killer Stunned Notification) - from alvin
+-- ============================================================
+StunSounds = StunSounds or {
+["Default"]="18843924331",["Clash Royale"]="114072050006157",["Blash"]="89068385567682",
+["Coin"]="75510526696824",["Kururin Kuru"]="119896940405402",["Spongebob"]="6835794541",
+["Fahhhh"]="123562480982353",["Cave"]="3173566193",["Aughhh"]="9095205664",
+["Samsung"]="6879335951",["iPhone"]="4203251375",["Siren"]="130677853589923",
+}
+StunIndicator = StunIndicator or {
+Enabled = false, Cache = {}, HeartbeatConn = nil, Range = 500,
+Icon = "rbxassetid://81633822407558",
+SoundEnabled = true, SoundId = "18843924331",
+SoundVolume = 1.5, SoundRange = 500, SelectedSound = "Default",
+}
+local SInd = StunIndicator
+SInd.SelectedSound = SInd.SelectedSound or "Default"
+local function SInd_GetActiveSoundId()
+local id = StunSounds[SInd.SelectedSound]
+if id then return id end
+return SInd.SoundId
+end
+local function SInd_IsStunned(char)
+if not char then return false end
+if char:GetAttribute("IsStunned") == true then return true end
+if char:GetAttribute("isStunned") == true then return true end
+if char:GetAttribute("Stunned") == true then return true end
+if char:GetAttribute("stunned") == true then return true end
+if char:GetAttribute("IsStun") == true then return true end
+if char:GetAttribute("Stun") == true then return true end
+local ci = char:FindFirstChild("CheckInterractable")
+if ci then
+    if ci:GetAttribute("isStunned") == true then return true end
+    if ci:GetAttribute("Stunned") == true then return true end
+end
+local hum = char:FindFirstChildOfClass("Humanoid")
+if hum then
+    local sv = hum:FindFirstChild("StunValue")
+    if sv and sv.Value > 0 then return true end
+end
+return false
+end
+local function SInd_Remove(char)
+local data = SInd.Cache[char]
+if data then
+    pcall(function()
+        if data.StopAnim then data.StopAnim() end
+        if data.Gui then data.Gui:Destroy() end
+    end)
+    SInd.Cache[char] = nil
+end
+end
+local function SInd_PlaySound(char)
+if not SInd.SoundEnabled then return end
+pcall(function()
+    local head = char and char:FindFirstChild("Head")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local attachTo = head or hrp
+    if not attachTo then return end
+    local snd = Instance.new("Sound")
+    snd.Name = "PinatStunSound"
+    snd.SoundId = "rbxassetid://" .. tostring(SInd_GetActiveSoundId())
+    snd.Volume = SInd.SoundVolume or 1.5
+    snd.PlaybackSpeed = 1
+    snd.RollOffMaxDistance = SInd.SoundRange or 500
+    snd.RollOffMinDistance = 10
+    snd.RollOffMode = Enum.RollOffMode.InverseTapered
+    snd.Parent = attachTo
+    snd:Play()
+    snd.Ended:Connect(function() pcall(function() snd:Destroy() end) end)
+    task.delay(5, function() pcall(function() if snd and snd.Parent then snd:Destroy() end end) end)
+end)
+end
+local function SInd_Create(char)
+if SInd.Cache[char] then return SInd.Cache[char] end
+local head = char:FindFirstChild("Head")
+if not head then return nil end
+local bbg = Instance.new("BillboardGui")
+bbg.Name = "PinatStunIndicator"
+bbg.Size = UDim2.fromOffset(140, 42)
+bbg.StudsOffset = Vector3.new(0, 3.0, 0)
+bbg.AlwaysOnTop = true
+bbg.LightInfluence = 0
+bbg.MaxDistance = 500
+bbg.Adornee = head
+bbg.Parent = char
+local pulse1 = Instance.new("Frame")
+pulse1.Name = "Pulse1"
+pulse1.AnchorPoint = Vector2.new(0.5, 0.5)
+pulse1.Position = UDim2.new(0.5, 0, 0.5, 0)
+pulse1.Size = UDim2.fromOffset(34, 34)
+pulse1.BackgroundTransparency = 1
+pulse1.BorderSizePixel = 0
+pulse1.ZIndex = 0
+pulse1.Parent = bbg
+Instance.new("UICorner", pulse1).CornerRadius = UDim.new(1, 0)
+local p1s = Instance.new("UIStroke", pulse1)
+p1s.Color = Color3.fromRGB(255, 255, 255)
+p1s.Thickness = 1.8
+p1s.Transparency = 0.3
+p1s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local pulse2 = Instance.new("Frame")
+pulse2.Name = "Pulse2"
+pulse2.AnchorPoint = Vector2.new(0.5, 0.5)
+pulse2.Position = UDim2.new(0.5, 0, 0.5, 0)
+pulse2.Size = UDim2.fromOffset(34, 34)
+pulse2.BackgroundTransparency = 1
+pulse2.BorderSizePixel = 0
+pulse2.ZIndex = 0
+pulse2.Parent = bbg
+Instance.new("UICorner", pulse2).CornerRadius = UDim.new(1, 0)
+local p2s = Instance.new("UIStroke", pulse2)
+p2s.Color = Color3.fromRGB(200, 200, 210)
+p2s.Thickness = 1.8
+p2s.Transparency = 0.4
+p2s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 140, 0, 34)
+main.Position = UDim2.new(0, 0, 0, 4)
+main.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+main.BackgroundTransparency = 0.05
+main.BorderSizePixel = 0
+main.ZIndex = 1
+main.Parent = bbg
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 9)
+local bodyGrad = Instance.new("UIGradient")
+bodyGrad.Rotation = 135
+bodyGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 24, 28)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 10)),
+})
+bodyGrad.Parent = main
+local mainStroke = Instance.new("UIStroke", main)
+mainStroke.Name = "MainStroke"
+mainStroke.Color = Color3.fromRGB(255, 255, 255)
+mainStroke.Thickness = 1.3
+mainStroke.Transparency = 0.15
+mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local iconHolder = Instance.new("Frame")
+iconHolder.Name = "IconHolder"
+iconHolder.Size = UDim2.fromOffset(24, 24)
+iconHolder.Position = UDim2.new(0, 5, 0.5, -12)
+iconHolder.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+iconHolder.BorderSizePixel = 0
+iconHolder.ZIndex = 3
+iconHolder.Parent = main
+Instance.new("UICorner", iconHolder).CornerRadius = UDim.new(1, 0)
+local iconGrad = Instance.new("UIGradient", iconHolder)
+iconGrad.Rotation = 135
+iconGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 44)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 14, 18)),
+})
+local iconStroke = Instance.new("UIStroke", iconHolder)
+iconStroke.Color = Color3.fromRGB(255, 255, 255)
+iconStroke.Thickness = 1
+iconStroke.Transparency = 0.25
+local starIcon = Instance.new("TextLabel")
+starIcon.Name = "StarIcon"
+starIcon.Size = UDim2.fromScale(1, 1)
+starIcon.BackgroundTransparency = 1
+starIcon.Font = Enum.Font.GothamBlack
+starIcon.Text = "â˜…"
+starIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+starIcon.TextScaled = true
+starIcon.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+starIcon.TextStrokeTransparency = 0.5
+starIcon.ZIndex = 4
+starIcon.Parent = iconHolder
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -42, 0, 12)
+title.Position = UDim2.new(0, 34, 0, 4)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBlack
+title.Text = "STUNNED"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 11
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+title.TextStrokeTransparency = 0.5
+title.ZIndex = 3
+title.Parent = main
+local sub = Instance.new("TextLabel")
+sub.Name = "Sub"
+sub.Size = UDim2.new(1, -42, 0, 8)
+sub.Position = UDim2.new(0, 34, 0, 18)
+sub.BackgroundTransparency = 1
+sub.Font = Enum.Font.GothamBold
+sub.Text = "SILENT"
+sub.TextColor3 = Color3.fromRGB(170, 170, 180)
+sub.TextSize = 7
+sub.TextXAlignment = Enum.TextXAlignment.Left
+sub.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+sub.TextStrokeTransparency = 0.6
+sub.ZIndex = 3
+sub.Parent = main
+local accent = Instance.new("Frame")
+accent.Name = "Accent"
+accent.AnchorPoint = Vector2.new(1, 0.5)
+accent.Size = UDim2.fromOffset(2.5, 14)
+accent.Position = UDim2.new(1, -5, 0.5, 0)
+accent.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+accent.BorderSizePixel = 0
+accent.ZIndex = 3
+accent.Parent = main
+Instance.new("UICorner", accent).CornerRadius = UDim.new(1, 0)
+main.Size = UDim2.new(0, 0, 0, 0)
+main.BackgroundTransparency = 1
+task.spawn(function()
+    task.wait(0.02)
+    TweenService:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 140, 0, 34),
+        BackgroundTransparency = 0.05,
+    }):Play()
+end)
+local animActive = true
+local function StopAnim() animActive = false end
+task.spawn(function()
+    local t = 0
+    while animActive and bbg.Parent and main.Parent do
+        t = t + 0.05
+        local pulse = (math.sin(t * 3) + 1) * 0.5
+        mainStroke.Transparency = 0.35 - pulse * 0.2
+        mainStroke.Thickness = 1.2 + pulse * 0.3
+        starIcon.Rotation = math.sin(t * 2) * 10
+        local p1 = (t * 0.55) % 1
+        pulse1.Size = UDim2.fromOffset(34 + p1 * 40, 34 + p1 * 40)
+        p1s.Transparency = 0.15 + p1 * 0.75
+        local p2 = ((t * 0.55) + 0.5) % 1
+        pulse2.Size = UDim2.fromOffset(34 + p2 * 40, 34 + p2 * 40)
+        p2s.Transparency = 0.15 + p2 * 0.75
+        task.wait(0.03)
+    end
+end)
+local function ExitAndDestroy()
+    animActive = false
+    TweenService:Create(main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+    }):Play()
+    task.delay(0.28, function() pcall(function() bbg:Destroy() end) end)
+end
+SInd.Cache[char] = { Gui = bbg, Main = main, StopAnim = StopAnim, Exit = ExitAndDestroy }
+return SInd.Cache[char]
+end
+function SInd_SetEnabled(v)
+SInd.Enabled = v and true or false
+if SInd.Enabled then
+    if SInd.HeartbeatConn then return end
+    SInd.HeartbeatConn = RunService.Heartbeat:Connect(function()
+        if not SInd.Enabled then return end
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and TeamIs(p, "Killer") and p.Character then
+                local char = p.Character
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - myRoot.Position).Magnitude
+                    local stunned = SInd_IsStunned(char)
+                    local data = SInd.Cache[char]
+                    local wasStunned = data ~= nil
+                    if stunned and dist <= SInd.Range then
+                        if not wasStunned then SInd_PlaySound(char); SInd_Create(char) end
+                    else
+                        if wasStunned then
+                            if data.Exit then data.Exit() else SInd_Remove(char) end
+                            SInd.Cache[char] = nil
+                        end
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        if SInd.HeartbeatConn then SInd.HeartbeatConn:Disconnect(); SInd.HeartbeatConn = nil end
+        for _, data in pairs(SInd.Cache) do
+            pcall(function()
+                if data.StopAnim then data.StopAnim() end
+                if data.Gui then data.Gui:Destroy() end
+            end)
+        end
+        SInd.Cache = {}
+    end
+end
+
+--====================================================--
+
 
 -- ============================================================
 -- FULL ESP (Highlight-based ESP for players/objects) - from alvin
 -- ============================================================
-    FullESP = FullESP or {
-    Survivor = false, Killer = false,
-    Generator = false, Pallet = false, Window = false, SCP = false,
-    Distance = 500,
+FullESP = FullESP or {
+Survivor = false, Killer = false,
+Generator = false, Pallet = false, Window = false, SCP = false,
+Distance = 500,
 }
 FullESPStatus = FullESPStatus or {
-    Enabled = false,
-    ShowName = true, ShowDistance = true, ShowHealth = false,
-    ShowAvatar = true, ShowAction = true, Radius = 500,
+Enabled = false,
+ShowName = true, ShowDistance = true, ShowHealth = false,
+ShowAvatar = true, ShowAction = true, Radius = 500,
 }
 FullESPColors = FullESPColors or {
-    Survivor  = Color3.fromRGB(0, 190, 255), Killer    = Color3.fromRGB(255, 0, 0),
-    Generator = Color3.fromRGB(255, 255, 0), Window    = Color3.fromRGB(255, 255, 255),
-    Pallet    = Color3.fromRGB(255, 165, 0), SCP       = Color3.fromRGB(0, 255, 0),
+Survivor  = Color3.fromRGB(0, 190, 255), Killer    = Color3.fromRGB(255, 0, 0),
+Generator = Color3.fromRGB(255, 255, 0), Window    = Color3.fromRGB(255, 255, 255),
+Pallet    = Color3.fromRGB(255, 165, 0), SCP       = Color3.fromRGB(0, 255, 0),
 }
 local FESP  = FullESP
 local FESPS = FullESPStatus
 local FESPC = FullESPColors
 
 do
-    local ESPObjects = {}
-    local StatusESP  = {}
-    local CachedSCP     = {}
-    local CachedGen     = {}
-    local CachedPallet  = {}
-    local CachedWindow  = {}
-    local WindowObjects = {}
+local ESPObjects = {}
+local StatusESP  = {}
+local CachedSCP     = {}
+local CachedGen     = {}
+local CachedPallet  = {}
+local CachedWindow  = {}
+local WindowObjects = {}
 
-    local function CacheObject(obj)
-        if not obj then return end
-        local ln = string.lower(obj.Name)
-        if string.find(ln, "scp", 1, true) then CachedSCP[obj] = true end
-        if obj.Name == "Generator" then
-            CachedGen[obj] = true
-        elseif obj.Name == "Pallet" or obj.Name == "Palletwrong" then
-            CachedPallet[obj] = true
-        end
+local function CacheObject(obj)
+    if not obj then return end
+    local ln = string.lower(obj.Name)
+    if string.find(ln, "scp", 1, true) then CachedSCP[obj] = true end
+    if obj.Name == "Generator" then
+        CachedGen[obj] = true
+    elseif obj.Name == "Pallet" or obj.Name == "Palletwrong" then
+        CachedPallet[obj] = true
     end
+end
 
-    for _, obj in ipairs(Workspace:GetDescendants()) do CacheObject(obj) end
-    Workspace.DescendantAdded:Connect(CacheObject)
-    Workspace.DescendantRemoving:Connect(function(obj)
-        CachedSCP[obj] = nil; CachedGen[obj] = nil
-        CachedPallet[obj] = nil; CachedWindow[obj] = nil
-        if ESPObjects[obj] then pcall(function() ESPObjects[obj]:Destroy() end); ESPObjects[obj] = nil end
-        if StatusESP[obj] then pcall(function() StatusESP[obj]:Destroy() end); StatusESP[obj] = nil end
+for _, obj in ipairs(Workspace:GetDescendants()) do CacheObject(obj) end
+Workspace.DescendantAdded:Connect(CacheObject)
+Workspace.DescendantRemoving:Connect(function(obj)
+    CachedSCP[obj] = nil; CachedGen[obj] = nil
+    CachedPallet[obj] = nil; CachedWindow[obj] = nil
+    if ESPObjects[obj] then pcall(function() ESPObjects[obj]:Destroy() end); ESPObjects[obj] = nil end
+    if StatusESP[obj] then pcall(function() StatusESP[obj]:Destroy() end); StatusESP[obj] = nil end
+end)
+
+local function RemoveESP(obj)
+    if not obj then return end
+    if ESPObjects[obj] then
+        pcall(function() ESPObjects[obj]:Destroy() end)
+        ESPObjects[obj] = nil
+    end
+end
+
+local function CreateESP(obj, color)
+    if not obj or not obj.Parent then return end
+    if ESPObjects[obj] then
+        ESPObjects[obj].FillColor = color
+        ESPObjects[obj].OutlineColor = color
+        return
+    end
+    local h = Instance.new("Highlight")
+    h.FillColor = color
+    h.OutlineColor = color
+    h.FillTransparency = 0.9
+    h.OutlineTransparency = 0.3
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent = obj
+    ESPObjects[obj] = h
+    obj.AncestryChanged:Connect(function(_, parent)
+        if not parent then RemoveESP(obj) end
     end)
+end
 
-    local function RemoveESP(obj)
-        if not obj then return end
-        if ESPObjects[obj] then
-            pcall(function() ESPObjects[obj]:Destroy() end)
-            ESPObjects[obj] = nil
-        end
+local function RemoveStatusESP(char)
+    if StatusESP[char] then
+        pcall(function() StatusESP[char]:Destroy() end)
+        StatusESP[char] = nil
+    end
+end
+
+local function StatusESP_GetAction(char, hum)
+    if not char or not hum then return "IDLE", Color3.fromRGB(150, 150, 150) end
+    if hum.Health <= 0 then return "DEAD", Color3.fromRGB(200, 60, 60) end
+    if char:GetAttribute("IsHooked") or char:GetAttribute("isHooked") or char:GetAttribute("Hooked") then
+        return "HOOKED", Color3.fromRGB(255, 60, 60)
+    end
+    if char:GetAttribute("IsCarried") or char:GetAttribute("isCarried") or char:GetAttribute("Carried") then
+        return "CARRIED", Color3.fromRGB(255, 100, 100)
+    end
+    local state = char:GetAttribute("State")
+    if state == "Downed" or char:GetAttribute("Knocked") == true
+       or char:GetAttribute("IsDown") == true or char:GetAttribute("Downed") == true then
+        return "DOWNED", Color3.fromRGB(255, 130, 60)
+    end
+    local ci = char:FindFirstChild("CheckInterractable")
+    if ci then
+        if ci:GetAttribute("isRepairing") then return "REPAIR", Color3.fromRGB(255, 220, 60) end
+        if ci:GetAttribute("isHealing") then return "HEAL", Color3.fromRGB(80, 220, 120) end
+        if ci:GetAttribute("isVaulting") then return "VAULT", Color3.fromRGB(120, 200, 255) end
+        if ci:GetAttribute("isSliding") then return "SLIDE", Color3.fromRGB(150, 180, 255) end
+        if ci:GetAttribute("isDroppingPallet") then return "PALLET", Color3.fromRGB(255, 165, 60) end
+        if ci:GetAttribute("isUnhooking") then return "UNHOOK", Color3.fromRGB(180, 120, 255) end
+        if ci:GetAttribute("isExiting") then return "EXIT", Color3.fromRGB(80, 255, 180) end
+    end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if root then
+        local vel = root.AssemblyLinearVelocity
+        local speed = Vector3.new(vel.X, 0, vel.Z).Magnitude
+        if speed > 20 then return "SPRINT", Color3.fromRGB(120, 255, 200) end
+        if speed > 2 then return "MOVE", Color3.fromRGB(200, 200, 220) end
+    end
+    return "IDLE", Color3.fromRGB(150, 150, 150)
+end
+
+local function CreateStatusESP(plr, char, root)
+    if not FESPS.Enabled then RemoveStatusESP(char); return end
+    if not root then return end
+    local head = char:FindFirstChild("Head")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not head or not hum then return end
+
+    local isDown = hum.Health <= 0 or hum.Health < 2
+        or char:GetAttribute("Downed") == true
+        or char:GetAttribute("IsDown") == true
+        or char:GetAttribute("Knocked") == true
+
+    local dist = (head.Position - root.Position).Magnitude
+    if dist > FESPS.Radius then RemoveStatusESP(char); return end
+
+    local accentColor = Color3.fromRGB(255, 255, 255)
+    if TeamIs(plr, "Killer") then accentColor = FESPC.Killer
+    elseif TeamIs(plr, "Survivor") then accentColor = FESPC.Survivor end
+    if isDown then accentColor = Color3.fromRGB(255, 60, 60) end
+
+    local hpPct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+    local hpColor
+    if hpPct > 0.6 then hpColor = Color3.fromRGB(80, 220, 120)
+    elseif hpPct > 0.3 then hpColor = Color3.fromRGB(255, 200, 60)
+    else hpColor = Color3.fromRGB(255, 80, 80) end
+
+    local actionText, actionColor = StatusESP_GetAction(char, hum)
+
+    local bb = StatusESP[char]
+    if not bb or not bb.Parent then
+        bb = Instance.new("BillboardGui")
+        bb.Name = "GlutoStatusESP"
+        bb.AlwaysOnTop = true
+        bb.LightInfluence = 0
+        bb.Adornee = head
+        bb.StudsOffset = Vector3.new(0, 2.5, 0)
+        bb.Size = UDim2.fromOffset(260, 40)
+        bb.Parent = char
+
+        local scaleObj = Instance.new("UIScale")
+        scaleObj.Name = "DistScale"
+        scaleObj.Scale = 1
+        scaleObj.Parent = bb
+
+        local nameLbl = Instance.new("TextLabel")
+        nameLbl.Name = "NameLbl"
+        nameLbl.BackgroundTransparency = 1
+        nameLbl.Size = UDim2.new(1, 0, 0, 16)
+        nameLbl.Position = UDim2.new(0, 0, 0, 0)
+        nameLbl.Font = Enum.Font.GothamBold
+        nameLbl.TextSize = 13
+        nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        nameLbl.TextStrokeTransparency = 0.2
+        nameLbl.TextXAlignment = Enum.TextXAlignment.Center
+        nameLbl.TextYAlignment = Enum.TextYAlignment.Center
+        nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
+        nameLbl.Parent = bb
+
+        local pill = Instance.new("Frame")
+        pill.Name = "Pill"
+        pill.AnchorPoint = Vector2.new(0.5, 0)
+        pill.Position = UDim2.new(0.5, 0, 0, 18)
+        pill.Size = UDim2.fromOffset(120, 22)
+        pill.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+        pill.BackgroundTransparency = 0.15
+        pill.BorderSizePixel = 0
+        pill.Parent = bb
+        Instance.new("UICorner", pill).CornerRadius = UDim.new(1, 0)
+
+        local pillStroke = Instance.new("UIStroke", pill)
+        pillStroke.Name = "PillStroke"
+        pillStroke.Color = accentColor
+        pillStroke.Thickness = 1
+        pillStroke.Transparency = 0.5
+        pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local layout = Instance.new("UIListLayout", pill)
+        layout.FillDirection = Enum.FillDirection.Horizontal
+        layout.Padding = UDim.new(0, 5)
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.VerticalAlignment = Enum.VerticalAlignment.Center
+        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+        local pad = Instance.new("UIPadding", pill)
+        pad.PaddingLeft = UDim.new(0, 6)
+        pad.PaddingRight = UDim.new(0, 8)
+
+        local avatarHolder = Instance.new("Frame")
+        avatarHolder.Name = "AvatarHolder"
+        avatarHolder.Size = UDim2.fromOffset(18, 18)
+        avatarHolder.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+        avatarHolder.BorderSizePixel = 0
+        avatarHolder.LayoutOrder = 1
+        avatarHolder.ClipsDescendants = true
+        avatarHolder.Parent = pill
+        Instance.new("UICorner", avatarHolder).CornerRadius = UDim.new(1, 0)
+
+        local avatarStroke = Instance.new("UIStroke", avatarHolder)
+        avatarStroke.Name = "AvatarStroke"
+        avatarStroke.Color = accentColor
+        avatarStroke.Thickness = 1.2
+        avatarStroke.Transparency = 0.3
+        avatarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local avatarImg = Instance.new("ImageLabel")
+        avatarImg.Name = "AvatarImg"
+        avatarImg.Size = UDim2.fromScale(1, 1)
+        avatarImg.BackgroundTransparency = 1
+        avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+        avatarImg.Parent = avatarHolder
+
+        local dot = Instance.new("Frame")
+        dot.Name = "Dot"
+        dot.Size = UDim2.fromOffset(7, 7)
+        dot.BackgroundColor3 = accentColor
+        dot.BorderSizePixel = 0
+        dot.LayoutOrder = 1
+        dot.Visible = false
+        dot.Parent = pill
+        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+        local distLbl = Instance.new("TextLabel")
+        distLbl.Name = "DistLbl"
+        distLbl.BackgroundTransparency = 1
+        distLbl.Size = UDim2.fromOffset(32, 14)
+        distLbl.Font = Enum.Font.GothamBold
+        distLbl.TextSize = 11
+        distLbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+        distLbl.Text = "0m"
+        distLbl.LayoutOrder = 2
+        distLbl.Parent = pill
+
+        local actionLbl = Instance.new("TextLabel")
+        actionLbl.Name = "ActionLbl"
+        actionLbl.BackgroundTransparency = 1
+        actionLbl.Size = UDim2.fromOffset(50, 14)
+        actionLbl.Font = Enum.Font.GothamBold
+        actionLbl.TextSize = 10
+        actionLbl.TextColor3 = actionColor
+        actionLbl.Text = "IDLE"
+        actionLbl.LayoutOrder = 3
+        actionLbl.Parent = pill
+
+        local hpBarBg = Instance.new("Frame")
+        hpBarBg.Name = "HPBarBg"
+        hpBarBg.Size = UDim2.fromOffset(38, 4)
+        hpBarBg.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        hpBarBg.BorderSizePixel = 0
+        hpBarBg.LayoutOrder = 4
+        hpBarBg.Parent = pill
+        Instance.new("UICorner", hpBarBg).CornerRadius = UDim.new(1, 0)
+
+        local hpBarFill = Instance.new("Frame")
+        hpBarFill.Name = "HPBarFill"
+        hpBarFill.Size = UDim2.new(1, 0, 1, 0)
+        hpBarFill.BackgroundColor3 = hpColor
+        hpBarFill.BorderSizePixel = 0
+        hpBarFill.Parent = hpBarBg
+        Instance.new("UICorner", hpBarFill).CornerRadius = UDim.new(1, 0)
+
+        local downPill = Instance.new("Frame")
+        downPill.Name = "DownPill"
+        downPill.Size = UDim2.fromOffset(36, 14)
+        downPill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        downPill.BackgroundTransparency = 0.1
+        downPill.BorderSizePixel = 0
+        downPill.Visible = false
+        downPill.LayoutOrder = 5
+        downPill.Parent = pill
+        Instance.new("UICorner", downPill).CornerRadius = UDim.new(1, 0)
+
+        local downLbl = Instance.new("TextLabel")
+        downLbl.Name = "DownLbl"
+        downLbl.Size = UDim2.new(1, 0, 1, 0)
+        downLbl.BackgroundTransparency = 1
+        downLbl.Font = Enum.Font.GothamBold
+        downLbl.TextSize = 9
+        downLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+        downLbl.Text = "DOWN"
+        downLbl.Parent = downPill
+
+        StatusESP[char] = bb
     end
 
-    local function CreateESP(obj, color)
-        if not obj or not obj.Parent then return end
-        if ESPObjects[obj] then
-            ESPObjects[obj].FillColor = color
-            ESPObjects[obj].OutlineColor = color
-            return
-        end
-        local h = Instance.new("Highlight")
-        h.FillColor = color
-        h.OutlineColor = color
-        h.FillTransparency = 0.9
-        h.OutlineTransparency = 0.3
-        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        h.Parent = obj
-        ESPObjects[obj] = h
-        obj.AncestryChanged:Connect(function(_, parent)
-            if not parent then RemoveESP(obj) end
-        end)
+    local nameLbl = bb:FindFirstChild("NameLbl")
+    local pill = bb:FindFirstChild("Pill")
+    if not pill then return end
+    local pillStroke = pill:FindFirstChild("PillStroke")
+    local avatarHolder = pill:FindFirstChild("AvatarHolder")
+    local avatarImg = avatarHolder and avatarHolder:FindFirstChild("AvatarImg")
+    local avatarStroke = avatarHolder and avatarHolder:FindFirstChild("AvatarStroke")
+    local dot = pill:FindFirstChild("Dot")
+    local distLbl = pill:FindFirstChild("DistLbl")
+    local actionLbl = pill:FindFirstChild("ActionLbl")
+    local hpBarBg = pill:FindFirstChild("HPBarBg")
+    local hpBarFill = hpBarBg and hpBarBg:FindFirstChild("HPBarFill")
+    local downPill = pill:FindFirstChild("DownPill")
+    local distScale = bb:FindFirstChild("DistScale")
+
+    if pillStroke then
+        pillStroke.Color = accentColor
+        pillStroke.Transparency = isDown and 0.2 or 0.5
     end
-
-    local function RemoveStatusESP(char)
-        if StatusESP[char] then
-            pcall(function() StatusESP[char]:Destroy() end)
-            StatusESP[char] = nil
-        end
-    end
-
-    local function StatusESP_GetAction(char, hum)
-        if not char or not hum then return "IDLE", Color3.fromRGB(150, 150, 150) end
-        if hum.Health <= 0 then return "DEAD", Color3.fromRGB(200, 60, 60) end
-        if char:GetAttribute("IsHooked") or char:GetAttribute("isHooked") or char:GetAttribute("Hooked") then
-            return "HOOKED", Color3.fromRGB(255, 60, 60)
-        end
-        if char:GetAttribute("IsCarried") or char:GetAttribute("isCarried") or char:GetAttribute("Carried") then
-            return "CARRIED", Color3.fromRGB(255, 100, 100)
-        end
-        local state = char:GetAttribute("State")
-        if state == "Downed" or char:GetAttribute("Knocked") == true
-           or char:GetAttribute("IsDown") == true or char:GetAttribute("Downed") == true then
-            return "DOWNED", Color3.fromRGB(255, 130, 60)
-        end
-        local ci = char:FindFirstChild("CheckInterractable")
-        if ci then
-            if ci:GetAttribute("isRepairing") then return "REPAIR", Color3.fromRGB(255, 220, 60) end
-            if ci:GetAttribute("isHealing") then return "HEAL", Color3.fromRGB(80, 220, 120) end
-            if ci:GetAttribute("isVaulting") then return "VAULT", Color3.fromRGB(120, 200, 255) end
-            if ci:GetAttribute("isSliding") then return "SLIDE", Color3.fromRGB(150, 180, 255) end
-            if ci:GetAttribute("isDroppingPallet") then return "PALLET", Color3.fromRGB(255, 165, 60) end
-            if ci:GetAttribute("isUnhooking") then return "UNHOOK", Color3.fromRGB(180, 120, 255) end
-            if ci:GetAttribute("isExiting") then return "EXIT", Color3.fromRGB(80, 255, 180) end
-        end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if root then
-            local vel = root.AssemblyLinearVelocity
-            local speed = Vector3.new(vel.X, 0, vel.Z).Magnitude
-            if speed > 20 then return "SPRINT", Color3.fromRGB(120, 255, 200) end
-            if speed > 2 then return "MOVE", Color3.fromRGB(200, 200, 220) end
-        end
-        return "IDLE", Color3.fromRGB(150, 150, 150)
-    end
-
-    local function CreateStatusESP(plr, char, root)
-        if not FESPS.Enabled then RemoveStatusESP(char); return end
-        if not root then return end
-        local head = char:FindFirstChild("Head")
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not head or not hum then return end
-
-        local isDown = hum.Health <= 0 or hum.Health < 2
-            or char:GetAttribute("Downed") == true
-            or char:GetAttribute("IsDown") == true
-            or char:GetAttribute("Knocked") == true
-
-        local dist = (head.Position - root.Position).Magnitude
-        if dist > FESPS.Radius then RemoveStatusESP(char); return end
-
-        local accentColor = Color3.fromRGB(255, 255, 255)
-        if TeamIs(plr, "Killer") then accentColor = FESPC.Killer
-        elseif TeamIs(plr, "Survivor") then accentColor = FESPC.Survivor end
-        if isDown then accentColor = Color3.fromRGB(255, 60, 60) end
-
-        local hpPct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
-        local hpColor
-        if hpPct > 0.6 then hpColor = Color3.fromRGB(80, 220, 120)
-        elseif hpPct > 0.3 then hpColor = Color3.fromRGB(255, 200, 60)
-        else hpColor = Color3.fromRGB(255, 80, 80) end
-
-        local actionText, actionColor = StatusESP_GetAction(char, hum)
-
-        local bb = StatusESP[char]
-        if not bb or not bb.Parent then
-            bb = Instance.new("BillboardGui")
-            bb.Name = "GlutoStatusESP"
-            bb.AlwaysOnTop = true
-            bb.LightInfluence = 0
-            bb.Adornee = head
-            bb.StudsOffset = Vector3.new(0, 2.5, 0)
-            bb.Size = UDim2.fromOffset(260, 40)
-            bb.Parent = char
-
-            local scaleObj = Instance.new("UIScale")
-            scaleObj.Name = "DistScale"
-            scaleObj.Scale = 1
-            scaleObj.Parent = bb
-
-            local nameLbl = Instance.new("TextLabel")
-            nameLbl.Name = "NameLbl"
-            nameLbl.BackgroundTransparency = 1
-            nameLbl.Size = UDim2.new(1, 0, 0, 16)
-            nameLbl.Position = UDim2.new(0, 0, 0, 0)
-            nameLbl.Font = Enum.Font.GothamBold
-            nameLbl.TextSize = 13
-            nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-            nameLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-            nameLbl.TextStrokeTransparency = 0.2
-            nameLbl.TextXAlignment = Enum.TextXAlignment.Center
-            nameLbl.TextYAlignment = Enum.TextYAlignment.Center
-            nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
-            nameLbl.Parent = bb
-
-            local pill = Instance.new("Frame")
-            pill.Name = "Pill"
-            pill.AnchorPoint = Vector2.new(0.5, 0)
-            pill.Position = UDim2.new(0.5, 0, 0, 18)
-            pill.Size = UDim2.fromOffset(120, 22)
-            pill.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
-            pill.BackgroundTransparency = 0.15
-            pill.BorderSizePixel = 0
-            pill.Parent = bb
-            Instance.new("UICorner", pill).CornerRadius = UDim.new(1, 0)
-
-            local pillStroke = Instance.new("UIStroke", pill)
-            pillStroke.Name = "PillStroke"
-            pillStroke.Color = accentColor
-            pillStroke.Thickness = 1
-            pillStroke.Transparency = 0.5
-            pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-            local layout = Instance.new("UIListLayout", pill)
-            layout.FillDirection = Enum.FillDirection.Horizontal
-            layout.Padding = UDim.new(0, 5)
-            layout.SortOrder = Enum.SortOrder.LayoutOrder
-            layout.VerticalAlignment = Enum.VerticalAlignment.Center
-            layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-            local pad = Instance.new("UIPadding", pill)
-            pad.PaddingLeft = UDim.new(0, 6)
-            pad.PaddingRight = UDim.new(0, 8)
-
-            local avatarHolder = Instance.new("Frame")
-            avatarHolder.Name = "AvatarHolder"
-            avatarHolder.Size = UDim2.fromOffset(18, 18)
-            avatarHolder.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-            avatarHolder.BorderSizePixel = 0
-            avatarHolder.LayoutOrder = 1
-            avatarHolder.ClipsDescendants = true
-            avatarHolder.Parent = pill
-            Instance.new("UICorner", avatarHolder).CornerRadius = UDim.new(1, 0)
-
-            local avatarStroke = Instance.new("UIStroke", avatarHolder)
-            avatarStroke.Name = "AvatarStroke"
-            avatarStroke.Color = accentColor
-            avatarStroke.Thickness = 1.2
-            avatarStroke.Transparency = 0.3
-            avatarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-            local avatarImg = Instance.new("ImageLabel")
-            avatarImg.Name = "AvatarImg"
-            avatarImg.Size = UDim2.fromScale(1, 1)
-            avatarImg.BackgroundTransparency = 1
+    if avatarHolder then
+        avatarHolder.Visible = FESPS.ShowAvatar == true
+        if avatarStroke then avatarStroke.Color = accentColor end
+        if avatarImg and avatarImg.Image == "" then
             avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
-            avatarImg.Parent = avatarHolder
-
-            local dot = Instance.new("Frame")
-            dot.Name = "Dot"
-            dot.Size = UDim2.fromOffset(7, 7)
-            dot.BackgroundColor3 = accentColor
-            dot.BorderSizePixel = 0
-            dot.LayoutOrder = 1
-            dot.Visible = false
-            dot.Parent = pill
-            Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-
-            local distLbl = Instance.new("TextLabel")
-            distLbl.Name = "DistLbl"
-            distLbl.BackgroundTransparency = 1
-            distLbl.Size = UDim2.fromOffset(32, 14)
-            distLbl.Font = Enum.Font.GothamBold
-            distLbl.TextSize = 11
-            distLbl.TextColor3 = Color3.fromRGB(220, 220, 230)
-            distLbl.Text = "0m"
-            distLbl.LayoutOrder = 2
-            distLbl.Parent = pill
-
-            local actionLbl = Instance.new("TextLabel")
-            actionLbl.Name = "ActionLbl"
-            actionLbl.BackgroundTransparency = 1
-            actionLbl.Size = UDim2.fromOffset(50, 14)
-            actionLbl.Font = Enum.Font.GothamBold
-            actionLbl.TextSize = 10
-            actionLbl.TextColor3 = actionColor
-            actionLbl.Text = "IDLE"
-            actionLbl.LayoutOrder = 3
-            actionLbl.Parent = pill
-
-            local hpBarBg = Instance.new("Frame")
-            hpBarBg.Name = "HPBarBg"
-            hpBarBg.Size = UDim2.fromOffset(38, 4)
-            hpBarBg.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-            hpBarBg.BorderSizePixel = 0
-            hpBarBg.LayoutOrder = 4
-            hpBarBg.Parent = pill
-            Instance.new("UICorner", hpBarBg).CornerRadius = UDim.new(1, 0)
-
-            local hpBarFill = Instance.new("Frame")
-            hpBarFill.Name = "HPBarFill"
-            hpBarFill.Size = UDim2.new(1, 0, 1, 0)
-            hpBarFill.BackgroundColor3 = hpColor
-            hpBarFill.BorderSizePixel = 0
-            hpBarFill.Parent = hpBarBg
-            Instance.new("UICorner", hpBarFill).CornerRadius = UDim.new(1, 0)
-
-            local downPill = Instance.new("Frame")
-            downPill.Name = "DownPill"
-            downPill.Size = UDim2.fromOffset(36, 14)
-            downPill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-            downPill.BackgroundTransparency = 0.1
-            downPill.BorderSizePixel = 0
-            downPill.Visible = false
-            downPill.LayoutOrder = 5
-            downPill.Parent = pill
-            Instance.new("UICorner", downPill).CornerRadius = UDim.new(1, 0)
-
-            local downLbl = Instance.new("TextLabel")
-            downLbl.Name = "DownLbl"
-            downLbl.Size = UDim2.new(1, 0, 1, 0)
-            downLbl.BackgroundTransparency = 1
-            downLbl.Font = Enum.Font.GothamBold
-            downLbl.TextSize = 9
-            downLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-            downLbl.Text = "DOWN"
-            downLbl.Parent = downPill
-
-            StatusESP[char] = bb
-        end
-
-        local nameLbl = bb:FindFirstChild("NameLbl")
-        local pill = bb:FindFirstChild("Pill")
-        if not pill then return end
-        local pillStroke = pill:FindFirstChild("PillStroke")
-        local avatarHolder = pill:FindFirstChild("AvatarHolder")
-        local avatarImg = avatarHolder and avatarHolder:FindFirstChild("AvatarImg")
-        local avatarStroke = avatarHolder and avatarHolder:FindFirstChild("AvatarStroke")
-        local dot = pill:FindFirstChild("Dot")
-        local distLbl = pill:FindFirstChild("DistLbl")
-        local actionLbl = pill:FindFirstChild("ActionLbl")
-        local hpBarBg = pill:FindFirstChild("HPBarBg")
-        local hpBarFill = hpBarBg and hpBarBg:FindFirstChild("HPBarFill")
-        local downPill = pill:FindFirstChild("DownPill")
-        local distScale = bb:FindFirstChild("DistScale")
-
-        if pillStroke then
-            pillStroke.Color = accentColor
-            pillStroke.Transparency = isDown and 0.2 or 0.5
-        end
-        if avatarHolder then
-            avatarHolder.Visible = FESPS.ShowAvatar == true
-            if avatarStroke then avatarStroke.Color = accentColor end
-            if avatarImg and avatarImg.Image == "" then
-                avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
-            end
-        end
-        if dot then
-            dot.Visible = (FESPS.ShowAvatar ~= true)
-            dot.BackgroundColor3 = accentColor
-        end
-        if nameLbl then
-            nameLbl.Text = plr.Name
-            nameLbl.Visible = FESPS.ShowName
-            nameLbl.TextColor3 = isDown and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(255, 255, 255)
-        end
-        if distLbl then
-            distLbl.Text = string.format("%.0fm", dist)
-            distLbl.Visible = FESPS.ShowDistance
-        end
-        if actionLbl then
-            actionLbl.Text = actionText
-            actionLbl.TextColor3 = actionColor
-            actionLbl.Visible = FESPS.ShowAction == true
-            if actionText == "IDLE" then
-                actionLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
-            end
-        end
-        if hpBarBg and hpBarFill then
-            hpBarFill.Size = UDim2.new(hpPct, 0, 1, 0)
-            hpBarFill.BackgroundColor3 = hpColor
-            hpBarBg.Visible = FESPS.ShowHealth
-        end
-        if downPill then downPill.Visible = isDown end
-
-        local totalW = 14
-        local count = 0
-        if FESPS.ShowAvatar then totalW = totalW + 18; count = count + 1
-        else totalW = totalW + 7; count = count + 1 end
-        if FESPS.ShowDistance then totalW = totalW + 32; count = count + 1 end
-        if FESPS.ShowAction then totalW = totalW + 50; count = count + 1 end
-        if FESPS.ShowHealth then totalW = totalW + 38; count = count + 1 end
-        if isDown then totalW = totalW + 36; count = count + 1 end
-        totalW = totalW + math.max(count - 1, 0) * 5
-        if totalW < 50 then totalW = 50 end
-        if totalW > 240 then totalW = 240 end
-        pill.Size = UDim2.fromOffset(totalW, 22)
-
-        local showPill = FESPS.ShowDistance or FESPS.ShowHealth or isDown
-            or FESPS.ShowAction or FESPS.ShowAvatar
-        pill.Visible = showPill
-
-        local h = 16 + (showPill and 24 or 0)
-        bb.Size = UDim2.fromOffset(260, h)
-
-        if distScale then
-            local scaleVal = 1 - (dist - 50) / 500
-            scaleVal = math.clamp(scaleVal, 0.5, 1.05)
-            distScale.Scale = scaleVal
         end
     end
-
-    local function GetGameValue(obj, name)
-        if not obj then return nil end
-        local attr = obj:GetAttribute(name)
-        if attr ~= nil then return attr end
-        local child = obj:FindFirstChild(name)
-        if child then
-            local ok, v = pcall(function() return child.Value end)
-            if ok then return v end
-        end
-        return nil
+    if dot then
+        dot.Visible = (FESPS.ShowAvatar ~= true)
+        dot.BackgroundColor3 = accentColor
     end
-
-    local function UpdateGenerator(gen)
-        if not gen or not gen.Parent then return end
-        if not FESP.Generator then
-            local o = gen:FindFirstChild("GenESP"); if o then o:Destroy() end
-            local h = gen:FindFirstChild("GenHighlight"); if h then h:Destroy() end
-            return
+    if nameLbl then
+        nameLbl.Text = plr.Name
+        nameLbl.Visible = FESPS.ShowName
+        nameLbl.TextColor3 = isDown and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(255, 255, 255)
+    end
+    if distLbl then
+        distLbl.Text = string.format("%.0fm", dist)
+        distLbl.Visible = FESPS.ShowDistance
+    end
+    if actionLbl then
+        actionLbl.Text = actionText
+        actionLbl.TextColor3 = actionColor
+        actionLbl.Visible = FESPS.ShowAction == true
+        if actionText == "IDLE" then
+            actionLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
         end
-        local percent = GetGameValue(gen, "RepairProgress")
-            or GetGameValue(gen, "Progress")
-            or GetGameValue(gen, "ProgressRepair") or 0
-        local bb = gen:FindFirstChild("GenESP")
-        if percent >= 100 then if bb then bb:Destroy() end; return end
-        local cp = math.clamp(percent, 0, 100)
-        local color = FESPC.Generator:Lerp(Color3.fromRGB(0, 255, 120), cp / 100)
-        local text = string.format("[%.0f%%]", percent)
-        if not bb then
-            bb = Instance.new("BillboardGui")
-            bb.Name = "GenESP"
-            bb.Size = UDim2.new(0, 100, 0, 30)
-            bb.AlwaysOnTop = true
-            local lbl = Instance.new("TextLabel")
-            lbl.Size = UDim2.new(1, 0, 1, 0)
-            lbl.BackgroundTransparency = 1
-            lbl.Text = text
-            lbl.TextColor3 = color
-            lbl.TextStrokeTransparency = 0
-            lbl.Font = Enum.Font.GothamBold
-            lbl.TextSize = 12
-            lbl.Parent = bb
-            bb.Adornee = gen
-            bb.Parent = gen
+    end
+    if hpBarBg and hpBarFill then
+        hpBarFill.Size = UDim2.new(hpPct, 0, 1, 0)
+        hpBarFill.BackgroundColor3 = hpColor
+        hpBarBg.Visible = FESPS.ShowHealth
+    end
+    if downPill then downPill.Visible = isDown end
+
+    local totalW = 14
+    local count = 0
+    if FESPS.ShowAvatar then totalW = totalW + 18; count = count + 1
+    else totalW = totalW + 7; count = count + 1 end
+    if FESPS.ShowDistance then totalW = totalW + 32; count = count + 1 end
+    if FESPS.ShowAction then totalW = totalW + 50; count = count + 1 end
+    if FESPS.ShowHealth then totalW = totalW + 38; count = count + 1 end
+    if isDown then totalW = totalW + 36; count = count + 1 end
+    totalW = totalW + math.max(count - 1, 0) * 5
+    if totalW < 50 then totalW = 50 end
+    if totalW > 240 then totalW = 240 end
+    pill.Size = UDim2.fromOffset(totalW, 22)
+
+    local showPill = FESPS.ShowDistance or FESPS.ShowHealth or isDown
+        or FESPS.ShowAction or FESPS.ShowAvatar
+    pill.Visible = showPill
+
+    local h = 16 + (showPill and 24 or 0)
+    bb.Size = UDim2.fromOffset(260, h)
+
+    if distScale then
+        local scaleVal = 1 - (dist - 50) / 500
+        scaleVal = math.clamp(scaleVal, 0.5, 1.05)
+        distScale.Scale = scaleVal
+    end
+end
+
+local function GetGameValue(obj, name)
+    if not obj then return nil end
+    local attr = obj:GetAttribute(name)
+    if attr ~= nil then return attr end
+    local child = obj:FindFirstChild(name)
+    if child then
+        local ok, v = pcall(function() return child.Value end)
+        if ok then return v end
+    end
+    return nil
+end
+
+local function UpdateGenerator(gen)
+    if not gen or not gen.Parent then return end
+    if not FESP.Generator then
+        local o = gen:FindFirstChild("GenESP"); if o then o:Destroy() end
+        local h = gen:FindFirstChild("GenHighlight"); if h then h:Destroy() end
+        return
+    end
+    local percent = GetGameValue(gen, "RepairProgress")
+        or GetGameValue(gen, "Progress")
+        or GetGameValue(gen, "ProgressRepair") or 0
+    local bb = gen:FindFirstChild("GenESP")
+    if percent >= 100 then if bb then bb:Destroy() end; return end
+    local cp = math.clamp(percent, 0, 100)
+    local color = FESPC.Generator:Lerp(Color3.fromRGB(0, 255, 120), cp / 100)
+    local text = string.format("[%.0f%%]", percent)
+    if not bb then
+        bb = Instance.new("BillboardGui")
+        bb.Name = "GenESP"
+        bb.Size = UDim2.new(0, 100, 0, 30)
+        bb.AlwaysOnTop = true
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, 0, 1, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = text
+        lbl.TextColor3 = color
+        lbl.TextStrokeTransparency = 0
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 12
+        lbl.Parent = bb
+        bb.Adornee = gen
+        bb.Parent = gen
+    else
+        local lbl = bb:FindFirstChildOfClass("TextLabel")
+        if lbl then lbl.Text = text; lbl.TextColor3 = color end
+    end
+    local h = gen:FindFirstChild("GenHighlight") or Instance.new("Highlight")
+    h.Name = "GenHighlight"
+    h.Adornee = gen
+    h.FillColor = color
+    h.OutlineColor = color
+    h.FillTransparency = 0.9
+    h.OutlineTransparency = 0.3
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent = gen
+end
+
+local function UpdateMapESP(obj, root)
+    if not obj or not root or not obj.Parent then return end
+    local pos
+    if obj:IsA("Model") then
+        if obj.PrimaryPart then pos = obj.PrimaryPart.Position
         else
-            local lbl = bb:FindFirstChildOfClass("TextLabel")
-            if lbl then lbl.Text = text; lbl.TextColor3 = color end
+            local ok, pivot = pcall(function() return obj:GetPivot().Position end)
+            pos = ok and pivot or nil
+            if not pos then
+                local bp = obj:FindFirstChildWhichIsA("BasePart", true)
+                if bp then pos = bp.Position end
+            end
         end
-        local h = gen:FindFirstChild("GenHighlight") or Instance.new("Highlight")
-        h.Name = "GenHighlight"
-        h.Adornee = gen
-        h.FillColor = color
-        h.OutlineColor = color
-        h.FillTransparency = 0.9
-        h.OutlineTransparency = 0.3
-        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        h.Parent = gen
+    elseif obj:IsA("BasePart") then
+        pos = obj.Position
     end
+    if not pos then return end
+    local dist = (pos - root.Position).Magnitude
 
-    local function UpdateMapESP(obj, root)
-        if not obj or not root or not obj.Parent then return end
-        local pos
-        if obj:IsA("Model") then
-            if obj.PrimaryPart then pos = obj.PrimaryPart.Position
-            else
+    if obj.Name == "Pallet" or obj.Name == "Palletwrong" then
+        if FESP.Pallet and dist <= FESP.Distance then
+            CreateESP(obj, FESPC.Pallet)
+        else
+            RemoveESP(obj)
+        end
+    end
+end
+
+local function UpdateSCPEsp(root)
+    if not FESP.SCP then
+        for obj in pairs(CachedSCP) do RemoveESP(obj) end
+        return
+    end
+    for obj in pairs(CachedSCP) do
+        if obj and obj.Parent then
+            local pos
+            if obj:IsA("Model") then
                 local ok, pivot = pcall(function() return obj:GetPivot().Position end)
                 pos = ok and pivot or nil
-                if not pos then
-                    local bp = obj:FindFirstChildWhichIsA("BasePart", true)
-                    if bp then pos = bp.Position end
-                end
+            elseif obj:IsA("BasePart") then
+                pos = obj.Position
             end
-        elseif obj:IsA("BasePart") then
-            pos = obj.Position
-        end
-        if not pos then return end
-        local dist = (pos - root.Position).Magnitude
-
-        if obj.Name == "Pallet" or obj.Name == "Palletwrong" then
-            if FESP.Pallet and dist <= FESP.Distance then
-                CreateESP(obj, FESPC.Pallet)
-            else
-                RemoveESP(obj)
+            if pos then
+                local dist = (pos - root.Position).Magnitude
+                if dist <= FESP.Distance then
+                    CreateESP(obj, FESPC.SCP)
+                else
+                    RemoveESP(obj)
+                end
             end
         end
     end
+end
 
-    local function UpdateSCPEsp(root)
-        if not FESP.SCP then
-            for obj in pairs(CachedSCP) do RemoveESP(obj) end
-            return
-        end
-        for obj in pairs(CachedSCP) do
-            if obj and obj.Parent then
-                local pos
-                if obj:IsA("Model") then
-                    local ok, pivot = pcall(function() return obj:GetPivot().Position end)
-                    pos = ok and pivot or nil
-                elseif obj:IsA("BasePart") then
-                    pos = obj.Position
+local function RemoveWindowESP(model)
+    if not model then return end
+    local wData = WindowObjects[model]
+    if wData then
+        if wData.highlight then pcall(function() wData.highlight:Destroy() end) end
+        if wData.box then pcall(function() wData.box:Destroy() end) end
+        if wData.bottomPart and wData.bottomPart.Parent then
+            pcall(function()
+                local orig = wData.bottomPart:GetAttribute("ESP_OrigTrans")
+                if orig ~= nil then
+                    wData.bottomPart.Transparency = orig
+                    wData.bottomPart:SetAttribute("ESP_OrigTrans", nil)
                 end
-                if pos then
-                    local dist = (pos - root.Position).Magnitude
+            end)
+        end
+        WindowObjects[model] = nil
+    end
+    if CachedWindow[model] then CachedWindow[model] = nil end
+end
+
+local function HandleWindowObject(child)
+    if not FESP.Window then return end
+    if not child or child.Name ~= "VaultTrigger" then return end
+    local winModel = child.Parent
+    if not winModel or not winModel:IsA("Model") then return end
+    if WindowObjects[winModel] then return end
+
+    local bottomPart = winModel:FindFirstChild("Bottom")
+    if not bottomPart or not bottomPart:IsA("BasePart") then
+        local bestSize = 0
+        for _, p in ipairs(winModel:GetChildren()) do
+            if p:IsA("BasePart")
+               and p.Name ~= "VaultTrigger"
+               and p.Name ~= "inviswall"
+               and p.Size.Magnitude > bestSize then
+                bestSize = p.Size.Magnitude
+                bottomPart = p
+            end
+        end
+    end
+    if not bottomPart then return end
+
+    if bottomPart:GetAttribute("ESP_OrigTrans") == nil then
+        bottomPart:SetAttribute("ESP_OrigTrans", bottomPart.Transparency)
+    end
+    if bottomPart.Transparency > 0.5 then
+        bottomPart.Transparency = 0.5
+    end
+
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "GlutoWindowBox"
+    box.Adornee = bottomPart
+    box.Size = bottomPart.Size
+    box.Color3 = FESPC.Window
+    box.Transparency = 0.3
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    box.Parent = bottomPart
+
+    local hl = Instance.new("Highlight")
+    hl.Name = "GlutoWindowHighlight"
+    hl.Adornee = winModel
+    hl.FillColor = FESPC.Window
+    hl.FillTransparency = 0.9
+    hl.OutlineColor = FESPC.Window
+    hl.OutlineTransparency = 0.1
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent = winModel
+
+    WindowObjects[winModel] = {
+        highlight = hl,
+        box = box,
+        bottomPart = bottomPart,
+    }
+end
+
+local function ScanAllWindows()
+    if not FESP.Window then return end
+    local map = Workspace:FindFirstChild("Map")
+    if not map then return end
+    for _, obj in ipairs(map:GetDescendants()) do
+        if obj.Name == "VaultTrigger" then
+            HandleWindowObject(obj)
+        end
+    end
+end
+
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj.Name == "VaultTrigger" and FESP.Window then
+        task.defer(function() HandleWindowObject(obj) end)
+    end
+end)
+
+local espLastUpdate = 0
+RunService.RenderStepped:Connect(function()
+    local now = tick()
+    if now - espLastUpdate < 0.05 then return end
+    espLastUpdate = now
+
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local char = p.Character
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - root.Position).Magnitude
                     if dist <= FESP.Distance then
-                        CreateESP(obj, FESPC.SCP)
-                    else
-                        RemoveESP(obj)
-                    end
-                end
-            end
-        end
-    end
-
-    local function RemoveWindowESP(model)
-        if not model then return end
-        local wData = WindowObjects[model]
-        if wData then
-            if wData.highlight then pcall(function() wData.highlight:Destroy() end) end
-            if wData.box then pcall(function() wData.box:Destroy() end) end
-            if wData.bottomPart and wData.bottomPart.Parent then
-                pcall(function()
-                    local orig = wData.bottomPart:GetAttribute("ESP_OrigTrans")
-                    if orig ~= nil then
-                        wData.bottomPart.Transparency = orig
-                        wData.bottomPart:SetAttribute("ESP_OrigTrans", nil)
-                    end
-                end)
-            end
-            WindowObjects[model] = nil
-        end
-        if CachedWindow[model] then CachedWindow[model] = nil end
-    end
-
-    local function HandleWindowObject(child)
-        if not FESP.Window then return end
-        if not child or child.Name ~= "VaultTrigger" then return end
-        local winModel = child.Parent
-        if not winModel or not winModel:IsA("Model") then return end
-        if WindowObjects[winModel] then return end
-
-        local bottomPart = winModel:FindFirstChild("Bottom")
-        if not bottomPart or not bottomPart:IsA("BasePart") then
-            local bestSize = 0
-            for _, p in ipairs(winModel:GetChildren()) do
-                if p:IsA("BasePart")
-                   and p.Name ~= "VaultTrigger"
-                   and p.Name ~= "inviswall"
-                   and p.Size.Magnitude > bestSize then
-                    bestSize = p.Size.Magnitude
-                    bottomPart = p
-                end
-            end
-        end
-        if not bottomPart then return end
-
-        if bottomPart:GetAttribute("ESP_OrigTrans") == nil then
-            bottomPart:SetAttribute("ESP_OrigTrans", bottomPart.Transparency)
-        end
-        if bottomPart.Transparency > 0.5 then
-            bottomPart.Transparency = 0.5
-        end
-
-        local box = Instance.new("BoxHandleAdornment")
-        box.Name = "GlutoWindowBox"
-        box.Adornee = bottomPart
-        box.Size = bottomPart.Size
-        box.Color3 = FESPC.Window
-        box.Transparency = 0.3
-        box.AlwaysOnTop = true
-        box.ZIndex = 5
-        box.Parent = bottomPart
-
-        local hl = Instance.new("Highlight")
-        hl.Name = "GlutoWindowHighlight"
-        hl.Adornee = winModel
-        hl.FillColor = FESPC.Window
-        hl.FillTransparency = 0.9
-        hl.OutlineColor = FESPC.Window
-        hl.OutlineTransparency = 0.1
-        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        hl.Parent = winModel
-
-        WindowObjects[winModel] = {
-            highlight = hl,
-            box = box,
-            bottomPart = bottomPart,
-        }
-    end
-
-    local function ScanAllWindows()
-        if not FESP.Window then return end
-        local map = Workspace:FindFirstChild("Map")
-        if not map then return end
-        for _, obj in ipairs(map:GetDescendants()) do
-            if obj.Name == "VaultTrigger" then
-                HandleWindowObject(obj)
-            end
-        end
-    end
-
-    Workspace.DescendantAdded:Connect(function(obj)
-        if obj.Name == "VaultTrigger" and FESP.Window then
-            task.defer(function() HandleWindowObject(obj) end)
-        end
-    end)
-
-    local espLastUpdate = 0
-    RunService.RenderStepped:Connect(function()
-        local now = tick()
-        if now - espLastUpdate < 0.05 then return end
-        espLastUpdate = now
-
-        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then
-                local char = p.Character
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum and hum.Health > 0 then
-                    local hrp = char:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local dist = (hrp.Position - root.Position).Magnitude
-                        if dist <= FESP.Distance then
-                            if FESP.Survivor and TeamIs(p, "Survivor") then
-                                CreateESP(char, FESPC.Survivor)
-                            elseif FESP.Killer and TeamIs(p, "Killer") then
-                                CreateESP(char, FESPC.Killer)
-                            else
-                                RemoveESP(char)
-                            end
+                        if FESP.Survivor and TeamIs(p, "Survivor") then
+                            CreateESP(char, FESPC.Survivor)
+                        elseif FESP.Killer and TeamIs(p, "Killer") then
+                            CreateESP(char, FESPC.Killer)
                         else
                             RemoveESP(char)
                         end
+                    else
+                        RemoveESP(char)
                     end
-                    CreateStatusESP(p, char, root)
-                else
-                    RemoveESP(char)
-                    RemoveStatusESP(char)
                 end
+                CreateStatusESP(p, char, root)
+            else
+                RemoveESP(char)
+                RemoveStatusESP(char)
             end
         end
+    end
 
-        if FESP.Generator then
-            for gen in pairs(CachedGen) do UpdateGenerator(gen) end
-        end
-        for obj in pairs(CachedPallet) do UpdateMapESP(obj, root) end
-        UpdateSCPEsp(root)
+    if FESP.Generator then
+        for gen in pairs(CachedGen) do UpdateGenerator(gen) end
+    end
+    for obj in pairs(CachedPallet) do UpdateMapESP(obj, root) end
+    UpdateSCPEsp(root)
 
-        if FESP.Window then
-            if not _G.GlutoWindowScanned then
-                _G.GlutoWindowScanned = true
-                pcall(ScanAllWindows)
-            end
-        else
-            _G.GlutoWindowScanned = false
-            for model in pairs(WindowObjects) do
-                RemoveWindowESP(model)
-            end
+    if FESP.Window then
+        if not _G.GlutoWindowScanned then
+            _G.GlutoWindowScanned = true
+            pcall(ScanAllWindows)
         end
-    end)
+    else
+        _G.GlutoWindowScanned = false
+        for model in pairs(WindowObjects) do
+            RemoveWindowESP(model)
+        end
+    end
+end)
 end
 
 --====================================================--
 
 
-    ["Default"]="18843924331",["Clash Royale"]="114072050006157",["Blash"]="89068385567682",
-    ["Coin"]="75510526696824",["Kururin Kuru"]="119896940405402",["Spongebob"]="6835794541",
-    ["Fahhhh"]="123562480982353",["Cave"]="3173566193",["Aughhh"]="9095205664",
-    ["Samsung"]="6879335951",["iPhone"]="4203251375",["Siren"]="130677853589923",
+["Default"]="18843924331",["Clash Royale"]="114072050006157",["Blash"]="89068385567682",
+["Coin"]="75510526696824",["Kururin Kuru"]="119896940405402",["Spongebob"]="6835794541",
+["Fahhhh"]="123562480982353",["Cave"]="3173566193",["Aughhh"]="9095205664",
+["Samsung"]="6879335951",["iPhone"]="4203251375",["Siren"]="130677853589923",
 }
 StunIndicator = StunIndicator or {
-    Enabled = false, Cache = {}, HeartbeatConn = nil, Range = 500,
-    Icon = "rbxassetid://81633822407558",
-    SoundEnabled = true, SoundId = "18843924331",
-    SoundVolume = 1.5, SoundRange = 500, SelectedSound = "Default",
+Enabled = false, Cache = {}, HeartbeatConn = nil, Range = 500,
+Icon = "rbxassetid://81633822407558",
+SoundEnabled = true, SoundId = "18843924331",
+SoundVolume = 1.5, SoundRange = 500, SelectedSound = "Default",
 }
 local SInd = StunIndicator
 SInd.SelectedSound = SInd.SelectedSound or "Default"
 local function SInd_GetActiveSoundId()
-    local id = StunSounds[SInd.SelectedSound]
-    if id then return id end
-    return SInd.SoundId
+local id = StunSounds[SInd.SelectedSound]
+if id then return id end
+return SInd.SoundId
 end
 local function SInd_IsStunned(char)
-    if not char then return false end
-    if char:GetAttribute("IsStunned") == true then return true end
-    if char:GetAttribute("isStunned") == true then return true end
-    if char:GetAttribute("Stunned") == true then return true end
-    if char:GetAttribute("stunned") == true then return true end
-    if char:GetAttribute("IsStun") == true then return true end
-    if char:GetAttribute("Stun") == true then return true end
-    local ci = char:FindFirstChild("CheckInterractable")
-    if ci then
-        if ci:GetAttribute("isStunned") == true then return true end
-        if ci:GetAttribute("Stunned") == true then return true end
-    end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        local sv = hum:FindFirstChild("StunValue")
-        if sv and sv.Value > 0 then return true end
-    end
-    return false
+if not char then return false end
+if char:GetAttribute("IsStunned") == true then return true end
+if char:GetAttribute("isStunned") == true then return true end
+if char:GetAttribute("Stunned") == true then return true end
+if char:GetAttribute("stunned") == true then return true end
+if char:GetAttribute("IsStun") == true then return true end
+if char:GetAttribute("Stun") == true then return true end
+local ci = char:FindFirstChild("CheckInterractable")
+if ci then
+    if ci:GetAttribute("isStunned") == true then return true end
+    if ci:GetAttribute("Stunned") == true then return true end
+end
+local hum = char:FindFirstChildOfClass("Humanoid")
+if hum then
+    local sv = hum:FindFirstChild("StunValue")
+    if sv and sv.Value > 0 then return true end
+end
+return false
 end
 local function SInd_Remove(char)
-    local data = SInd.Cache[char]
-    if data then
-        pcall(function()
-            if data.StopAnim then data.StopAnim() end
-            if data.Gui then data.Gui:Destroy() end
-        end)
-        SInd.Cache[char] = nil
-    end
+local data = SInd.Cache[char]
+if data then
+    pcall(function()
+        if data.StopAnim then data.StopAnim() end
+        if data.Gui then data.Gui:Destroy() end
+    end)
+    SInd.Cache[char] = nil
+end
 end
 local function SInd_PlaySound(char)
-    if not SInd.SoundEnabled then return end
-    pcall(function()
-        local head = char and char:FindFirstChild("Head")
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local attachTo = head or hrp
-        if not attachTo then return end
-        local snd = Instance.new("Sound")
-        snd.Name = "PinatStunSound"
-        snd.SoundId = "rbxassetid://" .. tostring(SInd_GetActiveSoundId())
-        snd.Volume = SInd.SoundVolume or 1.5
-        snd.PlaybackSpeed = 1
-        snd.RollOffMaxDistance = SInd.SoundRange or 500
-        snd.RollOffMinDistance = 10
-        snd.RollOffMode = Enum.RollOffMode.InverseTapered
-        snd.Parent = attachTo
-        snd:Play()
-        snd.Ended:Connect(function() pcall(function() snd:Destroy() end) end)
-        task.delay(5, function() pcall(function() if snd and snd.Parent then snd:Destroy() end end) end)
-    end)
+if not SInd.SoundEnabled then return end
+pcall(function()
+    local head = char and char:FindFirstChild("Head")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local attachTo = head or hrp
+    if not attachTo then return end
+    local snd = Instance.new("Sound")
+    snd.Name = "PinatStunSound"
+    snd.SoundId = "rbxassetid://" .. tostring(SInd_GetActiveSoundId())
+    snd.Volume = SInd.SoundVolume or 1.5
+    snd.PlaybackSpeed = 1
+    snd.RollOffMaxDistance = SInd.SoundRange or 500
+    snd.RollOffMinDistance = 10
+    snd.RollOffMode = Enum.RollOffMode.InverseTapered
+    snd.Parent = attachTo
+    snd:Play()
+    snd.Ended:Connect(function() pcall(function() snd:Destroy() end) end)
+    task.delay(5, function() pcall(function() if snd and snd.Parent then snd:Destroy() end end) end)
+end)
 end
 local function SInd_Create(char)
-    if SInd.Cache[char] then return SInd.Cache[char] end
-    local head = char:FindFirstChild("Head")
-    if not head then return nil end
-    local bbg = Instance.new("BillboardGui")
-    bbg.Name = "PinatStunIndicator"
-    bbg.Size = UDim2.fromOffset(140, 42)
-    bbg.StudsOffset = Vector3.new(0, 3.0, 0)
-    bbg.AlwaysOnTop = true
-    bbg.LightInfluence = 0
-    bbg.MaxDistance = 500
-    bbg.Adornee = head
-    bbg.Parent = char
-    local pulse1 = Instance.new("Frame")
-    pulse1.Name = "Pulse1"
-    pulse1.AnchorPoint = Vector2.new(0.5, 0.5)
-    pulse1.Position = UDim2.new(0.5, 0, 0.5, 0)
-    pulse1.Size = UDim2.fromOffset(34, 34)
-    pulse1.BackgroundTransparency = 1
-    pulse1.BorderSizePixel = 0
-    pulse1.ZIndex = 0
-    pulse1.Parent = bbg
-    Instance.new("UICorner", pulse1).CornerRadius = UDim.new(1, 0)
-    local p1s = Instance.new("UIStroke", pulse1)
-    p1s.Color = Color3.fromRGB(255, 255, 255)
-    p1s.Thickness = 1.8
-    p1s.Transparency = 0.3
-    p1s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    local pulse2 = Instance.new("Frame")
-    pulse2.Name = "Pulse2"
-    pulse2.AnchorPoint = Vector2.new(0.5, 0.5)
-    pulse2.Position = UDim2.new(0.5, 0, 0.5, 0)
-    pulse2.Size = UDim2.fromOffset(34, 34)
-    pulse2.BackgroundTransparency = 1
-    pulse2.BorderSizePixel = 0
-    pulse2.ZIndex = 0
-    pulse2.Parent = bbg
-    Instance.new("UICorner", pulse2).CornerRadius = UDim.new(1, 0)
-    local p2s = Instance.new("UIStroke", pulse2)
-    p2s.Color = Color3.fromRGB(200, 200, 210)
-    p2s.Thickness = 1.8
-    p2s.Transparency = 0.4
-    p2s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    local main = Instance.new("Frame")
-    main.Name = "Main"
-    main.Size = UDim2.new(0, 140, 0, 34)
-    main.Position = UDim2.new(0, 0, 0, 4)
-    main.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
-    main.BackgroundTransparency = 0.05
-    main.BorderSizePixel = 0
-    main.ZIndex = 1
-    main.Parent = bbg
-    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 9)
-    local bodyGrad = Instance.new("UIGradient")
-    bodyGrad.Rotation = 135
-    bodyGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 24, 28)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 10)),
-    })
-    bodyGrad.Parent = main
-    local mainStroke = Instance.new("UIStroke", main)
-    mainStroke.Name = "MainStroke"
-    mainStroke.Color = Color3.fromRGB(255, 255, 255)
-    mainStroke.Thickness = 1.3
-    mainStroke.Transparency = 0.15
-    mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    local iconHolder = Instance.new("Frame")
-    iconHolder.Name = "IconHolder"
-    iconHolder.Size = UDim2.fromOffset(24, 24)
-    iconHolder.Position = UDim2.new(0, 5, 0.5, -12)
-    iconHolder.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-    iconHolder.BorderSizePixel = 0
-    iconHolder.ZIndex = 3
-    iconHolder.Parent = main
-    Instance.new("UICorner", iconHolder).CornerRadius = UDim.new(1, 0)
-    local iconGrad = Instance.new("UIGradient", iconHolder)
-    iconGrad.Rotation = 135
-    iconGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 44)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 14, 18)),
-    })
-    local iconStroke = Instance.new("UIStroke", iconHolder)
-    iconStroke.Color = Color3.fromRGB(255, 255, 255)
-    iconStroke.Thickness = 1
-    iconStroke.Transparency = 0.25
-    local starIcon = Instance.new("TextLabel")
-    starIcon.Name = "StarIcon"
-    starIcon.Size = UDim2.fromScale(1, 1)
-    starIcon.BackgroundTransparency = 1
-    starIcon.Font = Enum.Font.GothamBlack
-    starIcon.Text = "â˜…"
-    starIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
-    starIcon.TextScaled = true
-    starIcon.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    starIcon.TextStrokeTransparency = 0.5
-    starIcon.ZIndex = 4
-    starIcon.Parent = iconHolder
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, -42, 0, 12)
-    title.Position = UDim2.new(0, 34, 0, 4)
-    title.BackgroundTransparency = 1
-    title.Font = Enum.Font.GothamBlack
-    title.Text = "STUNNED"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextSize = 11
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    title.TextStrokeTransparency = 0.5
-    title.ZIndex = 3
-    title.Parent = main
-    local sub = Instance.new("TextLabel")
-    sub.Name = "Sub"
-    sub.Size = UDim2.new(1, -42, 0, 8)
-    sub.Position = UDim2.new(0, 34, 0, 18)
-    sub.BackgroundTransparency = 1
-    sub.Font = Enum.Font.GothamBold
-    sub.Text = "SILENT"
-    sub.TextColor3 = Color3.fromRGB(170, 170, 180)
-    sub.TextSize = 7
-    sub.TextXAlignment = Enum.TextXAlignment.Left
-    sub.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    sub.TextStrokeTransparency = 0.6
-    sub.ZIndex = 3
-    sub.Parent = main
-    local accent = Instance.new("Frame")
-    accent.Name = "Accent"
-    accent.AnchorPoint = Vector2.new(1, 0.5)
-    accent.Size = UDim2.fromOffset(2.5, 14)
-    accent.Position = UDim2.new(1, -5, 0.5, 0)
-    accent.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    accent.BorderSizePixel = 0
-    accent.ZIndex = 3
-    accent.Parent = main
-    Instance.new("UICorner", accent).CornerRadius = UDim.new(1, 0)
-    main.Size = UDim2.new(0, 0, 0, 0)
-    main.BackgroundTransparency = 1
-    task.spawn(function()
-        task.wait(0.02)
-        TweenService:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 140, 0, 34),
-            BackgroundTransparency = 0.05,
-        }):Play()
-    end)
-    local animActive = true
-    local function StopAnim() animActive = false end
-    task.spawn(function()
-        local t = 0
-        while animActive and bbg.Parent and main.Parent do
-            t = t + 0.05
-            local pulse = (math.sin(t * 3) + 1) * 0.5
-            mainStroke.Transparency = 0.35 - pulse * 0.2
-            mainStroke.Thickness = 1.2 + pulse * 0.3
-            starIcon.Rotation = math.sin(t * 2) * 10
-            local p1 = (t * 0.55) % 1
-            pulse1.Size = UDim2.fromOffset(34 + p1 * 40, 34 + p1 * 40)
-            p1s.Transparency = 0.15 + p1 * 0.75
-            local p2 = ((t * 0.55) + 0.5) % 1
-            pulse2.Size = UDim2.fromOffset(34 + p2 * 40, 34 + p2 * 40)
-            p2s.Transparency = 0.15 + p2 * 0.75
-            task.wait(0.03)
-        end
-    end)
-    local function ExitAndDestroy()
-        animActive = false
-        TweenService:Create(main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0),
-            BackgroundTransparency = 1,
-        }):Play()
-        task.delay(0.28, function() pcall(function() bbg:Destroy() end) end)
+if SInd.Cache[char] then return SInd.Cache[char] end
+local head = char:FindFirstChild("Head")
+if not head then return nil end
+local bbg = Instance.new("BillboardGui")
+bbg.Name = "PinatStunIndicator"
+bbg.Size = UDim2.fromOffset(140, 42)
+bbg.StudsOffset = Vector3.new(0, 3.0, 0)
+bbg.AlwaysOnTop = true
+bbg.LightInfluence = 0
+bbg.MaxDistance = 500
+bbg.Adornee = head
+bbg.Parent = char
+local pulse1 = Instance.new("Frame")
+pulse1.Name = "Pulse1"
+pulse1.AnchorPoint = Vector2.new(0.5, 0.5)
+pulse1.Position = UDim2.new(0.5, 0, 0.5, 0)
+pulse1.Size = UDim2.fromOffset(34, 34)
+pulse1.BackgroundTransparency = 1
+pulse1.BorderSizePixel = 0
+pulse1.ZIndex = 0
+pulse1.Parent = bbg
+Instance.new("UICorner", pulse1).CornerRadius = UDim.new(1, 0)
+local p1s = Instance.new("UIStroke", pulse1)
+p1s.Color = Color3.fromRGB(255, 255, 255)
+p1s.Thickness = 1.8
+p1s.Transparency = 0.3
+p1s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local pulse2 = Instance.new("Frame")
+pulse2.Name = "Pulse2"
+pulse2.AnchorPoint = Vector2.new(0.5, 0.5)
+pulse2.Position = UDim2.new(0.5, 0, 0.5, 0)
+pulse2.Size = UDim2.fromOffset(34, 34)
+pulse2.BackgroundTransparency = 1
+pulse2.BorderSizePixel = 0
+pulse2.ZIndex = 0
+pulse2.Parent = bbg
+Instance.new("UICorner", pulse2).CornerRadius = UDim.new(1, 0)
+local p2s = Instance.new("UIStroke", pulse2)
+p2s.Color = Color3.fromRGB(200, 200, 210)
+p2s.Thickness = 1.8
+p2s.Transparency = 0.4
+p2s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 140, 0, 34)
+main.Position = UDim2.new(0, 0, 0, 4)
+main.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+main.BackgroundTransparency = 0.05
+main.BorderSizePixel = 0
+main.ZIndex = 1
+main.Parent = bbg
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 9)
+local bodyGrad = Instance.new("UIGradient")
+bodyGrad.Rotation = 135
+bodyGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 24, 28)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 10)),
+})
+bodyGrad.Parent = main
+local mainStroke = Instance.new("UIStroke", main)
+mainStroke.Name = "MainStroke"
+mainStroke.Color = Color3.fromRGB(255, 255, 255)
+mainStroke.Thickness = 1.3
+mainStroke.Transparency = 0.15
+mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local iconHolder = Instance.new("Frame")
+iconHolder.Name = "IconHolder"
+iconHolder.Size = UDim2.fromOffset(24, 24)
+iconHolder.Position = UDim2.new(0, 5, 0.5, -12)
+iconHolder.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+iconHolder.BorderSizePixel = 0
+iconHolder.ZIndex = 3
+iconHolder.Parent = main
+Instance.new("UICorner", iconHolder).CornerRadius = UDim.new(1, 0)
+local iconGrad = Instance.new("UIGradient", iconHolder)
+iconGrad.Rotation = 135
+iconGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 44)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 14, 18)),
+})
+local iconStroke = Instance.new("UIStroke", iconHolder)
+iconStroke.Color = Color3.fromRGB(255, 255, 255)
+iconStroke.Thickness = 1
+iconStroke.Transparency = 0.25
+local starIcon = Instance.new("TextLabel")
+starIcon.Name = "StarIcon"
+starIcon.Size = UDim2.fromScale(1, 1)
+starIcon.BackgroundTransparency = 1
+starIcon.Font = Enum.Font.GothamBlack
+starIcon.Text = "â˜…"
+starIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+starIcon.TextScaled = true
+starIcon.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+starIcon.TextStrokeTransparency = 0.5
+starIcon.ZIndex = 4
+starIcon.Parent = iconHolder
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -42, 0, 12)
+title.Position = UDim2.new(0, 34, 0, 4)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBlack
+title.Text = "STUNNED"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 11
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+title.TextStrokeTransparency = 0.5
+title.ZIndex = 3
+title.Parent = main
+local sub = Instance.new("TextLabel")
+sub.Name = "Sub"
+sub.Size = UDim2.new(1, -42, 0, 8)
+sub.Position = UDim2.new(0, 34, 0, 18)
+sub.BackgroundTransparency = 1
+sub.Font = Enum.Font.GothamBold
+sub.Text = "SILENT"
+sub.TextColor3 = Color3.fromRGB(170, 170, 180)
+sub.TextSize = 7
+sub.TextXAlignment = Enum.TextXAlignment.Left
+sub.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+sub.TextStrokeTransparency = 0.6
+sub.ZIndex = 3
+sub.Parent = main
+local accent = Instance.new("Frame")
+accent.Name = "Accent"
+accent.AnchorPoint = Vector2.new(1, 0.5)
+accent.Size = UDim2.fromOffset(2.5, 14)
+accent.Position = UDim2.new(1, -5, 0.5, 0)
+accent.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+accent.BorderSizePixel = 0
+accent.ZIndex = 3
+accent.Parent = main
+Instance.new("UICorner", accent).CornerRadius = UDim.new(1, 0)
+main.Size = UDim2.new(0, 0, 0, 0)
+main.BackgroundTransparency = 1
+task.spawn(function()
+    task.wait(0.02)
+    TweenService:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 140, 0, 34),
+        BackgroundTransparency = 0.05,
+    }):Play()
+end)
+local animActive = true
+local function StopAnim() animActive = false end
+task.spawn(function()
+    local t = 0
+    while animActive and bbg.Parent and main.Parent do
+        t = t + 0.05
+        local pulse = (math.sin(t * 3) + 1) * 0.5
+        mainStroke.Transparency = 0.35 - pulse * 0.2
+        mainStroke.Thickness = 1.2 + pulse * 0.3
+        starIcon.Rotation = math.sin(t * 2) * 10
+        local p1 = (t * 0.55) % 1
+        pulse1.Size = UDim2.fromOffset(34 + p1 * 40, 34 + p1 * 40)
+        p1s.Transparency = 0.15 + p1 * 0.75
+        local p2 = ((t * 0.55) + 0.5) % 1
+        pulse2.Size = UDim2.fromOffset(34 + p2 * 40, 34 + p2 * 40)
+        p2s.Transparency = 0.15 + p2 * 0.75
+        task.wait(0.03)
     end
-    SInd.Cache[char] = { Gui = bbg, Main = main, StopAnim = StopAnim, Exit = ExitAndDestroy }
-    return SInd.Cache[char]
+end)
+local function ExitAndDestroy()
+    animActive = false
+    TweenService:Create(main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+    }):Play()
+    task.delay(0.28, function() pcall(function() bbg:Destroy() end) end)
+end
+SInd.Cache[char] = { Gui = bbg, Main = main, StopAnim = StopAnim, Exit = ExitAndDestroy }
+return SInd.Cache[char]
 end
 function SInd_SetEnabled(v)
-    SInd.Enabled = v and true or false
-    if SInd.Enabled then
-        if SInd.HeartbeatConn then return end
-        SInd.HeartbeatConn = RunService.Heartbeat:Connect(function()
-            if not SInd.Enabled then return end
-            local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if not myRoot then return end
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and TeamIs(p, "Killer") and p.Character then
-                    local char = p.Character
-                    local hrp = char:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local dist = (hrp.Position - myRoot.Position).Magnitude
-                        local stunned = SInd_IsStunned(char)
-                        local data = SInd.Cache[char]
-                        local wasStunned = data ~= nil
-                        if stunned and dist <= SInd.Range then
-                            if not wasStunned then SInd_PlaySound(char); SInd_Create(char) end
-                        else
-                            if wasStunned then
-                                if data.Exit then data.Exit() else SInd_Remove(char) end
-                                SInd.Cache[char] = nil
-                            end
+SInd.Enabled = v and true or false
+if SInd.Enabled then
+    if SInd.HeartbeatConn then return end
+    SInd.HeartbeatConn = RunService.Heartbeat:Connect(function()
+        if not SInd.Enabled then return end
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and TeamIs(p, "Killer") and p.Character then
+                local char = p.Character
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - myRoot.Position).Magnitude
+                    local stunned = SInd_IsStunned(char)
+                    local data = SInd.Cache[char]
+                    local wasStunned = data ~= nil
+                    if stunned and dist <= SInd.Range then
+                        if not wasStunned then SInd_PlaySound(char); SInd_Create(char) end
+                    else
+                        if wasStunned then
+                            if data.Exit then data.Exit() else SInd_Remove(char) end
+                            SInd.Cache[char] = nil
+                        end
                         end
                     end
                 end
