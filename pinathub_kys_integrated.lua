@@ -3967,13 +3967,14 @@ function setAutoHealAll(v)
     end
 end
 GenBypass = {
-    Enabled     = false,
-    Button      = nil,
-    UI          = nil,
-    Cache       = {},
-    CacheTimer  = 0,
-    Processed   = {},
-    HotkeyCode  = Enum.KeyCode.G,
+    Enabled      = false,
+    Button       = nil,
+    UI           = nil,
+    Cache        = {},
+    CacheTimer   = 0,
+    Processed    = {},
+    HotkeyCode   = Enum.KeyCode.G,
+    TriggerRange = 8,
 }
 function GB_GetAllGenerators()
     local now = tick()
@@ -4271,30 +4272,17 @@ function GB_CreateButton()
 end
 GB_CreateButton()
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    GB_CreateButton()
-    GB_UpdateButton()
+    task.wait(0.5); GB_CreateButton(); GB_UpdateButton()
 end)
 UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if isMobile then return end
+    if gp or isMobile then return end
     if input.KeyCode == GenBypass.HotkeyCode and GenBypass.Enabled then
         if not GB_IsPromptVisible() then return end
         local bestPoint, bestDist = GB_GetNearestPoint()
-        if not bestPoint or bestDist > 8 then return end
+        if not bestPoint or bestDist > GenBypass.TriggerRange then return end
         if GenBypass.Processed[bestPoint.Parent] then return end
         GB_DoRepair(bestPoint)
     end
-end)
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-    if not GenBypass.Enabled then return end
-    if not GB_IsPromptVisible() then return end
-    local bestPoint, bestDist = GB_GetNearestPoint()
-    if not bestPoint or bestDist > 8 then return end
-    if GenBypass.Processed[bestPoint.Parent] then return end
-    GB_DoRepair(bestPoint)
 end)
 task.spawn(function()
     while true do
