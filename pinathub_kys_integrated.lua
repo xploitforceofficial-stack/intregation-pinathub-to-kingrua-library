@@ -4310,14 +4310,88 @@ function setGenBypass(v)
     GB_UpdateButton()
 end
 function setAutoCrouch(v) VD.AutoCrouch = v end
-MyersGrabData = {
-    Enabled = false,
-    UI = nil,
-    Button = nil,
-    DragLocked = false,
-    Dragging = false,
-    DragStart = nil,
-    DragStartPos = nil,
+
+-- ============================================================
+-- AUTO FLEE KILLER (SURVIVOR) - from alvin
+-- ============================================================
+local lastAutoFlee = 0
+function SURV_AutoFlee()
+    if not VD.SURV_AutoFlee then return end
+    if GetRole() ~= "Survivor" then return end
+    local now = tick()
+    if now - lastAutoFlee < (VD.SURV_AutoFleeCooldown or 1.5) then return end
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+    if not myRoot or not hum or hum.Health <= 0 then return end
+    local killerRoot, nearest = nil, math.huge
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and TeamIs(plr, "Killer") and plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - myRoot.Position).Magnitude
+                if d < nearest then nearest = d; killerRoot = hrp end
+            end
+        end
+    end
+    if not killerRoot then return end
+    if nearest > (VD.SURV_AutoFleeDist or 40) then return end
+    lastAutoFlee = now
+    local bestPt, bestDist = nil, 0
+    local mf = workspace:FindFirstChild("Map")
+    if mf then
+        for _, obj in ipairs(mf:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name:find("GeneratorPoint") then
+                local d = (obj.Position - killerRoot.Position).Magnitude
+                if d > bestDist then bestDist = d; bestPt = obj end
+            end
+        end
+    end
+    if bestPt then
+        pcall(function() myRoot.CFrame = bestPt.CFrame + Vector3.new(0, 5, 0) end)
+        VD_Notify("Auto Flee", "Teleported away from killer!", 2)
+    end
+end
+function setAutoFlee(v) VD.SURV_AutoFlee = v and true or false end
+
+-- ============================================================
+-- AUTO ATTACK (KILLER) - from alvin
+-- ============================================================
+local lastAutoAttack = 0
+function KA_AutoAttack()
+    if not VD.KILLER_AutoAttack then return end
+    if GetRole() ~= "Killer" then return end
+    local now = tick()
+    if now - lastAutoAttack < (VD.KILLER_AutoAttackCooldown or 0.15) then return end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local closest, shortest = nil, VD.KILLER_AutoAttackRange or 12
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and TeamIs(plr, "Survivor") and plr.Character then
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hum and hrp and hum.Health > 35 then
+                local d = (hrp.Position - root.Position).Magnitude
+                if d <= shortest then shortest = d; closest = plr end
+            end
+        end
+    end
+    if closest then
+        lastAutoAttack = now
+        pcall(function()
+            local attacks = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Attacks")
+            local basic = attacks and attacks:FindFirstChild("BasicAttack")
+            if basic then basic:FireServer(false) end
+        end)
+    end
+end
+function setAutoAttack(v) VD.KILLER_AutoAttack = v and true or false end
+
+
+MyersGrabData = MyersGrabData or {
+    Enabled = false, UI = nil, Button = nil,
+    DragLocked = false, Dragging = false,
+    DragStart = nil, DragStartPos = nil,
     HotkeyCode = Enum.KeyCode.H,
 }
 function getMyersTarget()
@@ -9949,6 +10023,159 @@ function KYS_FlingNearest()
     end
 end
 function KYS_FlingAll()
+
+
+-- ============================================================
+-- TROLL TELEPORT - from alvin
+-- ============================================================
+TrollTeleport = TrollTeleport or {
+    Enabled = false, Target = nil, Interval = 0.3, Running = false,
+}
+function TrollTeleport_SetEnabled(v)
+
+-- ============================================================
+-- LOCK POV - from alvin
+-- ============================================================
+LockPOV = { Enabled = false, LockedFOV = 80, OriginalFOV = nil, Connection = nil }
+function LockPOV_Set(
+
+-- ============================================================
+-- JERK TOOL - from alvin
+-- ============================================================
+JerkTool = JerkTool or { Enabled = false, ToolName = "Jerk Off" }
+do
+    local currentJerkTool = nil
+    local jerkRunning = false
+    function JerkOff_Destroy()
+        if currentJerkTool then pcall(function() currentJerkTool:Destroy() end); currentJerkTool = nil end
+    end
+    function JerkOff_Create()
+        JerkOff_Destroy()
+        local character = LocalPlayer.Character
+        if not character then return end
+        local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+        local backpack = LocalPlayer:FindFirstChildWhichIsA("Backpack")
+        if not humanoid or not backpack then return end
+        local tool = Instance.new("Tool")
+        tool.Name = JerkTool.ToolName
+        tool.ToolTip = "PinatHub Tool"
+        tool.RequiresHandle = false
+        tool.Parent = backpack
+        currentJerkTool = tool
+        local jorkin = false
+        local track = nil
+        local function stopTomfoolery()
+            jorkin = false
+            if track then pcall(function() track:Stop() end); track = nil end
+        end
+        tool.Equipped:Connect(function() jorkin = true end)
+        tool.Unequipped:Connect(stopTomfoolery)
+        humanoid.Died:Connect(stopTomfoolery)
+        task.spawn(function()
+            while jerkRunning do
+                task.wait()
+                if not JerkTool.Enabled or not jorkin then
+                    if track then pcall(function() track:Stop() end) end
+                    continue
+                end
+                local isR15 = humanoid.RigType == Enum.HumanoidRigType.R15
+                if not track then
+                    local anim = Instance.new("Animation")
+                    anim.AnimationId = not isR15 and "rbxassetid://72042024" or "rbxassetid://698251653"
+                    track = humanoid:LoadAnimation(anim)
+                end
+                track:Play()
+                track:AdjustSpeed(isR15 and 0.7 or 0.65)
+                track.TimePosition = 0.6
+                task.wait(0.1)
+                while track and track.TimePosition < (not isR15 and 0.65 or 0.7) do task.wait(0.1) end
+                if track then pcall(function() track:Stop() end) end
+            end
+        end)
+    end
+    function JerkOff_SetEnabled(v)
+        JerkTool.Enabled = v and true or false
+        jerkRunning = JerkTool.Enabled
+        if v then JerkOff_Create() else JerkOff_Destroy() end
+    end
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        if JerkTool.Enabled then jerkRunning = true; JerkOff_Create() end
+    end)
+end
+v, fov)
+    if fov then LockPOV.LockedFOV = fov end
+    LockPOV.Enabled = v and true or false
+    if LockPOV.Enabled then
+        local cam = workspace.CurrentCamera
+        if cam then LockPOV.OriginalFOV = cam.FieldOfView end
+        if LockPOV.Connection then LockPOV.Connection:Disconnect() end
+        LockPOV.Connection = game:GetService("RunService").RenderStepped:Connect(function()
+            if not LockPOV.Enabled then
+                if LockPOV.Connection then LockPOV.Connection:Disconnect(); LockPOV.Connection = nil end
+                local cam2 = workspace.CurrentCamera
+                if cam2 and LockPOV.OriginalFOV then cam2.FieldOfView = LockPOV.OriginalFOV end
+                return
+            end
+            local cam3 = workspace.CurrentCamera
+            if cam3 then cam3.FieldOfView = LockPOV.LockedFOV end
+        end)
+    else
+        if LockPOV.Connection then LockPOV.Connection:Disconnect(); LockPOV.Connection = nil end
+        local cam = workspace.CurrentCamera
+        if cam and LockPOV.OriginalFOV then cam.FieldOfView = LockPOV.OriginalFOV end
+    end
+end
+
+    TrollTeleport.Enabled = v and true or false
+    if TrollTeleport.Enabled and not TrollTeleport.Running then
+        TrollTeleport.Running = true
+        task.spawn(function()
+            while TrollTeleport.Enabled do
+                task.wait(TrollTeleport.Interval)
+                pcall(function()
+                    if not TrollTeleport.Enabled then return end
+                    local target = TrollTeleport.Target
+                    if not target then
+                        -- auto-pick nearest non-local player
+                        local myChar = LocalPlayer.Character
+                        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                        if not myHRP then return end
+                        local closest, bd = nil, math.huge
+                        for _, plr in ipairs(Players:GetPlayers()) do
+                            if plr ~= LocalPlayer and plr.Character then
+                                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                                if hrp then
+                                    local d = (hrp.Position - myHRP.Position).Magnitude
+                                    if d < bd then bd = d; closest = plr end
+                                end
+                            end
+                        end
+                        target = closest
+                    end
+                    if not target or not target.Character then return end
+                    local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+                    local myChar = LocalPlayer.Character
+                    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                    if targetHRP and myHRP then
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 0, -2)
+                    end
+                end)
+            end
+            TrollTeleport.Running = false
+        end)
+    end
+end
+
+-- Auto Flee + Auto Attack loop
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        pcall(KA_AutoAttack)
+        pcall(SURV_AutoFlee)
+    end
+end)
+
     if not VD.FLING_Enabled then return end
     local root = Root
     if not root then return end
