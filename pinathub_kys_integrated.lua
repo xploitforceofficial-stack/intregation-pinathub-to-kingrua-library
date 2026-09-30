@@ -1,4 +1,3 @@
-file:///c%3A/Users/personal/intregation-pinathub-to-kingrua-library.git/intregation-pinathub-to-kingrua-library/pinathub_kys_integrated.lua {"mtime":1790669631117,"ctime":1788750342271,"size":749435,"etag":"3gnc7eaa6p4qa","orphaned":false,"typeId":""}
 --Cracked by HadsonFanboy2083 <3
 local function __PinatHub_Init_Main__()
 local Players           = game:GetService("Players")
@@ -4891,10 +4890,6 @@ end
 --====================================================--
 -- AUTO PARRY SYSTEM (2)
 --====================================================--
-do
-
-
-
 MyersGrabData = MyersGrabData or {
     Enabled = false, UI = nil, Button = nil,
     DragLocked = false, Dragging = false,
@@ -10530,7 +10525,27 @@ function KYS_FlingNearest()
     end
 end
 function KYS_FlingAll()
-
+    if not VD.FLING_Enabled then return end
+    local root = Root
+    if not root then return end
+    local originalPos = root.CFrame
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local tr = player.Character:FindFirstChild("HumanoidRootPart")
+            if tr then
+                for _ = 1, 5 do
+                    root.CFrame      = tr.CFrame
+                    root.Velocity    = Vector3.new(VD.FLING_Strength, VD.FLING_Strength / 2, VD.FLING_Strength)
+                    root.RotVelocity = Vector3.new(9999, 9999, 9999)
+                    task.wait()
+                end
+            end
+        end
+    end
+    root.CFrame      = originalPos
+    root.Velocity    = Vector3.zero
+    root.RotVelocity = Vector3.zero
+end
 
 -- ============================================================
 -- TROLL TELEPORT - from alvin
@@ -10539,6 +10554,44 @@ TrollTeleport = TrollTeleport or {
     Enabled = false, Target = nil, Interval = 0.3, Running = false,
 }
 function TrollTeleport_SetEnabled(v)
+    TrollTeleport.Enabled = v and true or false
+    if TrollTeleport.Enabled and not TrollTeleport.Running then
+        TrollTeleport.Running = true
+        task.spawn(function()
+            while TrollTeleport.Enabled do
+                task.wait(TrollTeleport.Interval)
+                pcall(function()
+                    if not TrollTeleport.Enabled then return end
+                    local target = TrollTeleport.Target
+                    if not target then
+                        local myChar = LocalPlayer.Character
+                        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                        if not myHRP then return end
+                        local closest, bd = nil, math.huge
+                        for _, plr in ipairs(Players:GetPlayers()) do
+                            if plr ~= LocalPlayer and plr.Character then
+                                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                                if hrp then
+                                    local d = (hrp.Position - myHRP.Position).Magnitude
+                                    if d < bd then bd = d; closest = plr end
+                                end
+                            end
+                        end
+                        target = closest
+                    end
+                    if not target or not target.Character then return end
+                    local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+                    local myChar = LocalPlayer.Character
+                    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                    if targetHRP and myHRP then
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 0, -2)
+                    end
+                end)
+            end
+            TrollTeleport.Running = false
+        end)
+    end
+end
 
 -- ============================================================
 -- LOCK POV - from alvin
@@ -10623,9 +10676,14 @@ do
         end)
     end
     function JerkOff_SetEnabled(v)
-    JerkTool.Enabled = v and true or false
-    jerkRunning = JerkTool.Enabled
-    if v then JerkOff_Create() else JerkOff_Destroy() end
+        JerkTool.Enabled = v and true or false
+        jerkRunning = JerkTool.Enabled
+        if v then JerkOff_Create() else JerkOff_Destroy() end
+    end
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        if JerkTool.Enabled then jerkRunning = true; JerkOff_Create() end
+    end)
 end
 
 -- ============================================================
@@ -10696,10 +10754,12 @@ function EmoteSystem_SelectEmote(name)
         if EmoteSystem.Enabled then EmoteSystem_Play() end
     end
 end
+LocalPlayer.CharacterRemoving:Connect(function() EmoteSystem_Stop() end)
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if _ES.Enabled then EmoteSystem_Play() end
+end)
 
--- ============================================================
--- STUN SOUNDS + STUN INDICATOR (Killer Stunned Notification) - from alvin
--- ============================================================
 -- ============================================================
 -- STUN SOUNDS + STUN INDICATOR (Killer Stunned Notification) - from alvin
 -- ============================================================
@@ -11640,379 +11700,6 @@ end)
 end
 
 --====================================================--
-
-
-["Default"]="18843924331",["Clash Royale"]="114072050006157",["Blash"]="89068385567682",
-["Coin"]="75510526696824",["Kururin Kuru"]="119896940405402",["Spongebob"]="6835794541",
-["Fahhhh"]="123562480982353",["Cave"]="3173566193",["Aughhh"]="9095205664",
-["Samsung"]="6879335951",["iPhone"]="4203251375",["Siren"]="130677853589923",
-}
-StunIndicator = StunIndicator or {
-Enabled = false, Cache = {}, HeartbeatConn = nil, Range = 500,
-Icon = "rbxassetid://81633822407558",
-SoundEnabled = true, SoundId = "18843924331",
-SoundVolume = 1.5, SoundRange = 500, SelectedSound = "Default",
-}
-local SInd = StunIndicator
-SInd.SelectedSound = SInd.SelectedSound or "Default"
-local function SInd_GetActiveSoundId()
-local id = StunSounds[SInd.SelectedSound]
-if id then return id end
-return SInd.SoundId
-end
-local function SInd_IsStunned(char)
-if not char then return false end
-if char:GetAttribute("IsStunned") == true then return true end
-if char:GetAttribute("isStunned") == true then return true end
-if char:GetAttribute("Stunned") == true then return true end
-if char:GetAttribute("stunned") == true then return true end
-if char:GetAttribute("IsStun") == true then return true end
-if char:GetAttribute("Stun") == true then return true end
-local ci = char:FindFirstChild("CheckInterractable")
-if ci then
-    if ci:GetAttribute("isStunned") == true then return true end
-    if ci:GetAttribute("Stunned") == true then return true end
-end
-local hum = char:FindFirstChildOfClass("Humanoid")
-if hum then
-    local sv = hum:FindFirstChild("StunValue")
-    if sv and sv.Value > 0 then return true end
-end
-return false
-end
-local function SInd_Remove(char)
-local data = SInd.Cache[char]
-if data then
-    pcall(function()
-        if data.StopAnim then data.StopAnim() end
-        if data.Gui then data.Gui:Destroy() end
-    end)
-    SInd.Cache[char] = nil
-end
-end
-local function SInd_PlaySound(char)
-if not SInd.SoundEnabled then return end
-pcall(function()
-    local head = char and char:FindFirstChild("Head")
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local attachTo = head or hrp
-    if not attachTo then return end
-    local snd = Instance.new("Sound")
-    snd.Name = "PinatStunSound"
-    snd.SoundId = "rbxassetid://" .. tostring(SInd_GetActiveSoundId())
-    snd.Volume = SInd.SoundVolume or 1.5
-    snd.PlaybackSpeed = 1
-    snd.RollOffMaxDistance = SInd.SoundRange or 500
-    snd.RollOffMinDistance = 10
-    snd.RollOffMode = Enum.RollOffMode.InverseTapered
-    snd.Parent = attachTo
-    snd:Play()
-    snd.Ended:Connect(function() pcall(function() snd:Destroy() end) end)
-    task.delay(5, function() pcall(function() if snd and snd.Parent then snd:Destroy() end end) end)
-end)
-end
-local function SInd_Create(char)
-if SInd.Cache[char] then return SInd.Cache[char] end
-local head = char:FindFirstChild("Head")
-if not head then return nil end
-local bbg = Instance.new("BillboardGui")
-bbg.Name = "PinatStunIndicator"
-bbg.Size = UDim2.fromOffset(140, 42)
-bbg.StudsOffset = Vector3.new(0, 3.0, 0)
-bbg.AlwaysOnTop = true
-bbg.LightInfluence = 0
-bbg.MaxDistance = 500
-bbg.Adornee = head
-bbg.Parent = char
-local pulse1 = Instance.new("Frame")
-pulse1.Name = "Pulse1"
-pulse1.AnchorPoint = Vector2.new(0.5, 0.5)
-pulse1.Position = UDim2.new(0.5, 0, 0.5, 0)
-pulse1.Size = UDim2.fromOffset(34, 34)
-pulse1.BackgroundTransparency = 1
-pulse1.BorderSizePixel = 0
-pulse1.ZIndex = 0
-pulse1.Parent = bbg
-Instance.new("UICorner", pulse1).CornerRadius = UDim.new(1, 0)
-local p1s = Instance.new("UIStroke", pulse1)
-p1s.Color = Color3.fromRGB(255, 255, 255)
-p1s.Thickness = 1.8
-p1s.Transparency = 0.3
-p1s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-local pulse2 = Instance.new("Frame")
-pulse2.Name = "Pulse2"
-pulse2.AnchorPoint = Vector2.new(0.5, 0.5)
-pulse2.Position = UDim2.new(0.5, 0, 0.5, 0)
-pulse2.Size = UDim2.fromOffset(34, 34)
-pulse2.BackgroundTransparency = 1
-pulse2.BorderSizePixel = 0
-pulse2.ZIndex = 0
-pulse2.Parent = bbg
-Instance.new("UICorner", pulse2).CornerRadius = UDim.new(1, 0)
-local p2s = Instance.new("UIStroke", pulse2)
-p2s.Color = Color3.fromRGB(200, 200, 210)
-p2s.Thickness = 1.8
-p2s.Transparency = 0.4
-p2s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-local main = Instance.new("Frame")
-main.Name = "Main"
-main.Size = UDim2.new(0, 140, 0, 34)
-main.Position = UDim2.new(0, 0, 0, 4)
-main.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
-main.BackgroundTransparency = 0.05
-main.BorderSizePixel = 0
-main.ZIndex = 1
-main.Parent = bbg
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 9)
-local bodyGrad = Instance.new("UIGradient")
-bodyGrad.Rotation = 135
-bodyGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 24, 28)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 10)),
-})
-bodyGrad.Parent = main
-local mainStroke = Instance.new("UIStroke", main)
-mainStroke.Name = "MainStroke"
-mainStroke.Color = Color3.fromRGB(255, 255, 255)
-mainStroke.Thickness = 1.3
-mainStroke.Transparency = 0.15
-mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-local iconHolder = Instance.new("Frame")
-iconHolder.Name = "IconHolder"
-iconHolder.Size = UDim2.fromOffset(24, 24)
-iconHolder.Position = UDim2.new(0, 5, 0.5, -12)
-iconHolder.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-iconHolder.BorderSizePixel = 0
-iconHolder.ZIndex = 3
-iconHolder.Parent = main
-Instance.new("UICorner", iconHolder).CornerRadius = UDim.new(1, 0)
-local iconGrad = Instance.new("UIGradient", iconHolder)
-iconGrad.Rotation = 135
-iconGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 44)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 14, 18)),
-})
-local iconStroke = Instance.new("UIStroke", iconHolder)
-iconStroke.Color = Color3.fromRGB(255, 255, 255)
-iconStroke.Thickness = 1
-iconStroke.Transparency = 0.25
-local starIcon = Instance.new("TextLabel")
-starIcon.Name = "StarIcon"
-starIcon.Size = UDim2.fromScale(1, 1)
-starIcon.BackgroundTransparency = 1
-starIcon.Font = Enum.Font.GothamBlack
-starIcon.Text = "â˜…"
-starIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
-starIcon.TextScaled = true
-starIcon.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-starIcon.TextStrokeTransparency = 0.5
-starIcon.ZIndex = 4
-starIcon.Parent = iconHolder
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Size = UDim2.new(1, -42, 0, 12)
-title.Position = UDim2.new(0, 34, 0, 4)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBlack
-title.Text = "STUNNED"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 11
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-title.TextStrokeTransparency = 0.5
-title.ZIndex = 3
-title.Parent = main
-local sub = Instance.new("TextLabel")
-sub.Name = "Sub"
-sub.Size = UDim2.new(1, -42, 0, 8)
-sub.Position = UDim2.new(0, 34, 0, 18)
-sub.BackgroundTransparency = 1
-sub.Font = Enum.Font.GothamBold
-sub.Text = "SILENT"
-sub.TextColor3 = Color3.fromRGB(170, 170, 180)
-sub.TextSize = 7
-sub.TextXAlignment = Enum.TextXAlignment.Left
-sub.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-sub.TextStrokeTransparency = 0.6
-sub.ZIndex = 3
-sub.Parent = main
-local accent = Instance.new("Frame")
-accent.Name = "Accent"
-accent.AnchorPoint = Vector2.new(1, 0.5)
-accent.Size = UDim2.fromOffset(2.5, 14)
-accent.Position = UDim2.new(1, -5, 0.5, 0)
-accent.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-accent.BorderSizePixel = 0
-accent.ZIndex = 3
-accent.Parent = main
-Instance.new("UICorner", accent).CornerRadius = UDim.new(1, 0)
-main.Size = UDim2.new(0, 0, 0, 0)
-main.BackgroundTransparency = 1
-task.spawn(function()
-    task.wait(0.02)
-    TweenService:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 140, 0, 34),
-        BackgroundTransparency = 0.05,
-    }):Play()
-end)
-local animActive = true
-local function StopAnim() animActive = false end
-task.spawn(function()
-    local t = 0
-    while animActive and bbg.Parent and main.Parent do
-        t = t + 0.05
-        local pulse = (math.sin(t * 3) + 1) * 0.5
-        mainStroke.Transparency = 0.35 - pulse * 0.2
-        mainStroke.Thickness = 1.2 + pulse * 0.3
-        starIcon.Rotation = math.sin(t * 2) * 10
-        local p1 = (t * 0.55) % 1
-        pulse1.Size = UDim2.fromOffset(34 + p1 * 40, 34 + p1 * 40)
-        p1s.Transparency = 0.15 + p1 * 0.75
-        local p2 = ((t * 0.55) + 0.5) % 1
-        pulse2.Size = UDim2.fromOffset(34 + p2 * 40, 34 + p2 * 40)
-        p2s.Transparency = 0.15 + p2 * 0.75
-        task.wait(0.03)
-    end
-end)
-local function ExitAndDestroy()
-    animActive = false
-    TweenService:Create(main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-        Size = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-    }):Play()
-    task.delay(0.28, function() pcall(function() bbg:Destroy() end) end)
-end
-SInd.Cache[char] = { Gui = bbg, Main = main, StopAnim = StopAnim, Exit = ExitAndDestroy }
-return SInd.Cache[char]
-end
-function SInd_SetEnabled(v)
-SInd.Enabled = v and true or false
-if SInd.Enabled then
-    if SInd.HeartbeatConn then return end
-    SInd.HeartbeatConn = RunService.Heartbeat:Connect(function()
-        if not SInd.Enabled then return end
-        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not myRoot then return end
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and TeamIs(p, "Killer") and p.Character then
-                local char = p.Character
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local dist = (hrp.Position - myRoot.Position).Magnitude
-                    local stunned = SInd_IsStunned(char)
-                    local data = SInd.Cache[char]
-                    local wasStunned = data ~= nil
-                    if stunned and dist <= SInd.Range then
-                        if not wasStunned then SInd_PlaySound(char); SInd_Create(char) end
-                    else
-                        if wasStunned then
-                            if data.Exit then data.Exit() else SInd_Remove(char) end
-                            SInd.Cache[char] = nil
-                        end
-                        end
-                    end
-                end
-            end
-        end)
-    else
-        if SInd.HeartbeatConn then SInd.HeartbeatConn:Disconnect(); SInd.HeartbeatConn = nil end
-        for _, data in pairs(SInd.Cache) do
-            pcall(function()
-                if data.StopAnim then data.StopAnim() end
-                if data.Gui then data.Gui:Destroy() end
-            end)
-        end
-        SInd.Cache = {}
-    end
-end
-
---====================================================--
-
-name)
-    if _ES.Data[name] then
-        _ES.SelectedEmote = name
-        if _ES.Enabled then EmoteSystem_Play() end
-    end
-end
-LocalPlayer.CharacterRemoving:Connect(function() EmoteSystem_Stop() end)
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    if _ES.Enabled then EmoteSystem_Play() end
-end)
-v)
-        JerkTool.Enabled = v and true or false
-        jerkRunning = JerkTool.Enabled
-        if v then JerkOff_Create() else JerkOff_Destroy() end
-    end
-    LocalPlayer.CharacterAdded:Connect(function()
-        task.wait(1)
-        if JerkTool.Enabled then jerkRunning = true; JerkOff_Create() end
-    end)
-end
-v, fov)
-    if fov then LockPOV.LockedFOV = fov end
-    LockPOV.Enabled = v and true or false
-    if LockPOV.Enabled then
-        local cam = workspace.CurrentCamera
-        if cam then LockPOV.OriginalFOV = cam.FieldOfView end
-        if LockPOV.Connection then LockPOV.Connection:Disconnect() end
-        LockPOV.Connection = game:GetService("RunService").RenderStepped:Connect(function()
-            if not LockPOV.Enabled then
-                if LockPOV.Connection then LockPOV.Connection:Disconnect(); LockPOV.Connection = nil end
-                local cam2 = workspace.CurrentCamera
-                if cam2 and LockPOV.OriginalFOV then cam2.FieldOfView = LockPOV.OriginalFOV end
-                return
-            end
-            local cam3 = workspace.CurrentCamera
-            if cam3 then cam3.FieldOfView = LockPOV.LockedFOV end
-        end)
-    else
-        if LockPOV.Connection then LockPOV.Connection:Disconnect(); LockPOV.Connection = nil end
-        local cam = workspace.CurrentCamera
-        if cam and LockPOV.OriginalFOV then cam.FieldOfView = LockPOV.OriginalFOV end
-    end
-end
-
-    TrollTeleport.Enabled = v and true or false
-    if TrollTeleport.Enabled and not TrollTeleport.Running then
-        TrollTeleport.Running = true
-        task.spawn(function()
-            while TrollTeleport.Enabled do
-                task.wait(TrollTeleport.Interval)
-                pcall(function()
-                    if not TrollTeleport.Enabled then return end
-                    local target = TrollTeleport.Target
-                    if not target then
-                        -- auto-pick nearest non-local player
-                        local myChar = LocalPlayer.Character
-                        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                        if not myHRP then return end
-                        local closest, bd = nil, math.huge
-                        for _, plr in ipairs(Players:GetPlayers()) do
-                            if plr ~= LocalPlayer and plr.Character then
-                                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-                                if hrp then
-                                    local d = (hrp.Position - myHRP.Position).Magnitude
-                                    if d < bd then bd = d; closest = plr end
-                                end
-                            end
-                        end
-                        target = closest
-                    end
-                    if not target or not target.Character then return end
-                    local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-                    local myChar = LocalPlayer.Character
-                    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                    if targetHRP and myHRP then
-                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 0, -2)
-                    end
-                end)
-            end
-            TrollTeleport.Running = false
-        end)
-    end
-end
-
 -- Auto Flee + Auto Attack loop
 task.spawn(function()
     while true do
@@ -12022,27 +11709,6 @@ task.spawn(function()
     end
 end)
 
-    if not VD.FLING_Enabled then return end
-    local root = Root
-    if not root then return end
-    local originalPos = root.CFrame
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local tr = player.Character:FindFirstChild("HumanoidRootPart")
-            if tr then
-                for _ = 1, 5 do
-                    root.CFrame      = tr.CFrame
-                    root.Velocity    = Vector3.new(VD.FLING_Strength, VD.FLING_Strength / 2, VD.FLING_Strength)
-                    root.RotVelocity = Vector3.new(9999, 9999, 9999)
-                    task.wait()
-                end
-            end
-        end
-    end
-    root.CFrame      = originalPos
-    root.Velocity    = Vector3.zero
-    root.RotVelocity = Vector3.zero
-end
 local function KYS_BeatGameSurvivor()
     if not VD.BEAT_Survivor or GetRole() ~= "Survivor" then return end
     local root = Root
