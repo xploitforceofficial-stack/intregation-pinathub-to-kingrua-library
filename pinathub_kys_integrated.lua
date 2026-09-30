@@ -9,6 +9,9 @@ local Workspace         = game:GetService("Workspace")
 local Teams             = game:GetService("Teams")
 local GuiService        = game:GetService("GuiService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local CollectionService = game:GetService("CollectionService")
+local TweenService      = game:GetService("TweenService")
+local HttpService       = game:GetService("HttpService")
 local LocalPlayer       = Players.LocalPlayer
 local Camera            = Workspace.CurrentCamera
 local Character, Humanoid, Root
