@@ -1,4 +1,3 @@
-file:///c%3A/Users/personal/intregation-pinathub-to-kingrua-library.git/intregation-pinathub-to-kingrua-library/pinathub_kys_integrated.lua {"mtime":1790669631117,"ctime":1788750342271,"size":749435,"etag":"3gnc7eaa6p4qa","orphaned":false,"typeId":""}
 --Cracked by HadsonFanboy2083 <3
 local function __PinatHub_Init_Main__()
 local Players           = game:GetService("Players")
@@ -59,11 +58,19 @@ local function loadPinatHubSource()
     local sourceUrl = "https://raw.githubusercontent.com/xploitforceofficial-stack/intregation-pinathub-to-kingrua-library/refs/heads/main/kingrualibrarysource.lua?t=" .. os.time()
     if readfile and isfile and isfile("kingrualibrarysource.lua") then
         local source = readfile("kingrualibrarysource.lua")
-        local fn, compileErr = loadstring(source)
-        if not fn then error(compileErr) end
-        return fn()
+        if string.find(source, "AddSubNav", 1, true) and string.find(source, "TextService", 1, true) then
+            local fn = loadstring(source)
+            if fn then
+                local ok, res = pcall(fn)
+                if ok and res then return res end
+            end
+        end
     end
-    local source = game:HttpGet(sourceUrl)
+    local ok, source = pcall(function() return game:HttpGet(sourceUrl) end)
+    if not ok or not source or source == "" then
+        sourceUrl = "https://raw.githubusercontent.com/stokompetgacor23-dotcom/intregation-pinathub-to-kingrua-library/refs/heads/main/kingrualibrarysource.lua?t=" .. os.time()
+        source = game:HttpGet(sourceUrl)
+    end
     local fn, compileErr = loadstring(source)
     if not fn then error(compileErr) end
     return fn()
@@ -3959,13 +3966,14 @@ function setAutoHealAll(v)
     end
 end
 GenBypass = {
-    Enabled     = false,
-    Button      = nil,
-    UI          = nil,
-    Cache       = {},
-    CacheTimer  = 0,
-    Processed   = {},
-    HotkeyCode  = Enum.KeyCode.G,
+    Enabled      = false,
+    Button       = nil,
+    UI           = nil,
+    Cache        = {},
+    CacheTimer   = 0,
+    Processed    = {},
+    HotkeyCode   = Enum.KeyCode.G,
+    TriggerRange = 8,
 }
 function GB_GetAllGenerators()
     local now = tick()
@@ -4065,94 +4073,215 @@ function GB_IsPromptVisible()
     return ok and frame and frame.Visible
 end
 function GB_UpdateButton()
-    if GenBypass.Button then
-        GenBypass.Button.Visible = GenBypass.Enabled and isMobile
+    if GenBypass.Enabled then
+        if not GenBypass._Wrap or not GenBypass.UI or not GenBypass.UI.Parent then
+            GB_CreateButton(); task.wait(0.05)
+        end
+        if GenBypass._ShowCard then GenBypass._ShowCard() end
+    else
+        if GenBypass._HideCard then GenBypass._HideCard() end
     end
 end
 function GB_CreateButton()
-    local oldUI = LocalPlayer.PlayerGui:FindFirstChild("BypassGenUI")
-    if oldUI then oldUI:Destroy() end
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return end
+    local oldUI = pg:FindFirstChild("BypassGenUI"); if oldUI then oldUI:Destroy() end
+    if GenBypass._StopAnim then pcall(GenBypass._StopAnim); GenBypass._StopAnim = nil end
     GenBypass.UI = Instance.new("ScreenGui")
     GenBypass.UI.Name = "BypassGenUI"
     GenBypass.UI.ResetOnSpawn = false
     GenBypass.UI.IgnoreGuiInset = true
-    GenBypass.UI.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    GenBypass.Button = Instance.new("ImageButton")
-    GenBypass.Button.Name = "BypassGenButton"
-    GenBypass.Button.Size = UDim2.new(0, 60, 0, 60)
-    GenBypass.Button.Position = UDim2.new(0.88, 0, 0.55, 0)
-    GenBypass.Button.AnchorPoint = Vector2.new(0.5, 0.5)
-    GenBypass.Button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    GenBypass.Button.BackgroundTransparency = 0.15
-    GenBypass.Button.AutoButtonColor = true
-    GenBypass.Button.Visible = false
-    GenBypass.Button.ZIndex = 10
-    GenBypass.Button.Parent = GenBypass.UI
-    Instance.new("UICorner", GenBypass.Button).CornerRadius = UDim.new(1, 0)
-    local s = Instance.new("UIStroke", GenBypass.Button)
-    s.Color = Color3.fromRGB(255, 255, 255)
-    s.Thickness = 2; s.Transparency = 0.2
-    local lbl = Instance.new("TextLabel", GenBypass.Button)
-    lbl.Size = UDim2.new(1, 0, 1, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = "BYPASS"
-    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    lbl.TextScaled = true
-    lbl.Font = Enum.Font.GothamBlack
-    lbl.ZIndex = 11
-    local function applyShine(obj, baseColor)
-        local grad = Instance.new("UIGradient", obj)
-        grad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, baseColor),
-            ColorSequenceKeypoint.new(0.4, baseColor),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-            ColorSequenceKeypoint.new(0.6, baseColor),
-            ColorSequenceKeypoint.new(1, baseColor)
-        })
-        grad.Rotation = 45
-        grad.Offset = Vector2.new(-1, -1)
-        task.spawn(function()
-            local TweenService = game:GetService("TweenService")
-            local ti = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1)
-            local tw = TweenService:Create(grad, ti, { Offset = Vector2.new(1, 1) })
-            tw:Play()
+    GenBypass.UI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    GenBypass.UI.DisplayOrder = 100
+    GenBypass.UI.Parent = pg
+    local wrap = Instance.new("Frame")
+    wrap.Name = "Wrap"; wrap.AnchorPoint = Vector2.new(1, 0)
+    wrap.Position = UDim2.new(1, -20, 0.48, 0)
+    wrap.Size = UDim2.fromOffset(110, 110)
+    wrap.BackgroundTransparency = 1; wrap.Active = true
+    wrap.ZIndex = 2; wrap.Parent = GenBypass.UI
+    local glow = Instance.new("Frame")
+    glow.Name = "Glow"; glow.AnchorPoint = Vector2.new(0.5, 0.5)
+    glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glow.Size = UDim2.fromOffset(88, 88)
+    glow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    glow.BackgroundTransparency = 0.85; glow.BorderSizePixel = 0
+    glow.ZIndex = 1; glow.Parent = wrap
+    Instance.new("UICorner", glow).CornerRadius = UDim.new(1, 0)
+    local mainCircle = Instance.new("Frame")
+    mainCircle.Name = "MainCircle"; mainCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+    mainCircle.Size = UDim2.fromOffset(64, 64)
+    mainCircle.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+    mainCircle.BackgroundTransparency = 0.05; mainCircle.BorderSizePixel = 0
+    mainCircle.ZIndex = 4; mainCircle.Parent = wrap
+    Instance.new("UICorner", mainCircle).CornerRadius = UDim.new(1, 0)
+    local mainGrad = Instance.new("UIGradient")
+    mainGrad.Rotation = 135
+    mainGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 36)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 10)),
+    })
+    mainGrad.Parent = mainCircle
+    local mainStroke = Instance.new("UIStroke", mainCircle)
+    mainStroke.Name = "MainStroke"; mainStroke.Color = Color3.fromRGB(255, 255, 255)
+    mainStroke.Thickness = 1.6; mainStroke.Transparency = 0.15
+    mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    local genText = Instance.new("TextLabel")
+    genText.Name = "GenText"; genText.AnchorPoint = Vector2.new(0.5, 0.5)
+    genText.Position = UDim2.new(0.5, 0, 0.5, 0)
+    genText.Size = UDim2.fromOffset(60, 30)
+    genText.BackgroundTransparency = 1; genText.Font = Enum.Font.GothamBlack
+    genText.Text = "GEN"; genText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    genText.TextSize = 20; genText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    genText.TextStrokeTransparency = 0.5
+    genText.ZIndex = 7; genText.Parent = wrap
+    local actionBtn = Instance.new("TextButton")
+    actionBtn.Name = "ActionBtn"; actionBtn.Size = UDim2.fromScale(1, 1)
+    actionBtn.BackgroundTransparency = 1; actionBtn.Text = ""
+    actionBtn.AutoButtonColor = false; actionBtn.ZIndex = 10; actionBtn.Parent = wrap
+    mainCircle.Size = UDim2.fromOffset(0, 0)
+    glow.Size = UDim2.fromOffset(0, 0)
+    genText.TextTransparency = 1; genText.TextStrokeTransparency = 1
+    GenBypass._Wrap = wrap; GenBypass._Glow = glow
+    GenBypass._MainCircle = mainCircle; GenBypass._MainStroke = mainStroke
+    GenBypass._GenText = genText; GenBypass._ActionBtn = actionBtn
+    GenBypass.Button = actionBtn
+    local TweenServiceGB = game:GetService("TweenService")
+    local function ShowCard()
+        wrap.Visible = true
+        TweenServiceGB:Create(glow, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(88, 88), BackgroundTransparency = 0.85,
+        }):Play()
+        TweenServiceGB:Create(mainCircle, TweenInfo.new(0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(64, 64), BackgroundTransparency = 0.05,
+        }):Play()
+        TweenServiceGB:Create(genText, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            TextTransparency = 0, TextStrokeTransparency = 0.5,
+        }):Play()
+    end
+    local function HideCard()
+        TweenServiceGB:Create(glow, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1,
+        }):Play()
+        TweenServiceGB:Create(mainCircle, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1,
+        }):Play()
+        TweenServiceGB:Create(genText, TweenInfo.new(0.2), {
+            TextTransparency = 1, TextStrokeTransparency = 1,
+        }):Play()
+        task.delay(0.3, function()
+            if GenBypass._StopAnim then pcall(GenBypass._StopAnim); GenBypass._StopAnim = nil end
+            if GenBypass.UI then pcall(function() GenBypass.UI:Destroy() end); GenBypass.UI = nil end
+            GenBypass._Wrap = nil; GenBypass._ShowCard = nil
+            GenBypass._HideCard = nil; GenBypass._SetStatus = nil
         end)
     end
-    applyShine(GenBypass.Button, Color3.fromRGB(20, 0, 30))
-    applyShine(lbl, Color3.fromRGB(255, 0, 255))
-    applyShine(s, Color3.fromRGB(255, 0, 255))
-    GenBypass.Button.MouseButton1Click:Connect(function()
+    GenBypass._ShowCard = ShowCard; GenBypass._HideCard = HideCard
+    local animActive = true
+    GenBypass._StopAnim = function() animActive = false end
+    task.spawn(function()
+        local t = 0
+        while animActive and wrap.Parent do
+            t = t + 0.035
+            if GenBypass.Enabled then
+                local pulse = (math.sin(t * 3) + 1) * 0.5
+                mainStroke.Transparency = 0.35 - pulse * 0.2
+                mainStroke.Thickness = 1.6 + pulse * 0.4
+                glow.BackgroundTransparency = 0.85 - pulse * 0.12
+                glow.Size = UDim2.fromOffset(88 + pulse * 5, 88 + pulse * 5)
+                genText.Rotation = math.sin(t * 1.2) * 1.5
+            end
+            task.wait(0.03)
+        end
+    end)
+    local function SetStatus(mode)
+        if mode == "ready" then
+            mainStroke.Color = Color3.fromRGB(120, 255, 160)
+            genText.TextColor3 = Color3.fromRGB(120, 255, 160)
+            glow.BackgroundColor3 = Color3.fromRGB(120, 255, 160)
+        elseif mode == "busy" then
+            mainStroke.Color = Color3.fromRGB(255, 200, 100)
+            genText.TextColor3 = Color3.fromRGB(255, 200, 100)
+            glow.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+        elseif mode == "searching" then
+            mainStroke.Color = Color3.fromRGB(150, 200, 255)
+            genText.TextColor3 = Color3.fromRGB(150, 200, 255)
+            glow.BackgroundColor3 = Color3.fromRGB(150, 200, 255)
+        else
+            mainStroke.Color = Color3.fromRGB(255, 255, 255)
+            genText.TextColor3 = Color3.fromRGB(255, 255, 255)
+            glow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end
+    GenBypass._SetStatus = SetStatus
+    local drag = false
+    local dStart, sPos
+    local dragDist = 0
+    wrap.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+            drag = true; dStart = inp.Position; sPos = wrap.Position; dragDist = 0
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(inp)
+        if not drag then return end
+        if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+            local d = inp.Position - dStart
+            dragDist = math.abs(d.X) + math.abs(d.Y)
+            wrap.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset + d.X, sPos.Y.Scale, sPos.Y.Offset + d.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+            drag = false
+        end
+    end)
+    actionBtn.MouseButton1Up:Connect(function()
         if not GenBypass.Enabled then return end
-        local bestPoint, bestDist = GB_GetNearestPoint()
-        if bestPoint and bestDist <= 8 then GB_DoRepair(bestPoint) end
+        if dragDist > 6 then return end
+        TweenServiceGB:Create(mainCircle, TweenInfo.new(0.08), { Size = UDim2.fromOffset(54, 54) }):Play()
+        task.delay(0.1, function()
+            TweenServiceGB:Create(mainCircle, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(64, 64) }):Play()
+        end)
+        local ripple = Instance.new("Frame")
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ripple.Size = UDim2.fromOffset(64, 64)
+        ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ripple.BackgroundTransparency = 0.55; ripple.BorderSizePixel = 0
+        ripple.ZIndex = 3; ripple.Parent = wrap
+        Instance.new("UICorner", ripple).CornerRadius = UDim.new(1, 0)
+        TweenServiceGB:Create(ripple, TweenInfo.new(0.6), { Size = UDim2.fromOffset(160, 160), BackgroundTransparency = 1 }):Play()
+        task.delay(0.6, function() if ripple then ripple:Destroy() end end)
+        SetStatus("searching")
+        local bp, bd = GB_GetNearestPoint()
+        if bp and bd <= GenBypass.TriggerRange then
+            SetStatus("busy")
+            task.spawn(function()
+                GB_DoRepair(bp); task.wait(0.5); SetStatus("ready")
+            end)
+        else
+            task.wait(0.6); SetStatus("standby")
+        end
+    end)
+    task.spawn(function()
+        task.wait(0.1)
+        if GenBypass.Enabled then ShowCard() end
     end)
 end
 GB_CreateButton()
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    GB_CreateButton()
-    GB_UpdateButton()
+    task.wait(0.5); GB_CreateButton(); GB_UpdateButton()
 end)
 UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if isMobile then return end
+    if gp or isMobile then return end
     if input.KeyCode == GenBypass.HotkeyCode and GenBypass.Enabled then
         if not GB_IsPromptVisible() then return end
         local bestPoint, bestDist = GB_GetNearestPoint()
-        if not bestPoint or bestDist > 8 then return end
+        if not bestPoint or bestDist > GenBypass.TriggerRange then return end
         if GenBypass.Processed[bestPoint.Parent] then return end
         GB_DoRepair(bestPoint)
     end
-end)
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-    if not GenBypass.Enabled then return end
-    if not GB_IsPromptVisible() then return end
-    local bestPoint, bestDist = GB_GetNearestPoint()
-    if not bestPoint or bestDist > 8 then return end
-    if GenBypass.Processed[bestPoint.Parent] then return end
-    GB_DoRepair(bestPoint)
 end)
 task.spawn(function()
     while true do
@@ -4180,14 +4309,591 @@ function setGenBypass(v)
     GB_UpdateButton()
 end
 function setAutoCrouch(v) VD.AutoCrouch = v end
-MyersGrabData = {
-    Enabled = false,
-    UI = nil,
-    Button = nil,
-    DragLocked = false,
-    Dragging = false,
-    DragStart = nil,
-    DragStartPos = nil,
+
+-- ============================================================
+-- AUTO FLEE KILLER (SURVIVOR) - from alvin
+-- ============================================================
+local lastAutoFlee = 0
+function SURV_AutoFlee()
+    if not VD.SURV_AutoFlee then return end
+    if GetRole() ~= "Survivor" then return end
+    local now = tick()
+    if now - lastAutoFlee < (VD.SURV_AutoFleeCooldown or 1.5) then return end
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+    if not myRoot or not hum or hum.Health <= 0 then return end
+    local killerRoot, nearest = nil, math.huge
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and TeamIs(plr, "Killer") and plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - myRoot.Position).Magnitude
+                if d < nearest then nearest = d; killerRoot = hrp end
+            end
+        end
+    end
+    if not killerRoot then return end
+    if nearest > (VD.SURV_AutoFleeDist or 40) then return end
+    lastAutoFlee = now
+    local bestPt, bestDist = nil, 0
+    local mf = workspace:FindFirstChild("Map")
+    if mf then
+        for _, obj in ipairs(mf:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name:find("GeneratorPoint") then
+                local d = (obj.Position - killerRoot.Position).Magnitude
+                if d > bestDist then bestDist = d; bestPt = obj end
+            end
+        end
+    end
+    if bestPt then
+        pcall(function() myRoot.CFrame = bestPt.CFrame + Vector3.new(0, 5, 0) end)
+        VD_Notify("Auto Flee", "Teleported away from killer!", 2)
+    end
+end
+function setAutoFlee(v) VD.SURV_AutoFlee = v and true or false end
+
+-- ============================================================
+-- AUTO ATTACK (KILLER) - from alvin
+-- ============================================================
+local lastAutoAttack = 0
+function KA_AutoAttack()
+    if not VD.KILLER_AutoAttack then return end
+    if GetRole() ~= "Killer" then return end
+    local now = tick()
+    if now - lastAutoAttack < (VD.KILLER_AutoAttackCooldown or 0.15) then return end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local closest, shortest = nil, VD.KILLER_AutoAttackRange or 12
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and TeamIs(plr, "Survivor") and plr.Character then
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hum and hrp and hum.Health > 35 then
+                local d = (hrp.Position - root.Position).Magnitude
+                if d <= shortest then shortest = d; closest = plr end
+            end
+        end
+    end
+    if closest then
+        lastAutoAttack = now
+        pcall(function()
+            local attacks = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Attacks")
+            local basic = attacks and attacks:FindFirstChild("BasicAttack")
+            if basic then basic:FireServer(false) end
+        end)
+    end
+end
+function setAutoAttack(v) VD.KILLER_AutoAttack = v and true or false end
+
+-- ============================================================
+-- AUTO PARRY SYSTEM (ParryState) - from alvin
+-- ============================================================
+--====================================================--
+local ParryState = {
+    LastParry = 0, ActiveAttackers = {},
+    CircleFolder = nil, CircleDashes = {}, CircleRotCFs = {}, CircleOffsets = {},
+    CircleRadius = 0, CircleBuiltForDagger = false,
+    CircleLastX = math.huge, CircleLastY = math.huge, CircleLastZ = math.huge,
+    CircleSpawnTime = 0, CircleSpawnDuration = 0.55,
+}
+local ParryCooldown = {
+    OnCooldown = false, CooldownEnd = 0,
+    WaitingForResult = false, WaitingStart = 0, WaitTimeout = 2.0,
+    FallbackCooldown = 60, MaxCooldown = 90, LastFiredAt = 0,
+    IsSilenced = false, JustFired = false, ManualDetect = false, ManualIgnoreWindow = 0.35
+}
+local parryResultRemote, parryFireRemote
+pcall(function()
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    local items = remotes and remotes:FindFirstChild("Items")
+    local dagger = items and items:FindFirstChild("Parrying Dagger")
+    if dagger then
+        parryResultRemote = dagger:FindFirstChild("parryResult")
+        parryFireRemote = dagger:FindFirstChild("parry")
+    end
+end)
+local KillerAttackAnims = {
+    ["78432063483146"]="attack",["121216847022485"]="attack",["74968262036854"]="attack",
+    ["132817836308238"]="attack",["82666958311998"]="attack",["111920872708571"]="attack",
+    ["106871536134254"]="attack",["109402730355822"]="attack",["130593238885843"]="attack",
+    ["138720291317243"]="attack",["139369275981139"]="attack",["133963973694098"]="attack",
+    ["78935059863801"]="attack",
+    ["118907603246885"]="lungehold",["135002183282873"]="lungehold",["113255068724446"]="lungehold",
+    ["129784271201071"]="lungehold",["105374834496520"]="lungehold",["117070354890871"]="lungehold",
+    ["115244153053858"]="lungehold",["110355011987939"]="lungehold",["117042998468241"]="lungehold",
+    ["122812055447896"]="lungehold"
+}
+local function ParryStartCooldown(d)
+    d = math.clamp(tonumber(d) or 0, 0, ParryCooldown.MaxCooldown)
+    if d <= 0 then d = ParryCooldown.FallbackCooldown end
+    ParryCooldown.OnCooldown = true
+    ParryCooldown.CooldownEnd = os.clock() + d
+    ParryCooldown.WaitingForResult = false
+    ParryCooldown.JustFired = false
+    ParryCooldown.ManualDetect = false
+end
+local function ParryClearCooldown()
+    ParryCooldown.OnCooldown = false
+    ParryCooldown.CooldownEnd = 0
+    ParryCooldown.WaitingForResult = false
+    ParryCooldown.JustFired = false
+    ParryCooldown.ManualDetect = false
+end
+local function ParryIsOnCooldown()
+    if not ParryCooldown.OnCooldown then return false end
+    if os.clock() >= ParryCooldown.CooldownEnd then ParryClearCooldown(); return false end
+    return true
+end
+if parryResultRemote then
+    parryResultRemote.OnClientEvent:Connect(function(success, cd)
+        if not ParryCooldown.WaitingForResult and not ParryCooldown.JustFired then return end
+        local c = tonumber(cd) or 0
+        if success and c > 0 then ParryStartCooldown(math.min(c, ParryCooldown.MaxCooldown))
+        else ParryStartCooldown(ParryCooldown.FallbackCooldown) end
+    end)
+end
+local function ParryHookSilenced(char)
+    if not char then return end
+    ParryCooldown.IsSilenced = CollectionService:HasTag(char, "Silenced")
+end
+CollectionService:GetInstanceAddedSignal("Silenced"):Connect(function(i)
+    if i == LocalPlayer.Character then ParryCooldown.IsSilenced = true end
+end)
+CollectionService:GetInstanceRemovedSignal("Silenced"):Connect(function(i)
+    if i == LocalPlayer.Character then ParryCooldown.IsSilenced = false end
+end)
+LocalPlayer.CharacterAdded:Connect(function(c) task.wait(0.5); ParryHookSilenced(c) end)
+if LocalPlayer.Character then ParryHookSilenced(LocalPlayer.Character) end
+
+local ParryCharCache = { Char=nil, Root=nil, Hum=nil, UpperTorso=nil, CheckInt=nil }
+local function ParryGetCharCache()
+    local char = LocalPlayer.Character
+    if char ~= ParryCharCache.Char then
+        ParryCharCache.Char = char
+        ParryCharCache.Root = nil; ParryCharCache.Hum = nil
+        ParryCharCache.UpperTorso = nil; ParryCharCache.CheckInt = nil
+    end
+    if not char then return ParryCharCache end
+    if not ParryCharCache.Root then ParryCharCache.Root = char:FindFirstChild("HumanoidRootPart") end
+    if not ParryCharCache.Hum then ParryCharCache.Hum = char:FindFirstChildOfClass("Humanoid") end
+    if not ParryCharCache.UpperTorso then
+        ParryCharCache.UpperTorso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+    end
+    if not ParryCharCache.CheckInt then ParryCharCache.CheckInt = char:FindFirstChild("CheckInterractable") end
+    return ParryCharCache
+end
+local DaggerCache = { Value = false, LastCheck = 0, Interval = 0.15 }
+local function ParryIsDaggerModel(inst)
+    if not inst then return false end
+    return inst:IsA("Model") or inst:IsA("Tool") or inst:IsA("Accessory")
+end
+local function ParryIsEquippedDagger()
+    local now = os.clock()
+    if now - DaggerCache.LastCheck < DaggerCache.Interval then return DaggerCache.Value end
+    DaggerCache.LastCheck = now
+    local hasDagger = false
+    local char = LocalPlayer.Character
+    if char then
+        local d = char:FindFirstChild("Parrying Dagger")
+        if ParryIsDaggerModel(d) then hasDagger = true end
+    end
+    if not hasDagger then
+        local wsChar = Workspace:FindFirstChild(LocalPlayer.Name)
+        if wsChar then
+            local d = wsChar:FindFirstChild("Parrying Dagger")
+            if ParryIsDaggerModel(d) then hasDagger = true end
+        end
+    end
+    DaggerCache.Value = hasDagger
+    return hasDagger
+end
+LocalPlayer.CharacterAdded:Connect(function() DaggerCache.Value = false; DaggerCache.LastCheck = 0 end)
+
+local ParryCheckAttrs = {"isVaulting","isSliding","isDroppingPallet","isRepairing","isHealing","isUnhooking","isExiting"}
+local function ParryIsBusy()
+    local cc = ParryGetCharCache()
+    if not cc.Char then return true end
+    if LocalPlayer:GetAttribute("IsDead") then return true end
+    if cc.Char:GetAttribute("IsCarried") then return true end
+    if cc.Char:GetAttribute("IsHooked") then return true end
+    if cc.Root and CollectionService:HasTag(cc.Root, "doing action") then return true end
+    if cc.CheckInt then
+        for i = 1, #ParryCheckAttrs do
+            if cc.CheckInt:GetAttribute(ParryCheckAttrs[i]) then return true end
+        end
+    end
+    return false
+end
+local function ParryIsLowHealth()
+    local hum = ParryGetCharCache().Hum
+    if not hum then return false end
+    return hum.Health < hum.MaxHealth * 0.5
+end
+local function ParryCanFire()
+    if not ParryIsEquippedDagger() then return false end
+    if ParryCooldown.IsSilenced then return false end
+    if ParryIsOnCooldown() then return false end
+    if ParryCooldown.WaitingForResult then return false end
+    if ParryIsBusy() then return false end
+    if ParryIsLowHealth() then return false end
+    return true
+end
+local function ParryExecuteMobile()
+    local didFire = false
+    local pGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if pGui and type(firesignal) == "function" then
+        local mobRoot = pGui:FindFirstChild("Survivor-mob")
+        local controls = mobRoot and mobRoot:FindFirstChild("Controls")
+        if controls then
+            for _, n in ipairs({"Gui-mob","action","Gui-mobile","Gui_mob","Parry","parry"}) do
+                local btn = controls:FindFirstChild(n)
+                if btn and btn:IsA("GuiButton") then
+                    pcall(function()
+                        firesignal(btn.MouseButton1Down)
+                        task.delay(0.05, function()
+                            if btn and btn.Parent then
+                                firesignal(btn.MouseButton1Up)
+                                firesignal(btn.MouseButton1Click)
+                            end
+                        end)
+                    end)
+                    didFire = true; break
+                end
+            end
+        end
+    end
+    if not didFire then
+        local remote = ReplicatedStorage:FindFirstChild("Remotes")
+        local items = remote and remote:FindFirstChild("Items")
+        local dagger = items and items:FindFirstChild("Parrying Dagger")
+        local parry = dagger and dagger:FindFirstChild("parry")
+        if parry then pcall(function() parry:FireServer() end) end
+    end
+end
+local function ParryExecutePC()
+    if not VirtualInputManager then return end
+    pcall(function()
+        VirtualInputManager:SendMouseMoveEvent(0, 0, game)
+        task.wait(0.005)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 2, true, game, 0)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 2, false, game, 0)
+    end)
+end
+local function ParryExecuteSilent()
+    if parryFireRemote then return pcall(function() parryFireRemote:FireServer() end) end
+    return false
+end
+local function ParryExecute()
+    if not ParryCanFire() then return end
+    ParryState.LastParry = os.clock()
+    ParryCooldown.LastFiredAt = os.clock()
+    ParryCooldown.WaitingForResult = true
+    ParryCooldown.WaitingStart = os.clock()
+    ParryCooldown.JustFired = true
+    ParryCooldown.ManualDetect = false
+    if VD.PARRY_SilentParry then ParryExecuteSilent(); return end
+    if isMobile then ParryExecuteMobile() else ParryExecutePC() end
+end
+local function ParryMarkManual()
+    if not ParryIsEquippedDagger() then return end
+    if ParryCooldown.IsSilenced then return end
+    if os.clock() - ParryCooldown.LastFiredAt < ParryCooldown.ManualIgnoreWindow then return end
+    if ParryCooldown.OnCooldown or ParryCooldown.WaitingForResult then return end
+    ParryCooldown.WaitingForResult = true
+    ParryCooldown.WaitingStart = os.clock()
+    ParryCooldown.JustFired = true
+    ParryCooldown.ManualDetect = true
+    ParryCooldown.LastFiredAt = os.clock()
+end
+UserInputService.InputBegan:Connect(function(input, gp)
+    if input.UserInputType ~= Enum.UserInputType.MouseButton2 then return end
+    if gp then return end
+    ParryMarkManual()
+end)
+local parryHookedButtons = setmetatable({}, {__mode = "k"})
+local function ParryTryHookMobileButton(inst)
+    if not inst or not inst:IsA("GuiButton") then return end
+    if parryHookedButtons[inst] then return end
+    local nm = inst.Name
+    if nm ~= "Gui-mob" and nm ~= "action" and nm ~= "Gui-mobile"
+        and nm ~= "Gui_mob" and nm ~= "Parry" and nm ~= "parry" then return end
+    parryHookedButtons[inst] = true
+    inst.MouseButton1Down:Connect(ParryMarkManual)
+end
+local function ParryScanForMobileButtons(root)
+    if not root then return end
+    for _, d in ipairs(root:GetDescendants()) do ParryTryHookMobileButton(d) end
+end
+local function ParryAttachPlayerGui(pGui)
+    if not pGui then return end
+    ParryScanForMobileButtons(pGui)
+    pGui.DescendantAdded:Connect(ParryTryHookMobileButton)
+end
+local existingPGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+if existingPGui then ParryAttachPlayerGui(existingPGui) end
+LocalPlayer.ChildAdded:Connect(function(c)
+    if c:IsA("PlayerGui") then ParryAttachPlayerGui(c) end
+end)
+
+local function ParryGetHitboxPart(char)
+    if not char then return nil end
+    return char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
+end
+local function ParryCheckAndParry(killerChar)
+    if ParryIsOnCooldown() or ParryCooldown.WaitingForResult
+        or ParryCooldown.IsSilenced or not ParryIsEquippedDagger() then return end
+    local cc = ParryGetCharCache()
+    local myRoot = cc.UpperTorso or cc.Root
+    local killerPart = ParryGetHitboxPart(killerChar)
+    if not myRoot or not killerPart then return end
+    local dist = (myRoot.Position - killerPart.Position).Magnitude
+    if VD.PARRY_Aggressive then
+        local ping = math.clamp(LocalPlayer:GetNetworkPing(), 0, 0.3)
+        local killerRoot = killerChar:FindFirstChild("HumanoidRootPart") or killerPart
+        local killerVel = killerRoot.AssemblyLinearVelocity
+        local flatVel = Vector3.new(killerVel.X, 0, killerVel.Z)
+        local predictedPos = killerPart.Position + flatVel * ping
+        local predDist = (myRoot.Position - predictedPos).Magnitude
+        if predDist <= ((VD.PARRY_Distance or 10) + 2.5) then
+            if flatVel.Magnitude > 6 then
+                local dir = myRoot.Position - killerPart.Position
+                if dir.Magnitude > 0 and flatVel.Unit:Dot(dir.Unit) > 0.4 then ParryExecute(); return end
+            end
+        end
+    end
+    if dist <= (VD.PARRY_Distance or 10) then ParryExecute() end
+end
+local function ParryDestroyCircle()
+    if ParryState.CircleFolder then
+        pcall(function() if ParryState.CircleFolder.Parent then ParryState.CircleFolder:Destroy() end end)
+    end
+    ParryState.CircleFolder = nil
+    ParryState.CircleDashes = {}
+    ParryState.CircleRotCFs = {}
+    ParryState.CircleOffsets = {}
+    ParryState.CircleRadius = 0
+    ParryState.CircleBuiltForDagger = false
+    ParryState.CircleLastX = math.huge
+    ParryState.CircleLastY = math.huge
+    ParryState.CircleLastZ = math.huge
+    ParryState.CircleSpawnTime = 0
+end
+getgenv()._Gluto_DestroyParryCircle = ParryDestroyCircle
+local function ParryBuildCircle(radius)
+    ParryDestroyCircle()
+    local folder = Instance.new("Folder")
+    folder.Name = "GlutoParryCircleDashes"
+    local dashCount = math.clamp(math.floor(radius * 6), 24, 120)
+    local slotLength = (2 * math.pi * radius) / dashCount
+    local dashLength = slotLength * 0.55
+    local dashThickness = 0.03
+    local dashes, rotCFs, offsets = table.create(dashCount), table.create(dashCount), table.create(dashCount)
+    for i = 1, dashCount do
+        local part = Instance.new("Part")
+        part.Name = "Dash" .. i
+        part.Anchored = true; part.CanCollide = false
+        part.CanTouch = false; part.CanQuery = false; part.CastShadow = false
+        part.Material = Enum.Material.Neon
+        part.Color = Color3.fromRGB(255, 255, 255)
+        part.Transparency = 1
+        part.Size = Vector3.new(dashThickness, dashThickness, dashLength)
+        part.Parent = folder
+        local angle = ((i - 1) / dashCount) * math.pi * 2
+        local cosA, sinA = math.cos(angle), math.sin(angle)
+        rotCFs[i] = CFrame.lookAt(Vector3.zero, Vector3.new(-sinA, 0, cosA))
+        offsets[i] = Vector3.new(cosA * radius, 0, sinA * radius)
+        dashes[i] = part
+    end
+    folder.Parent = Workspace
+    ParryState.CircleFolder = folder
+    ParryState.CircleDashes = dashes
+    ParryState.CircleRotCFs = rotCFs
+    ParryState.CircleOffsets = offsets
+    ParryState.CircleRadius = radius
+    ParryState.CircleBuiltForDagger = true
+    ParryState.CircleSpawnTime = tick()
+end
+local function ParryUpdateCircle(myRoot)
+    if not ParryState.CircleFolder or not ParryState.CircleFolder.Parent then return end
+    local dashes = ParryState.CircleDashes
+    local dashCount = #dashes
+    if dashCount == 0 then return end
+    local center = myRoot.Position - Vector3.new(0, (myRoot.Size.Y * 0.5) + 1.0, 0)
+    local elapsed = tick() - (ParryState.CircleSpawnTime or 0)
+    local spawnT = math.clamp(elapsed / (ParryState.CircleSpawnDuration or 0.55), 0, 1)
+    local eased = 1 - (1 - spawnT)^3
+    local scaleMult = eased
+    if spawnT < 0.7 and spawnT > 0 then
+        local bt = spawnT / 0.7
+        scaleMult = eased + math.sin(bt * math.pi) * 0.1
+    end
+    local spinRot = (1 - eased) * math.pi * 2
+    local spawnAlpha = 1 - eased
+    local busy = ParryIsBusy()
+    local onCD = ParryCooldown.OnCooldown
+    local tc
+    if busy then tc = Color3.fromRGB(255, 20, 20)
+    elseif onCD then tc = Color3.fromRGB(255, 140, 0)
+    else tc = Color3.fromRGB(255, 255, 255) end
+    local targetT = 0
+    if onCD then
+        local period = 0.55
+        local phase = (os.clock() % period) / period
+        local pulse = (math.cos(phase * math.pi * 2) + 1) * 0.5
+        targetT = (1 - pulse) * 0.85
+    end
+    local finalT = math.max(targetT, spawnAlpha)
+    local dx = math.abs(center.X - ParryState.CircleLastX)
+    local dy = math.abs(center.Y - ParryState.CircleLastY)
+    local dz = math.abs(center.Z - ParryState.CircleLastZ)
+    if dx < 0.01 and dy < 0.01 and dz < 0.01 and spawnT >= 1 then return end
+    ParryState.CircleLastX = center.X
+    ParryState.CircleLastY = center.Y
+    ParryState.CircleLastZ = center.Z
+    local rotCFs = ParryState.CircleRotCFs
+    local offsets = ParryState.CircleOffsets
+    local rotCF = CFrame.Angles(0, spinRot, 0)
+    for i = 1, dashCount do
+        local dash = dashes[i]
+        if dash and dash.Parent then
+            local scaledOff = offsets[i] * scaleMult
+            local rotatedOff = rotCF:VectorToWorldSpace(scaledOff)
+            local worldPos = Vector3.new(center.X + rotatedOff.X, center.Y, center.Z + rotatedOff.Z)
+            dash.CFrame = (rotCF * rotCFs[i]) + worldPos
+            dash.Color = tc
+            dash.Transparency = finalT
+        end
+    end
+end
+local function ParryGetAnimType(track)
+    if not track or not track.Animation then return nil end
+    local animId = track.Animation.AnimationId or ""
+    local numId = animId:match("%d+") or ""
+    local name = string.lower(track.Animation.Name or "")
+    local v = KillerAttackAnims[animId]
+    if v then return v end
+    if numId ~= "" then v = KillerAttackAnims[numId]; if v then return v end end
+    if string.find(name, "lunge", 1, true) or string.find(name, "charge", 1, true) then return "lungehold" end
+    if string.find(name, "attack", 1, true) or string.find(name, "slash", 1, true)
+        or string.find(name, "swing", 1, true) or string.find(name, "stab", 1, true)
+        or string.find(name, "melee", 1, true) then return "attack" end
+    return nil
+end
+local function ParryHookAnimatorOnChar(plr, char)
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    local anim = hum:FindFirstChildOfClass("Animator") or hum:WaitForChild("Animator", 3)
+    if not anim then return end
+    anim.AnimationPlayed:Connect(function(track)
+        if not VD.PARRY_Enabled then return end
+        if not ParryIsEquippedDagger() then return end
+        local at = ParryGetAnimType(track)
+        if at then
+            ParryState.ActiveAttackers[plr] = { char = char, track = track, type = at, registeredAt = os.clock() }
+        end
+    end)
+end
+local function ParryHookKillerPlayer(plr)
+    if plr == LocalPlayer then return end
+    if plr.Character then ParryHookAnimatorOnChar(plr, plr.Character) end
+    plr.CharacterAdded:Connect(function(char) task.wait(0.5); ParryHookAnimatorOnChar(plr, char) end)
+end
+for _, p in ipairs(Players:GetPlayers()) do ParryHookKillerPlayer(p) end
+Players.PlayerAdded:Connect(ParryHookKillerPlayer)
+local parryLastPoll = 0
+local function ParryPollAttacks()
+    if not VD.PARRY_Enabled or not ParryIsEquippedDagger() then return end
+    local now = os.clock()
+    if now - parryLastPoll < 0.15 then return end
+    parryLastPoll = now
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local char = plr.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+                        local at = ParryGetAnimType(track)
+                        if at then
+                            local ex = ParryState.ActiveAttackers[plr]
+                            if not ex or ex.track ~= track then
+                                ParryState.ActiveAttackers[plr] = { char = char, track = track, type = at, registeredAt = now }
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+local parryLastCleanup = 0
+local function ParryCleanupAttackers()
+    local now = os.clock()
+    if now - parryLastCleanup < 1.0 then return end
+    parryLastCleanup = now
+    for plr, data in pairs(ParryState.ActiveAttackers) do
+        if not plr or not plr.Parent or not data.track or not data.track.IsPlaying then
+            ParryState.ActiveAttackers[plr] = nil
+        end
+    end
+end
+local function ParryUpdateLogic()
+    if not VD.PARRY_Enabled then return end
+    if not ParryIsEquippedDagger() then ParryState.ActiveAttackers = {}; return end
+    if ParryCooldown.WaitingForResult then
+        if os.clock() - ParryCooldown.WaitingStart > ParryCooldown.WaitTimeout then
+            if ParryCooldown.ManualDetect then
+                ParryCooldown.WaitingForResult = false
+                ParryCooldown.JustFired = false
+                ParryCooldown.ManualDetect = false
+            else
+                ParryStartCooldown(ParryCooldown.FallbackCooldown)
+            end
+        end
+    end
+    if ParryIsOnCooldown() or ParryCooldown.WaitingForResult then return end
+    ParryPollAttacks()
+    ParryCleanupAttackers()
+    for plr, data in pairs(ParryState.ActiveAttackers) do
+        if plr and plr.Parent and data.track and data.track.IsPlaying then
+            local shouldCheck = false
+            if data.type == "attack" then
+                if data.track.TimePosition < 0.35 then shouldCheck = true end
+            elseif data.type == "lungehold" then
+                shouldCheck = true
+            end
+            if shouldCheck then
+                ParryCheckAndParry(data.char)
+                if ParryCooldown.WaitingForResult then break end
+            end
+        else
+            ParryState.ActiveAttackers[plr] = nil
+        end
+    end
+end
+local function ParryUpdateCircleLogic()
+    local char = LocalPlayer.Character
+    local myRoot = char and char:FindFirstChild("HumanoidRootPart")
+    if VD.PARRY_ShowCircle and VD.PARRY_Enabled and ParryIsEquippedDagger() and myRoot then
+        if not ParryState.CircleFolder or ParryState.CircleRadius ~= (VD.PARRY_Distance or 10) or not ParryState.CircleFolder.Parent then
+            ParryBuildCircle(VD.PARRY_Distance or 10)
+        end
+        ParryUpdateCircle(myRoot)
+    else
+        if ParryState.CircleFolder then ParryDestroyCircle() end
+    end
+end
+
+--====================================================--
+-- AUTO PARRY SYSTEM (2)
+--====================================================--
+MyersGrabData = MyersGrabData or {
+    Enabled = false, UI = nil, Button = nil,
+    DragLocked = false, Dragging = false,
+    DragStart = nil, DragStartPos = nil,
     HotkeyCode = Enum.KeyCode.H,
 }
 function getMyersTarget()
@@ -4326,7 +5032,7 @@ end
 --====================================================--
 -- SILENT VEIL SPEAR (ADVANCED BALLISTIC SOLVER)
 -- Physics Kinematic Pitch Solver + Lead Ping Compensation
--- Synchronized from alvin coding jelek-1.lua (ALFzxzzz / W424)
+-- Synchronized from alvin coding jelek-1.lua (PinatHub)
 --====================================================--
 VD.VeilEnabled          = VD.VeilEnabled or false
 VD.VeilShowFOV          = (VD.VeilShowFOV ~= nil and VD.VeilShowFOV) or true
@@ -4883,7 +5589,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local W_env = getgenv()
-W_env.W424Veil_API = {
+W_env.PinatHub_Veil_API = {
     AimConfig = {
         Aim_SilentVeil = VD.VeilEnabled,
         Aim_SilentVeilV2 = VD.VeilEnabled,
@@ -5048,33 +5754,37 @@ if Window then
         return adapter
     end
 
-    local Tabs = {
-        Survivor = Window:AddTab({ Title = "Survivor", Icon = "shield", Desc = "Survivor features" }),
-        Killer = Window:AddTab({ Title = "Killer", Icon = "skull", Desc = "Killer features" }),
-        Automation = Window:AddTab({ Title = "Automation", Icon = "zap", Desc = "Automation features" }),
-        Aim = Window:AddTab({ Title = "Aim", Icon = "crosshair", Desc = "Aim assistance controls" }),
-        Visual = Window:AddTab({ Title = "Visual", Icon = "eye", Desc = "Visual and ESP controls" }),
-        Mapping = Window:AddTab({ Title = "Mapping", Icon = "map", Desc = "Teleport and radar controls" }),
-        Player = Window:AddTab({ Title = "Player", Icon = "user", Desc = "Player utility controls" }),
-        Settings = Window:AddTab({ Title = "Settings", Icon = "settings", Desc = "Profiles and preferences" }),
-    }
+    local Tabs = {}
+    Tabs.Survivor = Window:AddTab({ Title = "Survivor", Icon = "shield", Desc = "Survivor features" })
+    Tabs.Killer = Window:AddTab({ Title = "Killer", Icon = "skull", Desc = "Killer features" })
+    Tabs.Automation = Window:AddTab({ Title = "Automation", Icon = "zap", Desc = "Automation features" })
+    Tabs.Aim = Window:AddTab({ Title = "Aim", Icon = "crosshair", Desc = "Aim assistance controls" })
+    Tabs.Visual = Window:AddTab({ Title = "Visual", Icon = "eye", Desc = "Visual and ESP controls" })
+    Tabs.Mapping = Window:AddTab({ Title = "Mapping", Icon = "map", Desc = "Teleport and radar controls" })
+    Tabs.Player = Window:AddTab({ Title = "Player", Icon = "user", Desc = "Player utility controls" })
+    Tabs.Settings = Window:AddTab({ Title = "Settings", Icon = "settings", Desc = "Profiles and preferences" })
 
     local TabSubNavs = {}
     local function getOrCreateSubNav(targetTab, categoryName, categoryIcon)
-        if not targetTab or type(targetTab.AddSubNav) ~= "function" then return nil end
+        if not targetTab then return nil end
+        local addNav = targetTab.AddSubNav or targetTab.AddSubTabs or targetTab.SubNav or targetTab.SubTabs
+        if type(addNav) ~= "function" then return nil end
         local subNav = TabSubNavs[targetTab]
         if not subNav then
-            subNav = targetTab:AddSubNav({
+            subNav = addNav(targetTab, {
                 IncludeAll = true,
                 Default = "All"
             })
             TabSubNavs[targetTab] = subNav
         end
-        if categoryName then
-            subNav:AddCategory({
-                Name = categoryName,
-                Icon = categoryIcon
-            })
+        if categoryName and subNav then
+            local addCat = subNav.AddCategory or subNav.AddPill
+            if type(addCat) == "function" then
+                addCat(subNav, {
+                    Name = categoryName,
+                    Icon = categoryIcon
+                })
+            end
         end
         return subNav
     end
@@ -5266,7 +5976,7 @@ do
             VD.MoonwalkBoostPower = v
         end
     })
-    movSection:AddToggle({ Default = false, Name = "Invisible Character (MengHub)", Locked = false, TextLocked = "", Flag = "Invisible Not Visual", Callback = function(v) 
+    movSection:AddToggle({ Default = false, Name = "Invisible Character (PinatHub)", Locked = false, TextLocked = "", Flag = "Invisible Not Visual", Callback = function(v) 
         VD.InvisibleNotVisual = v
         VD.Invis_Enabled = v
         pcall(VD_SetInvisibleNotVisual, v)
@@ -7585,14 +8295,14 @@ local VD_InvisibleNV = {
     Position = Vector3.new(-25.95, 84, 3537.55),
 }
 
-local MV = getgenv().GlutoInvis
+local MV = getgenv().PinatHubInvis
 if not MV then
     MV = {
         Enabled = false, Loading = false, Ready = false, API = nil,
         _lastToggle = 0, _retries = 0, _retryMax = 3,
         _retryDelay = 2, _queueState = nil,
     }
-    getgenv().GlutoInvis = MV
+    getgenv().PinatHubInvis = MV
 end
 
 local INVIS_URL = "https://leekguy.vercel.app/roblox/menghub/crack_obf_invisible_93978595733734.lua"
@@ -7627,8 +8337,8 @@ local function Invis_Cleanup()
 end
 
 local function Invis_RefreshButton()
-    if getgenv().Gluto_InvisBtn_UpdateVisual then
-        pcall(getgenv().Gluto_InvisBtn_UpdateVisual)
+    if getgenv().PinatHub_InvisBtn_UpdateVisual then
+        pcall(getgenv().PinatHub_InvisBtn_UpdateVisual)
     end
 end
 
@@ -7636,13 +8346,13 @@ local function Invis_LoadAPI()
     if _G.MengHub and _G.MengHub.Invisible and Invis_ValidateAPI(_G.MengHub.Invisible) then
         MV.API = _G.MengHub.Invisible
         MV.Ready = true
-        print("[GlutoInvis] MengHub API sudah tersedia di _G")
+        print("[PinatHub] Invisible API sudah tersedia")
         return true
     end
     MV.Loading = true; MV.Ready = false
     for attempt = 1, MV._retryMax do
         MV._retries = attempt
-        print(("[GlutoInvis] Loading API... (%d/%d)"):format(attempt, MV._retryMax))
+        print(("[PinatHub] Loading API... (%d/%d)"):format(attempt, MV._retryMax))
         local ok, err = pcall(function()
             loadstring(game:HttpGet(INVIS_URL))()
         end)
@@ -7650,7 +8360,7 @@ local function Invis_LoadAPI()
         if ok and _G.MengHub and _G.MengHub.Invisible and Invis_ValidateAPI(_G.MengHub.Invisible) then
             MV.API = _G.MengHub.Invisible
             MV.Ready = true; MV.Loading = false
-            print(("[GlutoInvis] API loaded OK (attempt %d)"):format(attempt))
+            print(("[PinatHub] API loaded OK (attempt %d)"):format(attempt))
             Invis_RefreshButton()
             if MV._queueState ~= nil then
                 local queued = MV._queueState
@@ -7663,12 +8373,12 @@ local function Invis_LoadAPI()
             end
             return true
         else
-            warn(("[GlutoInvis] Attempt %d gagal: %s"):format(attempt, tostring(err)))
+            warn(("[PinatHub] Attempt %d gagal: %s"):format(attempt, tostring(err)))
             if attempt < MV._retryMax then task.wait(MV._retryDelay) end
         end
     end
     MV.Loading = false; MV.Ready = false
-    print("[GlutoInvis] Semua retry gagal")
+    print("[PinatHub] Semua retry gagal")
     Invis_RefreshButton()
     return false
 end
@@ -7710,7 +8420,7 @@ function Invisible_SetState(state, fromButton)
     if state then
         local ok, err = pcall(function() MV.API.enable() end)
         if not ok then
-            warn("[GlutoInvis] enable error:", err)
+            warn("[PinatHub] enable error:", err)
             MV.Enabled = false
             VD.Invis_Enabled = false
             VD.InvisibleNotVisual = false
@@ -7835,7 +8545,7 @@ function VD_UpdateInfiniteLunge()
 end
 function VD_UpdateInvisibleNotVisual()
     local isEnabled = (VD.InvisibleNotVisual or VD.Invis_Enabled) and true or false
-    local MV = getgenv().GlutoInvis
+    local MV = getgenv().PinatHubInvis
     if not isEnabled then
         if MV and MV.Enabled then
             Invisible_SetState(false, false)
@@ -9836,6 +10546,1169 @@ function KYS_FlingAll()
     root.Velocity    = Vector3.zero
     root.RotVelocity = Vector3.zero
 end
+
+-- ============================================================
+-- TROLL TELEPORT - from alvin
+-- ============================================================
+TrollTeleport = TrollTeleport or {
+    Enabled = false, Target = nil, Interval = 0.3, Running = false,
+}
+function TrollTeleport_SetEnabled(v)
+    TrollTeleport.Enabled = v and true or false
+    if TrollTeleport.Enabled and not TrollTeleport.Running then
+        TrollTeleport.Running = true
+        task.spawn(function()
+            while TrollTeleport.Enabled do
+                task.wait(TrollTeleport.Interval)
+                pcall(function()
+                    if not TrollTeleport.Enabled then return end
+                    local target = TrollTeleport.Target
+                    if not target then
+                        local myChar = LocalPlayer.Character
+                        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                        if not myHRP then return end
+                        local closest, bd = nil, math.huge
+                        for _, plr in ipairs(Players:GetPlayers()) do
+                            if plr ~= LocalPlayer and plr.Character then
+                                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                                if hrp then
+                                    local d = (hrp.Position - myHRP.Position).Magnitude
+                                    if d < bd then bd = d; closest = plr end
+                                end
+                            end
+                        end
+                        target = closest
+                    end
+                    if not target or not target.Character then return end
+                    local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+                    local myChar = LocalPlayer.Character
+                    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                    if targetHRP and myHRP then
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 0, -2)
+                    end
+                end)
+            end
+            TrollTeleport.Running = false
+        end)
+    end
+end
+
+-- ============================================================
+-- LOCK POV - from alvin
+-- ============================================================
+LockPOV = { Enabled = false, LockedFOV = 80, OriginalFOV = nil, Connection = nil }
+function LockPOV_Set(v, fov)
+    if fov then LockPOV.LockedFOV = fov end
+    LockPOV.Enabled = v and true or false
+    if LockPOV.Enabled then
+        local cam = workspace.CurrentCamera
+        if cam then LockPOV.OriginalFOV = cam.FieldOfView end
+        if LockPOV.Connection then LockPOV.Connection:Disconnect() end
+        LockPOV.Connection = game:GetService("RunService").RenderStepped:Connect(function()
+            if not LockPOV.Enabled then
+                if LockPOV.Connection then LockPOV.Connection:Disconnect(); LockPOV.Connection = nil end
+                local cam2 = workspace.CurrentCamera
+                if cam2 and LockPOV.OriginalFOV then cam2.FieldOfView = LockPOV.OriginalFOV end
+                return
+            end
+            local cam3 = workspace.CurrentCamera
+            if cam3 then cam3.FieldOfView = LockPOV.LockedFOV end
+        end)
+    else
+        if LockPOV.Connection then LockPOV.Connection:Disconnect(); LockPOV.Connection = nil end
+        local cam = workspace.CurrentCamera
+        if cam and LockPOV.OriginalFOV then cam.FieldOfView = LockPOV.OriginalFOV end
+    end
+end
+
+-- ============================================================
+-- JERK TOOL - from alvin
+-- ============================================================
+JerkTool = JerkTool or { Enabled = false, ToolName = "Jerk Off" }
+do
+    local currentJerkTool = nil
+    local jerkRunning = false
+    function JerkOff_Destroy()
+        if currentJerkTool then pcall(function() currentJerkTool:Destroy() end); currentJerkTool = nil end
+    end
+    function JerkOff_Create()
+        JerkOff_Destroy()
+        local character = LocalPlayer.Character
+        if not character then return end
+        local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+        local backpack = LocalPlayer:FindFirstChildWhichIsA("Backpack")
+        if not humanoid or not backpack then return end
+        local tool = Instance.new("Tool")
+        tool.Name = JerkTool.ToolName
+        tool.ToolTip = "PinatHub Tool"
+        tool.RequiresHandle = false
+        tool.Parent = backpack
+        currentJerkTool = tool
+        local jorkin = false
+        local track = nil
+        local function stopTomfoolery()
+            jorkin = false
+            if track then pcall(function() track:Stop() end); track = nil end
+        end
+        tool.Equipped:Connect(function() jorkin = true end)
+        tool.Unequipped:Connect(stopTomfoolery)
+        humanoid.Died:Connect(stopTomfoolery)
+        task.spawn(function()
+            while jerkRunning do
+                task.wait()
+                if not JerkTool.Enabled or not jorkin then
+                    if track then pcall(function() track:Stop() end) end
+                    continue
+                end
+                local isR15 = humanoid.RigType == Enum.HumanoidRigType.R15
+                if not track then
+                    local anim = Instance.new("Animation")
+                    anim.AnimationId = not isR15 and "rbxassetid://72042024" or "rbxassetid://698251653"
+                    track = humanoid:LoadAnimation(anim)
+                end
+                track:Play()
+                track:AdjustSpeed(isR15 and 0.7 or 0.65)
+                track.TimePosition = 0.6
+                task.wait(0.1)
+                while track and track.TimePosition < (not isR15 and 0.65 or 0.7) do task.wait(0.1) end
+                if track then pcall(function() track:Stop() end) end
+            end
+        end)
+    end
+    function JerkOff_SetEnabled(v)
+        JerkTool.Enabled = v and true or false
+        jerkRunning = JerkTool.Enabled
+        if v then JerkOff_Create() else JerkOff_Destroy() end
+    end
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        if JerkTool.Enabled then jerkRunning = true; JerkOff_Create() end
+    end)
+end
+
+-- ============================================================
+-- EMOTE SYSTEM - from alvin
+-- ============================================================
+EmoteSystem = EmoteSystem or {
+    Enabled = false, CurrentTrack = nil, CurrentSound = nil,
+    SelectedEmote = "Friday Night",
+    Options = {
+        "Friday Night", "WarCry", "24 Hour Cinderella", "Applause",
+        "Arm Swing", "Backflip", "California Girls", "Christmas Spirit",
+        "Floating Rest", "Ghoul", "Griddy", "Kyoufuu", "OnePlays", "Vulnerable",
+    },
+    Data = {
+        ["Friday Night"]        = { Anim = "rbxassetid://83229063951016",  Sound = "rbxassetid://85355610204255" },
+        ["WarCry"]              = { Anim = "rbxassetid://82600868380136",  Sound = "rbxassetid://120101930689931" },
+        ["24 Hour Cinderella"]  = { Anim = "rbxassetid://137195203725366", Sound = "rbxassetid://121099446613414" },
+        ["Applause"]            = { Anim = "rbxassetid://96328361165090",  Sound = "rbxassetid://115490787020749" },
+        ["Arm Swing"]           = { Anim = "rbxassetid://80552139463944",  Sound = "rbxassetid://74216458932348" },
+        ["Backflip"]            = { Anim = "rbxassetid://74705617908505",  Sound = nil },
+        ["California Girls"]    = { Anim = "rbxassetid://123552803041504", Sound = "rbxassetid://87899327891544" },
+        ["Christmas Spirit"]    = { Anim = "rbxassetid://137859761110514", Sound = nil },
+        ["Floating Rest"]       = { Anim = "rbxassetid://114593021219597", Sound = nil },
+        ["Ghoul"]               = { Anim = "rbxassetid://130415594909401", Sound = "rbxassetid://123004139176580" },
+        ["Griddy"]              = { Anim = "rbxassetid://75586690784894",  Sound = nil },
+        ["Kyoufuu"]             = { Anim = "rbxassetid://137322894494527", Sound = "rbxassetid://129064643026442" },
+        ["OnePlays"]            = { Anim = "rbxassetid://140625405103474", Sound = "rbxassetid://94749073728335" },
+        ["Vulnerable"]          = { Anim = "rbxassetid://121773684313913", Sound = "rbxassetid://135265751184744" },
+    },
+}
+local _ES = EmoteSystem
+function EmoteSystem_Stop()
+    if _ES.CurrentTrack then pcall(function() _ES.CurrentTrack:Stop() end); _ES.CurrentTrack = nil end
+    if _ES.CurrentSound then pcall(function() _ES.CurrentSound:Destroy() end); _ES.CurrentSound = nil end
+end
+function EmoteSystem_Play()
+    EmoteSystem_Stop()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    local data = _ES.Data[_ES.SelectedEmote]
+    if not data then return end
+    if data.Anim then
+        local anim = Instance.new("Animation")
+        anim.AnimationId = data.Anim
+        local track = hum:LoadAnimation(anim)
+        track.Looped = true
+        track.Priority = Enum.AnimationPriority.Action
+        track:Play()
+        _ES.CurrentTrack = track
+    end
+    if data.Sound then
+        local snd = Instance.new("Sound")
+        snd.SoundId = data.Sound; snd.Looped = true; snd.Volume = 2
+        snd.Parent = hrp; snd:Play()
+        _ES.CurrentSound = snd
+    end
+end
+function EmoteSystem_SetEnabled(v)
+    _ES.Enabled = v and true or false
+    if _ES.Enabled then EmoteSystem_Play() else EmoteSystem_Stop() end
+end
+function EmoteSystem_SelectEmote(name)
+    if EmoteSystem.Data[name] then
+        EmoteSystem.SelectedEmote = name
+        if EmoteSystem.Enabled then EmoteSystem_Play() end
+    end
+end
+LocalPlayer.CharacterRemoving:Connect(function() EmoteSystem_Stop() end)
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if _ES.Enabled then EmoteSystem_Play() end
+end)
+
+-- ============================================================
+-- STUN SOUNDS + STUN INDICATOR (Killer Stunned Notification) - from alvin
+-- ============================================================
+StunSounds = StunSounds or {
+["Default"]="18843924331",["Clash Royale"]="114072050006157",["Blash"]="89068385567682",
+["Coin"]="75510526696824",["Kururin Kuru"]="119896940405402",["Spongebob"]="6835794541",
+["Fahhhh"]="123562480982353",["Cave"]="3173566193",["Aughhh"]="9095205664",
+["Samsung"]="6879335951",["iPhone"]="4203251375",["Siren"]="130677853589923",
+}
+StunIndicator = StunIndicator or {
+Enabled = false, Cache = {}, HeartbeatConn = nil, Range = 500,
+Icon = "rbxassetid://81633822407558",
+SoundEnabled = true, SoundId = "18843924331",
+SoundVolume = 1.5, SoundRange = 500, SelectedSound = "Default",
+}
+local SInd = StunIndicator
+SInd.SelectedSound = SInd.SelectedSound or "Default"
+local function SInd_GetActiveSoundId()
+local id = StunSounds[SInd.SelectedSound]
+if id then return id end
+return SInd.SoundId
+end
+local function SInd_IsStunned(char)
+if not char then return false end
+if char:GetAttribute("IsStunned") == true then return true end
+if char:GetAttribute("isStunned") == true then return true end
+if char:GetAttribute("Stunned") == true then return true end
+if char:GetAttribute("stunned") == true then return true end
+if char:GetAttribute("IsStun") == true then return true end
+if char:GetAttribute("Stun") == true then return true end
+local ci = char:FindFirstChild("CheckInterractable")
+if ci then
+    if ci:GetAttribute("isStunned") == true then return true end
+    if ci:GetAttribute("Stunned") == true then return true end
+end
+local hum = char:FindFirstChildOfClass("Humanoid")
+if hum then
+    local sv = hum:FindFirstChild("StunValue")
+    if sv and sv.Value > 0 then return true end
+end
+return false
+end
+local function SInd_Remove(char)
+local data = SInd.Cache[char]
+if data then
+    pcall(function()
+        if data.StopAnim then data.StopAnim() end
+        if data.Gui then data.Gui:Destroy() end
+    end)
+    SInd.Cache[char] = nil
+end
+end
+local function SInd_PlaySound(char)
+if not SInd.SoundEnabled then return end
+pcall(function()
+    local head = char and char:FindFirstChild("Head")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local attachTo = head or hrp
+    if not attachTo then return end
+    local snd = Instance.new("Sound")
+    snd.Name = "PinatStunSound"
+    snd.SoundId = "rbxassetid://" .. tostring(SInd_GetActiveSoundId())
+    snd.Volume = SInd.SoundVolume or 1.5
+    snd.PlaybackSpeed = 1
+    snd.RollOffMaxDistance = SInd.SoundRange or 500
+    snd.RollOffMinDistance = 10
+    snd.RollOffMode = Enum.RollOffMode.InverseTapered
+    snd.Parent = attachTo
+    snd:Play()
+    snd.Ended:Connect(function() pcall(function() snd:Destroy() end) end)
+    task.delay(5, function() pcall(function() if snd and snd.Parent then snd:Destroy() end end) end)
+end)
+end
+local function SInd_Create(char)
+if SInd.Cache[char] then return SInd.Cache[char] end
+local head = char:FindFirstChild("Head")
+if not head then return nil end
+local bbg = Instance.new("BillboardGui")
+bbg.Name = "PinatStunIndicator"
+bbg.Size = UDim2.fromOffset(140, 42)
+bbg.StudsOffset = Vector3.new(0, 3.0, 0)
+bbg.AlwaysOnTop = true
+bbg.LightInfluence = 0
+bbg.MaxDistance = 500
+bbg.Adornee = head
+bbg.Parent = char
+local pulse1 = Instance.new("Frame")
+pulse1.Name = "Pulse1"
+pulse1.AnchorPoint = Vector2.new(0.5, 0.5)
+pulse1.Position = UDim2.new(0.5, 0, 0.5, 0)
+pulse1.Size = UDim2.fromOffset(34, 34)
+pulse1.BackgroundTransparency = 1
+pulse1.BorderSizePixel = 0
+pulse1.ZIndex = 0
+pulse1.Parent = bbg
+Instance.new("UICorner", pulse1).CornerRadius = UDim.new(1, 0)
+local p1s = Instance.new("UIStroke", pulse1)
+p1s.Color = Color3.fromRGB(255, 255, 255)
+p1s.Thickness = 1.8
+p1s.Transparency = 0.3
+p1s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local pulse2 = Instance.new("Frame")
+pulse2.Name = "Pulse2"
+pulse2.AnchorPoint = Vector2.new(0.5, 0.5)
+pulse2.Position = UDim2.new(0.5, 0, 0.5, 0)
+pulse2.Size = UDim2.fromOffset(34, 34)
+pulse2.BackgroundTransparency = 1
+pulse2.BorderSizePixel = 0
+pulse2.ZIndex = 0
+pulse2.Parent = bbg
+Instance.new("UICorner", pulse2).CornerRadius = UDim.new(1, 0)
+local p2s = Instance.new("UIStroke", pulse2)
+p2s.Color = Color3.fromRGB(200, 200, 210)
+p2s.Thickness = 1.8
+p2s.Transparency = 0.4
+p2s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 140, 0, 34)
+main.Position = UDim2.new(0, 0, 0, 4)
+main.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+main.BackgroundTransparency = 0.05
+main.BorderSizePixel = 0
+main.ZIndex = 1
+main.Parent = bbg
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 9)
+local bodyGrad = Instance.new("UIGradient")
+bodyGrad.Rotation = 135
+bodyGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 24, 28)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 10)),
+})
+bodyGrad.Parent = main
+local mainStroke = Instance.new("UIStroke", main)
+mainStroke.Name = "MainStroke"
+mainStroke.Color = Color3.fromRGB(255, 255, 255)
+mainStroke.Thickness = 1.3
+mainStroke.Transparency = 0.15
+mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local iconHolder = Instance.new("Frame")
+iconHolder.Name = "IconHolder"
+iconHolder.Size = UDim2.fromOffset(24, 24)
+iconHolder.Position = UDim2.new(0, 5, 0.5, -12)
+iconHolder.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+iconHolder.BorderSizePixel = 0
+iconHolder.ZIndex = 3
+iconHolder.Parent = main
+Instance.new("UICorner", iconHolder).CornerRadius = UDim.new(1, 0)
+local iconGrad = Instance.new("UIGradient", iconHolder)
+iconGrad.Rotation = 135
+iconGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 44)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 14, 18)),
+})
+local iconStroke = Instance.new("UIStroke", iconHolder)
+iconStroke.Color = Color3.fromRGB(255, 255, 255)
+iconStroke.Thickness = 1
+iconStroke.Transparency = 0.25
+local starIcon = Instance.new("TextLabel")
+starIcon.Name = "StarIcon"
+starIcon.Size = UDim2.fromScale(1, 1)
+starIcon.BackgroundTransparency = 1
+starIcon.Font = Enum.Font.GothamBlack
+starIcon.Text = "â˜…"
+starIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+starIcon.TextScaled = true
+starIcon.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+starIcon.TextStrokeTransparency = 0.5
+starIcon.ZIndex = 4
+starIcon.Parent = iconHolder
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -42, 0, 12)
+title.Position = UDim2.new(0, 34, 0, 4)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBlack
+title.Text = "STUNNED"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 11
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+title.TextStrokeTransparency = 0.5
+title.ZIndex = 3
+title.Parent = main
+local sub = Instance.new("TextLabel")
+sub.Name = "Sub"
+sub.Size = UDim2.new(1, -42, 0, 8)
+sub.Position = UDim2.new(0, 34, 0, 18)
+sub.BackgroundTransparency = 1
+sub.Font = Enum.Font.GothamBold
+sub.Text = "SILENT"
+sub.TextColor3 = Color3.fromRGB(170, 170, 180)
+sub.TextSize = 7
+sub.TextXAlignment = Enum.TextXAlignment.Left
+sub.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+sub.TextStrokeTransparency = 0.6
+sub.ZIndex = 3
+sub.Parent = main
+local accent = Instance.new("Frame")
+accent.Name = "Accent"
+accent.AnchorPoint = Vector2.new(1, 0.5)
+accent.Size = UDim2.fromOffset(2.5, 14)
+accent.Position = UDim2.new(1, -5, 0.5, 0)
+accent.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+accent.BorderSizePixel = 0
+accent.ZIndex = 3
+accent.Parent = main
+Instance.new("UICorner", accent).CornerRadius = UDim.new(1, 0)
+main.Size = UDim2.new(0, 0, 0, 0)
+main.BackgroundTransparency = 1
+task.spawn(function()
+    task.wait(0.02)
+    TweenService:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 140, 0, 34),
+        BackgroundTransparency = 0.05,
+    }):Play()
+end)
+local animActive = true
+local function StopAnim() animActive = false end
+task.spawn(function()
+    local t = 0
+    while animActive and bbg.Parent and main.Parent do
+        t = t + 0.05
+        local pulse = (math.sin(t * 3) + 1) * 0.5
+        mainStroke.Transparency = 0.35 - pulse * 0.2
+        mainStroke.Thickness = 1.2 + pulse * 0.3
+        starIcon.Rotation = math.sin(t * 2) * 10
+        local p1 = (t * 0.55) % 1
+        pulse1.Size = UDim2.fromOffset(34 + p1 * 40, 34 + p1 * 40)
+        p1s.Transparency = 0.15 + p1 * 0.75
+        local p2 = ((t * 0.55) + 0.5) % 1
+        pulse2.Size = UDim2.fromOffset(34 + p2 * 40, 34 + p2 * 40)
+        p2s.Transparency = 0.15 + p2 * 0.75
+        task.wait(0.03)
+    end
+end)
+local function ExitAndDestroy()
+    animActive = false
+    TweenService:Create(main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1,
+    }):Play()
+    task.delay(0.28, function() pcall(function() bbg:Destroy() end) end)
+end
+SInd.Cache[char] = { Gui = bbg, Main = main, StopAnim = StopAnim, Exit = ExitAndDestroy }
+return SInd.Cache[char]
+end
+function SInd_SetEnabled(v)
+SInd.Enabled = v and true or false
+if SInd.Enabled then
+    if SInd.HeartbeatConn then return end
+    SInd.HeartbeatConn = RunService.Heartbeat:Connect(function()
+        if not SInd.Enabled then return end
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and TeamIs(p, "Killer") and p.Character then
+                local char = p.Character
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - myRoot.Position).Magnitude
+                    local stunned = SInd_IsStunned(char)
+                    local data = SInd.Cache[char]
+                    local wasStunned = data ~= nil
+                    if stunned and dist <= SInd.Range then
+                        if not wasStunned then SInd_PlaySound(char); SInd_Create(char) end
+                    else
+                        if wasStunned then
+                            if data.Exit then data.Exit() else SInd_Remove(char) end
+                            SInd.Cache[char] = nil
+                        end
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        if SInd.HeartbeatConn then SInd.HeartbeatConn:Disconnect(); SInd.HeartbeatConn = nil end
+        for _, data in pairs(SInd.Cache) do
+            pcall(function()
+                if data.StopAnim then data.StopAnim() end
+                if data.Gui then data.Gui:Destroy() end
+            end)
+        end
+        SInd.Cache = {}
+    end
+end
+
+--====================================================--
+
+
+-- ============================================================
+-- FULL ESP (Highlight-based ESP for players/objects) - from alvin
+-- ============================================================
+FullESP = FullESP or {
+Survivor = false, Killer = false,
+Generator = false, Pallet = false, Window = false, SCP = false,
+Distance = 500,
+}
+FullESPStatus = FullESPStatus or {
+Enabled = false,
+ShowName = true, ShowDistance = true, ShowHealth = false,
+ShowAvatar = true, ShowAction = true, Radius = 500,
+}
+FullESPColors = FullESPColors or {
+Survivor  = Color3.fromRGB(0, 190, 255), Killer    = Color3.fromRGB(255, 0, 0),
+Generator = Color3.fromRGB(255, 255, 0), Window    = Color3.fromRGB(255, 255, 255),
+Pallet    = Color3.fromRGB(255, 165, 0), SCP       = Color3.fromRGB(0, 255, 0),
+}
+local FESP  = FullESP
+local FESPS = FullESPStatus
+local FESPC = FullESPColors
+
+do
+local ESPObjects = {}
+local StatusESP  = {}
+local CachedSCP     = {}
+local CachedGen     = {}
+local CachedPallet  = {}
+local CachedWindow  = {}
+local WindowObjects = {}
+
+local function CacheObject(obj)
+    if not obj then return end
+    local ln = string.lower(obj.Name)
+    if string.find(ln, "scp", 1, true) then CachedSCP[obj] = true end
+    if obj.Name == "Generator" then
+        CachedGen[obj] = true
+    elseif obj.Name == "Pallet" or obj.Name == "Palletwrong" then
+        CachedPallet[obj] = true
+    end
+end
+
+for _, obj in ipairs(Workspace:GetDescendants()) do CacheObject(obj) end
+Workspace.DescendantAdded:Connect(CacheObject)
+Workspace.DescendantRemoving:Connect(function(obj)
+    CachedSCP[obj] = nil; CachedGen[obj] = nil
+    CachedPallet[obj] = nil; CachedWindow[obj] = nil
+    if ESPObjects[obj] then pcall(function() ESPObjects[obj]:Destroy() end); ESPObjects[obj] = nil end
+    if StatusESP[obj] then pcall(function() StatusESP[obj]:Destroy() end); StatusESP[obj] = nil end
+end)
+
+local function RemoveESP(obj)
+    if not obj then return end
+    if ESPObjects[obj] then
+        pcall(function() ESPObjects[obj]:Destroy() end)
+        ESPObjects[obj] = nil
+    end
+end
+
+local function CreateESP(obj, color)
+    if not obj or not obj.Parent then return end
+    if ESPObjects[obj] then
+        ESPObjects[obj].FillColor = color
+        ESPObjects[obj].OutlineColor = color
+        return
+    end
+    local h = Instance.new("Highlight")
+    h.FillColor = color
+    h.OutlineColor = color
+    h.FillTransparency = 0.9
+    h.OutlineTransparency = 0.3
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent = obj
+    ESPObjects[obj] = h
+    obj.AncestryChanged:Connect(function(_, parent)
+        if not parent then RemoveESP(obj) end
+    end)
+end
+
+local function RemoveStatusESP(char)
+    if StatusESP[char] then
+        pcall(function() StatusESP[char]:Destroy() end)
+        StatusESP[char] = nil
+    end
+end
+
+local function StatusESP_GetAction(char, hum)
+    if not char or not hum then return "IDLE", Color3.fromRGB(150, 150, 150) end
+    if hum.Health <= 0 then return "DEAD", Color3.fromRGB(200, 60, 60) end
+    if char:GetAttribute("IsHooked") or char:GetAttribute("isHooked") or char:GetAttribute("Hooked") then
+        return "HOOKED", Color3.fromRGB(255, 60, 60)
+    end
+    if char:GetAttribute("IsCarried") or char:GetAttribute("isCarried") or char:GetAttribute("Carried") then
+        return "CARRIED", Color3.fromRGB(255, 100, 100)
+    end
+    local state = char:GetAttribute("State")
+    if state == "Downed" or char:GetAttribute("Knocked") == true
+       or char:GetAttribute("IsDown") == true or char:GetAttribute("Downed") == true then
+        return "DOWNED", Color3.fromRGB(255, 130, 60)
+    end
+    local ci = char:FindFirstChild("CheckInterractable")
+    if ci then
+        if ci:GetAttribute("isRepairing") then return "REPAIR", Color3.fromRGB(255, 220, 60) end
+        if ci:GetAttribute("isHealing") then return "HEAL", Color3.fromRGB(80, 220, 120) end
+        if ci:GetAttribute("isVaulting") then return "VAULT", Color3.fromRGB(120, 200, 255) end
+        if ci:GetAttribute("isSliding") then return "SLIDE", Color3.fromRGB(150, 180, 255) end
+        if ci:GetAttribute("isDroppingPallet") then return "PALLET", Color3.fromRGB(255, 165, 60) end
+        if ci:GetAttribute("isUnhooking") then return "UNHOOK", Color3.fromRGB(180, 120, 255) end
+        if ci:GetAttribute("isExiting") then return "EXIT", Color3.fromRGB(80, 255, 180) end
+    end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if root then
+        local vel = root.AssemblyLinearVelocity
+        local speed = Vector3.new(vel.X, 0, vel.Z).Magnitude
+        if speed > 20 then return "SPRINT", Color3.fromRGB(120, 255, 200) end
+        if speed > 2 then return "MOVE", Color3.fromRGB(200, 200, 220) end
+    end
+    return "IDLE", Color3.fromRGB(150, 150, 150)
+end
+
+local function CreateStatusESP(plr, char, root)
+    if not FESPS.Enabled then RemoveStatusESP(char); return end
+    if not root then return end
+    local head = char:FindFirstChild("Head")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not head or not hum then return end
+
+    local isDown = hum.Health <= 0 or hum.Health < 2
+        or char:GetAttribute("Downed") == true
+        or char:GetAttribute("IsDown") == true
+        or char:GetAttribute("Knocked") == true
+
+    local dist = (head.Position - root.Position).Magnitude
+    if dist > FESPS.Radius then RemoveStatusESP(char); return end
+
+    local accentColor = Color3.fromRGB(255, 255, 255)
+    if TeamIs(plr, "Killer") then accentColor = FESPC.Killer
+    elseif TeamIs(plr, "Survivor") then accentColor = FESPC.Survivor end
+    if isDown then accentColor = Color3.fromRGB(255, 60, 60) end
+
+    local hpPct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+    local hpColor
+    if hpPct > 0.6 then hpColor = Color3.fromRGB(80, 220, 120)
+    elseif hpPct > 0.3 then hpColor = Color3.fromRGB(255, 200, 60)
+    else hpColor = Color3.fromRGB(255, 80, 80) end
+
+    local actionText, actionColor = StatusESP_GetAction(char, hum)
+
+    local bb = StatusESP[char]
+    if not bb or not bb.Parent then
+        bb = Instance.new("BillboardGui")
+        bb.Name = "GlutoStatusESP"
+        bb.AlwaysOnTop = true
+        bb.LightInfluence = 0
+        bb.Adornee = head
+        bb.StudsOffset = Vector3.new(0, 2.5, 0)
+        bb.Size = UDim2.fromOffset(260, 40)
+        bb.Parent = char
+
+        local scaleObj = Instance.new("UIScale")
+        scaleObj.Name = "DistScale"
+        scaleObj.Scale = 1
+        scaleObj.Parent = bb
+
+        local nameLbl = Instance.new("TextLabel")
+        nameLbl.Name = "NameLbl"
+        nameLbl.BackgroundTransparency = 1
+        nameLbl.Size = UDim2.new(1, 0, 0, 16)
+        nameLbl.Position = UDim2.new(0, 0, 0, 0)
+        nameLbl.Font = Enum.Font.GothamBold
+        nameLbl.TextSize = 13
+        nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        nameLbl.TextStrokeTransparency = 0.2
+        nameLbl.TextXAlignment = Enum.TextXAlignment.Center
+        nameLbl.TextYAlignment = Enum.TextYAlignment.Center
+        nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
+        nameLbl.Parent = bb
+
+        local pill = Instance.new("Frame")
+        pill.Name = "Pill"
+        pill.AnchorPoint = Vector2.new(0.5, 0)
+        pill.Position = UDim2.new(0.5, 0, 0, 18)
+        pill.Size = UDim2.fromOffset(120, 22)
+        pill.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+        pill.BackgroundTransparency = 0.15
+        pill.BorderSizePixel = 0
+        pill.Parent = bb
+        Instance.new("UICorner", pill).CornerRadius = UDim.new(1, 0)
+
+        local pillStroke = Instance.new("UIStroke", pill)
+        pillStroke.Name = "PillStroke"
+        pillStroke.Color = accentColor
+        pillStroke.Thickness = 1
+        pillStroke.Transparency = 0.5
+        pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local layout = Instance.new("UIListLayout", pill)
+        layout.FillDirection = Enum.FillDirection.Horizontal
+        layout.Padding = UDim.new(0, 5)
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.VerticalAlignment = Enum.VerticalAlignment.Center
+        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+        local pad = Instance.new("UIPadding", pill)
+        pad.PaddingLeft = UDim.new(0, 6)
+        pad.PaddingRight = UDim.new(0, 8)
+
+        local avatarHolder = Instance.new("Frame")
+        avatarHolder.Name = "AvatarHolder"
+        avatarHolder.Size = UDim2.fromOffset(18, 18)
+        avatarHolder.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+        avatarHolder.BorderSizePixel = 0
+        avatarHolder.LayoutOrder = 1
+        avatarHolder.ClipsDescendants = true
+        avatarHolder.Parent = pill
+        Instance.new("UICorner", avatarHolder).CornerRadius = UDim.new(1, 0)
+
+        local avatarStroke = Instance.new("UIStroke", avatarHolder)
+        avatarStroke.Name = "AvatarStroke"
+        avatarStroke.Color = accentColor
+        avatarStroke.Thickness = 1.2
+        avatarStroke.Transparency = 0.3
+        avatarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local avatarImg = Instance.new("ImageLabel")
+        avatarImg.Name = "AvatarImg"
+        avatarImg.Size = UDim2.fromScale(1, 1)
+        avatarImg.BackgroundTransparency = 1
+        avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+        avatarImg.Parent = avatarHolder
+
+        local dot = Instance.new("Frame")
+        dot.Name = "Dot"
+        dot.Size = UDim2.fromOffset(7, 7)
+        dot.BackgroundColor3 = accentColor
+        dot.BorderSizePixel = 0
+        dot.LayoutOrder = 1
+        dot.Visible = false
+        dot.Parent = pill
+        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+        local distLbl = Instance.new("TextLabel")
+        distLbl.Name = "DistLbl"
+        distLbl.BackgroundTransparency = 1
+        distLbl.Size = UDim2.fromOffset(32, 14)
+        distLbl.Font = Enum.Font.GothamBold
+        distLbl.TextSize = 11
+        distLbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+        distLbl.Text = "0m"
+        distLbl.LayoutOrder = 2
+        distLbl.Parent = pill
+
+        local actionLbl = Instance.new("TextLabel")
+        actionLbl.Name = "ActionLbl"
+        actionLbl.BackgroundTransparency = 1
+        actionLbl.Size = UDim2.fromOffset(50, 14)
+        actionLbl.Font = Enum.Font.GothamBold
+        actionLbl.TextSize = 10
+        actionLbl.TextColor3 = actionColor
+        actionLbl.Text = "IDLE"
+        actionLbl.LayoutOrder = 3
+        actionLbl.Parent = pill
+
+        local hpBarBg = Instance.new("Frame")
+        hpBarBg.Name = "HPBarBg"
+        hpBarBg.Size = UDim2.fromOffset(38, 4)
+        hpBarBg.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        hpBarBg.BorderSizePixel = 0
+        hpBarBg.LayoutOrder = 4
+        hpBarBg.Parent = pill
+        Instance.new("UICorner", hpBarBg).CornerRadius = UDim.new(1, 0)
+
+        local hpBarFill = Instance.new("Frame")
+        hpBarFill.Name = "HPBarFill"
+        hpBarFill.Size = UDim2.new(1, 0, 1, 0)
+        hpBarFill.BackgroundColor3 = hpColor
+        hpBarFill.BorderSizePixel = 0
+        hpBarFill.Parent = hpBarBg
+        Instance.new("UICorner", hpBarFill).CornerRadius = UDim.new(1, 0)
+
+        local downPill = Instance.new("Frame")
+        downPill.Name = "DownPill"
+        downPill.Size = UDim2.fromOffset(36, 14)
+        downPill.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        downPill.BackgroundTransparency = 0.1
+        downPill.BorderSizePixel = 0
+        downPill.Visible = false
+        downPill.LayoutOrder = 5
+        downPill.Parent = pill
+        Instance.new("UICorner", downPill).CornerRadius = UDim.new(1, 0)
+
+        local downLbl = Instance.new("TextLabel")
+        downLbl.Name = "DownLbl"
+        downLbl.Size = UDim2.new(1, 0, 1, 0)
+        downLbl.BackgroundTransparency = 1
+        downLbl.Font = Enum.Font.GothamBold
+        downLbl.TextSize = 9
+        downLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+        downLbl.Text = "DOWN"
+        downLbl.Parent = downPill
+
+        StatusESP[char] = bb
+    end
+
+    local nameLbl = bb:FindFirstChild("NameLbl")
+    local pill = bb:FindFirstChild("Pill")
+    if not pill then return end
+    local pillStroke = pill:FindFirstChild("PillStroke")
+    local avatarHolder = pill:FindFirstChild("AvatarHolder")
+    local avatarImg = avatarHolder and avatarHolder:FindFirstChild("AvatarImg")
+    local avatarStroke = avatarHolder and avatarHolder:FindFirstChild("AvatarStroke")
+    local dot = pill:FindFirstChild("Dot")
+    local distLbl = pill:FindFirstChild("DistLbl")
+    local actionLbl = pill:FindFirstChild("ActionLbl")
+    local hpBarBg = pill:FindFirstChild("HPBarBg")
+    local hpBarFill = hpBarBg and hpBarBg:FindFirstChild("HPBarFill")
+    local downPill = pill:FindFirstChild("DownPill")
+    local distScale = bb:FindFirstChild("DistScale")
+
+    if pillStroke then
+        pillStroke.Color = accentColor
+        pillStroke.Transparency = isDown and 0.2 or 0.5
+    end
+    if avatarHolder then
+        avatarHolder.Visible = FESPS.ShowAvatar == true
+        if avatarStroke then avatarStroke.Color = accentColor end
+        if avatarImg and avatarImg.Image == "" then
+            avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+        end
+    end
+    if dot then
+        dot.Visible = (FESPS.ShowAvatar ~= true)
+        dot.BackgroundColor3 = accentColor
+    end
+    if nameLbl then
+        nameLbl.Text = plr.Name
+        nameLbl.Visible = FESPS.ShowName
+        nameLbl.TextColor3 = isDown and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(255, 255, 255)
+    end
+    if distLbl then
+        distLbl.Text = string.format("%.0fm", dist)
+        distLbl.Visible = FESPS.ShowDistance
+    end
+    if actionLbl then
+        actionLbl.Text = actionText
+        actionLbl.TextColor3 = actionColor
+        actionLbl.Visible = FESPS.ShowAction == true
+        if actionText == "IDLE" then
+            actionLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
+        end
+    end
+    if hpBarBg and hpBarFill then
+        hpBarFill.Size = UDim2.new(hpPct, 0, 1, 0)
+        hpBarFill.BackgroundColor3 = hpColor
+        hpBarBg.Visible = FESPS.ShowHealth
+    end
+    if downPill then downPill.Visible = isDown end
+
+    local totalW = 14
+    local count = 0
+    if FESPS.ShowAvatar then totalW = totalW + 18; count = count + 1
+    else totalW = totalW + 7; count = count + 1 end
+    if FESPS.ShowDistance then totalW = totalW + 32; count = count + 1 end
+    if FESPS.ShowAction then totalW = totalW + 50; count = count + 1 end
+    if FESPS.ShowHealth then totalW = totalW + 38; count = count + 1 end
+    if isDown then totalW = totalW + 36; count = count + 1 end
+    totalW = totalW + math.max(count - 1, 0) * 5
+    if totalW < 50 then totalW = 50 end
+    if totalW > 240 then totalW = 240 end
+    pill.Size = UDim2.fromOffset(totalW, 22)
+
+    local showPill = FESPS.ShowDistance or FESPS.ShowHealth or isDown
+        or FESPS.ShowAction or FESPS.ShowAvatar
+    pill.Visible = showPill
+
+    local h = 16 + (showPill and 24 or 0)
+    bb.Size = UDim2.fromOffset(260, h)
+
+    if distScale then
+        local scaleVal = 1 - (dist - 50) / 500
+        scaleVal = math.clamp(scaleVal, 0.5, 1.05)
+        distScale.Scale = scaleVal
+    end
+end
+
+local function GetGameValue(obj, name)
+    if not obj then return nil end
+    local attr = obj:GetAttribute(name)
+    if attr ~= nil then return attr end
+    local child = obj:FindFirstChild(name)
+    if child then
+        local ok, v = pcall(function() return child.Value end)
+        if ok then return v end
+    end
+    return nil
+end
+
+local function UpdateGenerator(gen)
+    if not gen or not gen.Parent then return end
+    if not FESP.Generator then
+        local o = gen:FindFirstChild("GenESP"); if o then o:Destroy() end
+        local h = gen:FindFirstChild("GenHighlight"); if h then h:Destroy() end
+        return
+    end
+    local percent = GetGameValue(gen, "RepairProgress")
+        or GetGameValue(gen, "Progress")
+        or GetGameValue(gen, "ProgressRepair") or 0
+    local bb = gen:FindFirstChild("GenESP")
+    if percent >= 100 then if bb then bb:Destroy() end; return end
+    local cp = math.clamp(percent, 0, 100)
+    local color = FESPC.Generator:Lerp(Color3.fromRGB(0, 255, 120), cp / 100)
+    local text = string.format("[%.0f%%]", percent)
+    if not bb then
+        bb = Instance.new("BillboardGui")
+        bb.Name = "GenESP"
+        bb.Size = UDim2.new(0, 100, 0, 30)
+        bb.AlwaysOnTop = true
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, 0, 1, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = text
+        lbl.TextColor3 = color
+        lbl.TextStrokeTransparency = 0
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 12
+        lbl.Parent = bb
+        bb.Adornee = gen
+        bb.Parent = gen
+    else
+        local lbl = bb:FindFirstChildOfClass("TextLabel")
+        if lbl then lbl.Text = text; lbl.TextColor3 = color end
+    end
+    local h = gen:FindFirstChild("GenHighlight") or Instance.new("Highlight")
+    h.Name = "GenHighlight"
+    h.Adornee = gen
+    h.FillColor = color
+    h.OutlineColor = color
+    h.FillTransparency = 0.9
+    h.OutlineTransparency = 0.3
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent = gen
+end
+
+local function UpdateMapESP(obj, root)
+    if not obj or not root or not obj.Parent then return end
+    local pos
+    if obj:IsA("Model") then
+        if obj.PrimaryPart then pos = obj.PrimaryPart.Position
+        else
+            local ok, pivot = pcall(function() return obj:GetPivot().Position end)
+            pos = ok and pivot or nil
+            if not pos then
+                local bp = obj:FindFirstChildWhichIsA("BasePart", true)
+                if bp then pos = bp.Position end
+            end
+        end
+    elseif obj:IsA("BasePart") then
+        pos = obj.Position
+    end
+    if not pos then return end
+    local dist = (pos - root.Position).Magnitude
+
+    if obj.Name == "Pallet" or obj.Name == "Palletwrong" then
+        if FESP.Pallet and dist <= FESP.Distance then
+            CreateESP(obj, FESPC.Pallet)
+        else
+            RemoveESP(obj)
+        end
+    end
+end
+
+local function UpdateSCPEsp(root)
+    if not FESP.SCP then
+        for obj in pairs(CachedSCP) do RemoveESP(obj) end
+        return
+    end
+    for obj in pairs(CachedSCP) do
+        if obj and obj.Parent then
+            local pos
+            if obj:IsA("Model") then
+                local ok, pivot = pcall(function() return obj:GetPivot().Position end)
+                pos = ok and pivot or nil
+            elseif obj:IsA("BasePart") then
+                pos = obj.Position
+            end
+            if pos then
+                local dist = (pos - root.Position).Magnitude
+                if dist <= FESP.Distance then
+                    CreateESP(obj, FESPC.SCP)
+                else
+                    RemoveESP(obj)
+                end
+            end
+        end
+    end
+end
+
+local function RemoveWindowESP(model)
+    if not model then return end
+    local wData = WindowObjects[model]
+    if wData then
+        if wData.highlight then pcall(function() wData.highlight:Destroy() end) end
+        if wData.box then pcall(function() wData.box:Destroy() end) end
+        if wData.bottomPart and wData.bottomPart.Parent then
+            pcall(function()
+                local orig = wData.bottomPart:GetAttribute("ESP_OrigTrans")
+                if orig ~= nil then
+                    wData.bottomPart.Transparency = orig
+                    wData.bottomPart:SetAttribute("ESP_OrigTrans", nil)
+                end
+            end)
+        end
+        WindowObjects[model] = nil
+    end
+    if CachedWindow[model] then CachedWindow[model] = nil end
+end
+
+local function HandleWindowObject(child)
+    if not FESP.Window then return end
+    if not child or child.Name ~= "VaultTrigger" then return end
+    local winModel = child.Parent
+    if not winModel or not winModel:IsA("Model") then return end
+    if WindowObjects[winModel] then return end
+
+    local bottomPart = winModel:FindFirstChild("Bottom")
+    if not bottomPart or not bottomPart:IsA("BasePart") then
+        local bestSize = 0
+        for _, p in ipairs(winModel:GetChildren()) do
+            if p:IsA("BasePart")
+               and p.Name ~= "VaultTrigger"
+               and p.Name ~= "inviswall"
+               and p.Size.Magnitude > bestSize then
+                bestSize = p.Size.Magnitude
+                bottomPart = p
+            end
+        end
+    end
+    if not bottomPart then return end
+
+    if bottomPart:GetAttribute("ESP_OrigTrans") == nil then
+        bottomPart:SetAttribute("ESP_OrigTrans", bottomPart.Transparency)
+    end
+    if bottomPart.Transparency > 0.5 then
+        bottomPart.Transparency = 0.5
+    end
+
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "GlutoWindowBox"
+    box.Adornee = bottomPart
+    box.Size = bottomPart.Size
+    box.Color3 = FESPC.Window
+    box.Transparency = 0.3
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    box.Parent = bottomPart
+
+    local hl = Instance.new("Highlight")
+    hl.Name = "GlutoWindowHighlight"
+    hl.Adornee = winModel
+    hl.FillColor = FESPC.Window
+    hl.FillTransparency = 0.9
+    hl.OutlineColor = FESPC.Window
+    hl.OutlineTransparency = 0.1
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent = winModel
+
+    WindowObjects[winModel] = {
+        highlight = hl,
+        box = box,
+        bottomPart = bottomPart,
+    }
+end
+
+local function ScanAllWindows()
+    if not FESP.Window then return end
+    local map = Workspace:FindFirstChild("Map")
+    if not map then return end
+    for _, obj in ipairs(map:GetDescendants()) do
+        if obj.Name == "VaultTrigger" then
+            HandleWindowObject(obj)
+        end
+    end
+end
+
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj.Name == "VaultTrigger" and FESP.Window then
+        task.defer(function() HandleWindowObject(obj) end)
+    end
+end)
+
+local espLastUpdate = 0
+RunService.RenderStepped:Connect(function()
+    local now = tick()
+    if now - espLastUpdate < 0.05 then return end
+    espLastUpdate = now
+
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local char = p.Character
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - root.Position).Magnitude
+                    if dist <= FESP.Distance then
+                        if FESP.Survivor and TeamIs(p, "Survivor") then
+                            CreateESP(char, FESPC.Survivor)
+                        elseif FESP.Killer and TeamIs(p, "Killer") then
+                            CreateESP(char, FESPC.Killer)
+                        else
+                            RemoveESP(char)
+                        end
+                    else
+                        RemoveESP(char)
+                    end
+                end
+                CreateStatusESP(p, char, root)
+            else
+                RemoveESP(char)
+                RemoveStatusESP(char)
+            end
+        end
+    end
+
+    if FESP.Generator then
+        for gen in pairs(CachedGen) do UpdateGenerator(gen) end
+    end
+    for obj in pairs(CachedPallet) do UpdateMapESP(obj, root) end
+    UpdateSCPEsp(root)
+
+    if FESP.Window then
+        if not _G.GlutoWindowScanned then
+            _G.GlutoWindowScanned = true
+            pcall(ScanAllWindows)
+        end
+    else
+        _G.GlutoWindowScanned = false
+        for model in pairs(WindowObjects) do
+            RemoveWindowESP(model)
+        end
+    end
+end)
+end
+
+--====================================================--
+-- Auto Flee + Auto Attack loop
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        pcall(KA_AutoAttack)
+        pcall(SURV_AutoFlee)
+    end
+end)
+
 local function KYS_BeatGameSurvivor()
     if not VD.BEAT_Survivor or GetRole() ~= "Survivor" then return end
     local root = Root
