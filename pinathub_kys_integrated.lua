@@ -671,11 +671,11 @@ function KYS_LoadConfig(name)
             for key, value in pairs(data) do
                 VD[key] = value
                 local flagName = VD_To_Flag[key]
-                if flagName and Window and Window.ConfigElements and Window.ConfigElements[flagName] then
-                    pcall(function()
-                        local elem = Window.ConfigElements[flagName]
-                        if elem.Set then elem:Set(value) end
-                    end)
+                if flagName then
+                    -- PinatHubAdapter._ControlSetters is the real registry in kingrualibrarysource
+                    if PinatHubAdapter and PinatHubAdapter._ControlSetters and PinatHubAdapter._ControlSetters[flagName] then
+                        pcall(PinatHubAdapter._ControlSetters[flagName], value)
+                    end
                 end
             end
             if getgenv().KYS_SyncLoadedFeatures then pcall(getgenv().KYS_SyncLoadedFeatures) end
@@ -5857,33 +5857,51 @@ if Window then
             getgenv().CurrentConfigName = selectedProfile
         end,
     })
-    settingsSection:AddInput({
+    -- AddInput returns the TextBox directly; read .Text on button clicks
+    -- to capture typed value even if user did not press Enter (FocusLost never fired).
+    local profileNameBox = settingsSection:AddInput({
         Title = "Profile Name",
         Default = selectedProfile,
-        Placeholder = "Default",
+        PlaceHolder = "Default",
         Callback = function(value)
             selectedProfile = tostring(value or "Default")
             getgenv().CurrentConfigName = selectedProfile
         end,
     })
+    local function getActiveProfile()
+        if profileNameBox and type(profileNameBox) == "userdata" then
+            local typed = tostring(profileNameBox.Text or "")
+            if typed ~= "" then
+                selectedProfile = typed
+                getgenv().CurrentConfigName = typed
+            end
+        end
+        return (selectedProfile and selectedProfile ~= "") and selectedProfile or "Default"
+    end
     settingsSection:AddButton({
         Title = "Save Profile",
         Callback = function()
-            KYS_SaveConfig(selectedProfile)
-            pcall(function() profileDropdown:SetValues(GetConfigList()) end)
+            local name = getActiveProfile()
+            KYS_SaveConfig(name)
+            -- Refresh() is the correct method (SetValues does not exist)
+            pcall(function()
+                profileDropdown:Refresh(GetConfigList(), false)
+                profileDropdown:Set(name)  -- also update the pill to show saved name
+            end)
         end,
     })
     settingsSection:AddButton({
         Title = "Load Profile",
         Callback = function()
-            KYS_LoadConfig(selectedProfile)
+            KYS_LoadConfig(getActiveProfile())
         end,
     })
     settingsSection:AddButton({
         Title = "Delete Profile",
         Callback = function()
-            KYS_DeleteConfig(selectedProfile)
-            pcall(function() profileDropdown:SetValues(GetConfigList()) end)
+            local name = getActiveProfile()
+            KYS_DeleteConfig(name)
+            pcall(function() profileDropdown:Refresh(GetConfigList(), false) end)
         end,
     })
 end
