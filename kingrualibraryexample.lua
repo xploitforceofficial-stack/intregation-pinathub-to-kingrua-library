@@ -1,14 +1,18 @@
 -- -----------------------------------------------------------------------------
 -- PINATHUB UI LIBRARY — OFFICIAL EDITION
--- Official Pinathub Neon Identity & PinatHub Glassmorphism Theme System
--- Full Topbar/Menu Overlay Capability (IgnoreGuiInset = true, DisplayOrder = 999999)
--- Ultra-Smooth Micro-Animations, Rich Elements & Complete PinatHub Compatibility
+-- Official PinatHub Neon Identity & Glassmorphism Theme System
+-- Discord: https://discord.gg/ysHZCYFaX7
+-- Komunitas Utama WhatsApp (XploitForce): https://chat.whatsapp.com/CjbAhfWTAKx1mU3O6KEJgp
+-- YouTube Channel: https://www.youtube.com/@viunzee1
+-- Topbar & Menu Overlay Enabled
+-- Custom Elements & TweenService Animations
 -- -----------------------------------------------------------------------------
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local TextService = game:GetService("TextService")
 local LocalPlayer = Players.LocalPlayer
 
 -- -----------------------------------------------------------------------------
@@ -59,24 +63,32 @@ local TabIcons = {
 	["cpu"] = "rbxassetid://10709813383",
 	["activity"] = "rbxassetid://10709752035",
 	["heart"] = "rbxassetid://10723406885",
-	["home"] = "rbxassetid://10723407389",
-	["search"] = "rbxassetid://10734943674",
+	["search"] = "rbxassetid://2804603877",
 	["bell"] = "rbxassetid://10709775704",
 	["flame"] = "rbxassetid://10723376114",
 	["database"] = "rbxassetid://10709818996",
-	["discord"] = "rbxassetid://10734950553",
+	["discord"] = "rbxassetid://18505728250",
+	["tiktok"] = "rbxassetid://114030178331137",
 	["message-circle"] = "rbxassetid://10734888000",
 	["video"] = "rbxassetid://10747374938",
 	["youtube"] = "rbxassetid://10747374938",
 	["globe"] = "rbxassetid://10723404337",
 	["clipboard-check"] = "rbxassetid://10709783474",
-	["zap"] = "rbxassetid://10747361761",
-	["lightning"] = "rbxassetid://10747361761",
+	["zap"] = "rbxassetid://7733920644",
+	["lightning"] = "rbxassetid://7733920644",
+	["automation"] = "rbxassetid://7733920644",
+	["bolt"] = "rbxassetid://7733920644",
 	["sparkles"] = "rbxassetid://10734973351",
 	["star"] = "rbxassetid://10734973351",
 	["box"] = "rbxassetid://10734954201",
 	["package"] = "rbxassetid://10734954201",
-	["compass"] = "rbxassetid://10709789310",
+	["compass"] = "rbxassetid://7733924216",
+	["teleport"] = "rbxassetid://7733992789",
+	["map-pin"] = "rbxassetid://7733992789",
+	["map"] = "rbxassetid://7733964719",
+	["navigation"] = "rbxassetid://7734020989",
+	["locate"] = "rbxassetid://7733964719",
+	["waypoint"] = "rbxassetid://7733992789",
 	["gem"] = "rbxassetid://10723387847",
 	["diamond"] = "rbxassetid://10723387847",
 	["trophy"] = "rbxassetid://10747372167",
@@ -93,14 +105,39 @@ local TabIcons = {
 	["info"] = "rbxassetid://10723415903",
 	["alert"] = "rbxassetid://10709752906",
 
+	-- Navigation & Category Icons
+	["movement"] = "rbxassetid://10747373176",
+	["fling"] = "rbxassetid://7733920644",
+	["emote"] = "rbxassetid://10747373176",
+	["fun"] = "rbxassetid://10734973351",
+	["streamer"] = "rbxassetid://10747374938",
+	["streamer mode"] = "rbxassetid://10747374938",
+	["avatar"] = "rbxassetid://10747373426",
+	["avatar tools"] = "rbxassetid://10747373426",
+	["camera"] = "rbxassetid://10747374938",
+	["lighting"] = "rbxassetid://10734973351",
+	["sun"] = "rbxassetid://10734973351",
+	["radar"] = "rbxassetid://7733964719",
+	["teleport"] = "rbxassetid://7733992789",
+	["escape"] = "rbxassetid://7733992789",
+	["aimbot"] = "rbxassetid://10709818534",
+	["killer aim"] = "rbxassetid://10734975486",
+	["survivor aim"] = "rbxassetid://10734977012",
+	["ability"] = "rbxassetid://7733920644",
+	["killer ability"] = "rbxassetid://7733920644",
+	["utilities"] = "rbxassetid://10747383470",
 
 	-- General Navigation & UI Icons
 	Main = "rbxassetid://10723407389",
 	Info = "rbxassetid://10723406988",            -- Help / Info circle
 	Survivor = "rbxassetid://10734975692",        -- Swords
 	Killer = "rbxassetid://10734962068",          -- Skull
+	Automation = "rbxassetid://7733920644",      -- Zap / Bolt
+	["Automation"] = "rbxassetid://7733920644",
 	ESP = "rbxassetid://10723346959",             -- Eye
 	Visuals = "rbxassetid://10723346959",         -- Eye
+	Teleport = "rbxassetid://7733992789",         -- Official Roblox Creator Store Map-Pin
+	["Teleport"] = "rbxassetid://7733992789",
 	["Emote & Skin"] = "rbxassetid://10747373176",-- User
 	Emote = "rbxassetid://10747373176",           -- User
 	Aimbot = "rbxassetid://10709818534",          -- Crosshair (FIXED, NOT BLANK)
@@ -109,16 +146,48 @@ local TabIcons = {
 	Config = "rbxassetid://10734963400",          -- Sliders
 	Player = "rbxassetid://10747373176",          -- User
 	Misc = "rbxassetid://10747383470",            -- Wrench
-	Credits = "rbxassetid://10723406988",         -- Help / Info
-	Search = "rbxassetid://10734943674",          -- Search (FIXED)
+	Search = "rbxassetid://2804603877",
 	Minimize = "rbxassetid://10734896206",
 	Maximize = "rbxassetid://10734914561",
 	Close = "rbxassetid://10747384394",
 	ChevronRight = "rbxassetid://10709791437",
 	ChevronDown = "rbxassetid://10709790948",
-	Discord = "rbxassetid://10734950553",
+	Discord = "rbxassetid://18505728250",
+	TikTok = "rbxassetid://114030178331137",
 	Cursor = "rbxassetid://10709818534"
 }
+
+-- Shared Icon Resolver for Tabs, Buttons, and UI Components
+local function ResolveIcon(iconInput, fallbackTitle)
+	local function lookupName(str)
+		if not str or str == "" then return nil end
+		if TabIcons[str] then return TabIcons[str] end
+		local low = string.lower(str)
+		if TabIcons[low] then return TabIcons[low] end
+		local clean = string.gsub(low, "^[%w_]+:", "")
+		clean = string.gsub(clean, "%-bold$", "")
+		clean = string.gsub(clean, "%-round$", "")
+		clean = string.gsub(clean, "%-rounded$", "")
+		clean = string.gsub(clean, "%s*%[beta%]", "")
+		clean = string.match(clean, "^%s*(.-)%s*$")
+		if TabIcons[clean] then return TabIcons[clean] end
+		return nil
+	end
+
+	if type(iconInput) == "string" then
+		local trimmed = string.match(iconInput, "^%s*(.-)%s*$") or iconInput
+		if string.sub(trimmed, 1, 13) == "rbxassetid://" or string.sub(trimmed, 1, 10) == "rbxasset://" or string.sub(trimmed, 1, 4) == "http" then
+			return trimmed
+		end
+		local hit = lookupName(trimmed)
+		if hit then return hit end
+	end
+	if fallbackTitle then
+		local hit = lookupName(tostring(fallbackTitle))
+		if hit then return hit end
+	end
+	return "rbxassetid://10723407389" -- Default Lucide Home Icon
+end
 
 -- Detect Executor Name dynamically
 local function DetectExecutor()
@@ -178,7 +247,10 @@ local Library = {
 	Theme = Theme,
 	Logo = PINATHUB_LOGO,
 	CurrentWindow = nil,
-	NotificationHolder = nil
+	NotificationHolder = nil,
+	_ControlSetters = {},
+	-- Global registry of all expanded paragraph frames for click-outside-to-close
+	_ActiveParaFrames = {}
 }
 
 function Library:TweenInstance(instance, time, prop, value, easingStyle, easingDir)
@@ -250,11 +322,11 @@ function Library:UpdateScrolling(scrollFrame, uiLayout)
 end
 
 -- -----------------------------------------------------------------------------
--- 4. CUSTOM GLASS TOAST NOTIFICATION SYSTEM
+-- 4. MODERN TOAST NOTIFICATION SYSTEM (Top-Right, Slide-In)
 -- -----------------------------------------------------------------------------
 function Library:Notify(config)
 	local cfg = self:MakeConfig({
-		Title = "Pinathub",
+		Title = "PinatHub",
 		Content = "",
 		Duration = 3.5,
 		Type = "Info",
@@ -263,122 +335,227 @@ function Library:Notify(config)
 
 	if not self.NotificationHolder then return end
 
+	-- Type → accent color + icon mapping
 	local typeColor = Theme.Accent
+	local typeIcon  = TabIcons.Info or PINATHUB_LOGO
 	if cfg.Type == "Success" then
 		typeColor = Theme.Success
+		typeIcon  = TabIcons.check or TabIcons["check"] or PINATHUB_LOGO
 	elseif cfg.Type == "Warning" then
 		typeColor = Theme.Warning
+		typeIcon  = TabIcons.alert or TabIcons["alert"] or PINATHUB_LOGO
 	elseif cfg.Type == "Danger" or cfg.Type == "Error" then
 		typeColor = Theme.Danger
+		typeIcon  = TabIcons["skull"] or PINATHUB_LOGO
+	elseif cfg.Type == "Info" then
+		typeColor = Theme.AccentGlow
+		typeIcon  = TabIcons.info or TabIcons["info"] or PINATHUB_LOGO
 	end
+	if cfg.Icon then typeIcon = ResolveIcon(cfg.Icon) or typeIcon end
 
+	-- ── Toast Card ──────────────────────────────────────────────────────────
 	local Toast = Instance.new("Frame")
-	Toast.Name = "Toast"
+	Toast.Name = "Toast_" .. cfg.Title
 	Toast.Parent = self.NotificationHolder
-	Toast.BackgroundColor3 = Theme.Surface
+	Toast.BackgroundColor3 = Theme.Header
+	Toast.BackgroundTransparency = 0.08
 	Toast.BorderSizePixel = 0
-	Toast.Size = UDim2.new(1, 0, 0, 0)
-	Toast.ClipsDescendants = true
-	Toast.BackgroundTransparency = 1
+	Toast.Size = UDim2.new(1, 0, 0, 0)  -- grows in via tween
+	Toast.ClipsDescendants = false
+	-- Start off-screen to the right for slide-in
+	Toast.Position = UDim2.new(1.1, 0, 0, 0)
 
 	local ToastCorner = Instance.new("UICorner")
-	ToastCorner.CornerRadius = UDim.new(0, 8)
+	ToastCorner.CornerRadius = UDim.new(0, 10)
 	ToastCorner.Parent = Toast
 
+	-- Outer glow stroke matching type color
 	local ToastStroke = Instance.new("UIStroke")
-	ToastStroke.Color = Theme.Border
-	ToastStroke.Thickness = 1
-	ToastStroke.Transparency = 1
+	ToastStroke.Color = typeColor
+	ToastStroke.Thickness = 1.2
+	ToastStroke.Transparency = 0.55
 	ToastStroke.Parent = Toast
 
-	local LeftStripe = Instance.new("Frame")
-	LeftStripe.Name = "Stripe"
-	LeftStripe.Parent = Toast
-	LeftStripe.BackgroundColor3 = typeColor
-	LeftStripe.BorderSizePixel = 0
-	LeftStripe.Size = UDim2.new(0, 3, 1, 0)
-	LeftStripe.ZIndex = 2
+	-- Left accent bar
+	local LeftBar = Instance.new("Frame")
+	LeftBar.Name = "AccentBar"
+	LeftBar.Parent = Toast
+	LeftBar.BackgroundColor3 = typeColor
+	LeftBar.BorderSizePixel = 0
+	LeftBar.Position = UDim2.new(0, 0, 0, 8)
+	LeftBar.Size = UDim2.new(0, 3, 1, -16)
+	LeftBar.ZIndex = 3
 
-	local StripeCorner = Instance.new("UICorner")
-	StripeCorner.CornerRadius = UDim.new(0, 2)
-	StripeCorner.Parent = LeftStripe
+	local BarCorner = Instance.new("UICorner")
+	BarCorner.CornerRadius = UDim.new(1, 0)
+	BarCorner.Parent = LeftBar
 
-	local IconLabel = Instance.new("ImageLabel")
-	IconLabel.Name = "Icon"
-	IconLabel.Parent = Toast
-	IconLabel.AnchorPoint = Vector2.new(0, 0.5)
-	IconLabel.Position = UDim2.new(0, 12, 0, 22)
-	IconLabel.Size = UDim2.new(0, 18, 0, 18)
-	IconLabel.BackgroundTransparency = 1
-	IconLabel.Image = cfg.Icon or PINATHUB_LOGO
-	IconLabel.ImageColor3 = typeColor
-	IconLabel.ScaleType = Enum.ScaleType.Fit
-	IconLabel.ZIndex = 2
+	-- Type icon badge
+	local IconCircle = Instance.new("Frame")
+	IconCircle.Name = "IconBadge"
+	IconCircle.Parent = Toast
+	IconCircle.AnchorPoint = Vector2.new(0, 0.5)
+	IconCircle.Position = UDim2.new(0, 14, 0, 0)  -- Y set after height known
+	IconCircle.Size = UDim2.new(0, 28, 0, 28)
+	IconCircle.BackgroundColor3 = typeColor
+	IconCircle.BackgroundTransparency = 0.75
+	IconCircle.BorderSizePixel = 0
+	IconCircle.ZIndex = 3
 
+	local IcCorner = Instance.new("UICorner")
+	IcCorner.CornerRadius = UDim.new(1, 0)
+	IcCorner.Parent = IconCircle
+
+	local IconImg = Instance.new("ImageLabel")
+	IconImg.Name = "Icon"
+	IconImg.Parent = IconCircle
+	IconImg.AnchorPoint = Vector2.new(0.5, 0.5)
+	IconImg.Position = UDim2.fromScale(0.5, 0.5)
+	IconImg.Size = UDim2.new(0, 16, 0, 16)
+	IconImg.BackgroundTransparency = 1
+	IconImg.Image = typeIcon
+	IconImg.ImageColor3 = typeColor
+	IconImg.ScaleType = Enum.ScaleType.Fit
+	IconImg.ZIndex = 4
+
+	-- Title
 	local Title = Instance.new("TextLabel")
 	Title.Name = "Title"
 	Title.Parent = Toast
 	Title.BackgroundTransparency = 1
-	Title.Position = UDim2.new(0, 38, 0, 7)
-	Title.Size = UDim2.new(1, -46, 0, 16)
+	Title.Position = UDim2.new(0, 50, 0, 10)
+	Title.Size = UDim2.new(1, -58, 0, 16)
 	Title.Font = Enum.Font.GothamBold
 	Title.Text = cfg.Title
-	Title.TextColor3 = Theme.Text
+	Title.TextColor3 = Theme.NeonWhite
 	Title.TextSize = 12
 	Title.TextXAlignment = Enum.TextXAlignment.Left
-	Title.ZIndex = 2
+	Title.TextTruncate = Enum.TextTruncate.AtEnd
+	Title.ZIndex = 3
 
+	-- Content
 	local Desc = Instance.new("TextLabel")
 	Desc.Name = "Desc"
 	Desc.Parent = Toast
 	Desc.BackgroundTransparency = 1
-	Desc.Position = UDim2.new(0, 38, 0, 25)
-	Desc.Size = UDim2.new(1, -46, 0, 30)
+	Desc.Position = UDim2.new(0, 50, 0, 27)
+	Desc.Size = UDim2.new(1, -58, 0, 60)  -- temp tall; resized below
 	Desc.Font = Enum.Font.Gotham
 	Desc.Text = cfg.Content
 	Desc.TextColor3 = Theme.TextSecondary
-	Desc.TextSize = 11
+	Desc.TextSize = 10.5
 	Desc.TextWrapped = true
 	Desc.TextXAlignment = Enum.TextXAlignment.Left
 	Desc.TextYAlignment = Enum.TextYAlignment.Top
-	Desc.ZIndex = 2
+	Desc.RichText = true
+	Desc.ZIndex = 3
 
-	local ProgressBar = Instance.new("Frame")
-	ProgressBar.Name = "ProgressBar"
-	ProgressBar.Parent = Toast
-	ProgressBar.AnchorPoint = Vector2.new(0, 1)
-	ProgressBar.Position = UDim2.new(0, 0, 1, 0)
-	ProgressBar.Size = UDim2.new(1, 0, 0, 2)
-	ProgressBar.BackgroundColor3 = typeColor
-	ProgressBar.BackgroundTransparency = 0.2
-	ProgressBar.BorderSizePixel = 0
-	ProgressBar.ZIndex = 3
+	-- Progress bar (shrinks left-to-right as duration passes)
+	local ProgTrack = Instance.new("Frame")
+	ProgTrack.Name = "ProgTrack"
+	ProgTrack.Parent = Toast
+	ProgTrack.AnchorPoint = Vector2.new(0, 1)
+	ProgTrack.Position = UDim2.new(0, 8, 1, -6)
+	ProgTrack.Size = UDim2.new(1, -16, 0, 2)
+	ProgTrack.BackgroundColor3 = Theme.SurfaceActive
+	ProgTrack.BackgroundTransparency = 0.4
+	ProgTrack.BorderSizePixel = 0
+	ProgTrack.ZIndex = 3
 
-	local requiredHeight = math.max(Desc.TextBounds.Y + 36, 58)
+	local PTCorner = Instance.new("UICorner")
+	PTCorner.CornerRadius = UDim.new(1, 0)
+	PTCorner.Parent = ProgTrack
 
-	TweenService:Create(Toast, TweenInfoSpring, {
-		Size = UDim2.new(1, 0, 0, requiredHeight),
-		BackgroundTransparency = 0.1
-	}):Play()
-	TweenService:Create(ToastStroke, TweenInfoSmooth, { Transparency = 0.2 }):Play()
+	local ProgFill = Instance.new("Frame")
+	ProgFill.Name = "Fill"
+	ProgFill.Parent = ProgTrack
+	ProgFill.Size = UDim2.fromScale(1, 1)
+	ProgFill.BackgroundColor3 = typeColor
+	ProgFill.BackgroundTransparency = 0.1
+	ProgFill.BorderSizePixel = 0
+	ProgFill.ZIndex = 4
 
-	TweenService:Create(ProgressBar, TweenInfo.new(cfg.Duration, Enum.EasingStyle.Linear), {
-		Size = UDim2.new(0, 0, 0, 2)
-	}):Play()
+	local PFCorner = Instance.new("UICorner")
+	PFCorner.CornerRadius = UDim.new(1, 0)
+	PFCorner.Parent = ProgFill
 
-	task.delay(cfg.Duration, function()
-		if Toast and Toast.Parent then
-			local exitTween = TweenService:Create(Toast, TweenInfoFast, {
-				Size = UDim2.new(1, 0, 0, 0),
-				BackgroundTransparency = 1
+	-- Dismiss button (X)
+	local DismissBtn = Instance.new("ImageButton")
+	DismissBtn.Name = "Dismiss"
+	DismissBtn.Parent = Toast
+	DismissBtn.AnchorPoint = Vector2.new(1, 0)
+	DismissBtn.Position = UDim2.new(1, -8, 0, 8)
+	DismissBtn.Size = UDim2.new(0, 14, 0, 14)
+	DismissBtn.BackgroundTransparency = 1
+	DismissBtn.Image = "rbxassetid://10747384394"
+	DismissBtn.ImageColor3 = Theme.TextMuted
+	DismissBtn.ScaleType = Enum.ScaleType.Fit
+	DismissBtn.AutoButtonColor = false
+	DismissBtn.ZIndex = 5
+
+	DismissBtn.MouseEnter:Connect(function()
+		TweenService:Create(DismissBtn, TweenInfoFast, { ImageColor3 = Theme.Danger }):Play()
+	end)
+	DismissBtn.MouseLeave:Connect(function()
+		TweenService:Create(DismissBtn, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+	end)
+
+	-- ── Compute height & animate in ─────────────────────────────────────────
+	local function ComputeAndAnimate()
+		Desc.Size = UDim2.new(1, -58, 0, 1000)
+		task.wait()  -- allow TextBounds to update
+		local textH = math.max(Desc.TextBounds.Y, 14)
+		Desc.Size = UDim2.new(1, -58, 0, textH)
+
+		local cardH = textH + 44  -- 10 top + 16 title + 1 gap + textH + 8 prog + 9 bottom
+		cardH = math.max(cardH, 62)
+
+		IconCircle.Position = UDim2.new(0, 14, 0, cardH / 2)
+
+		-- Expand height
+		Toast.Size = UDim2.new(1, 0, 0, 0)
+		local growTween = TweenService:Create(Toast, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(1, 0, 0, cardH)
+		})
+		growTween:Play()
+
+		-- Slide in from right
+		growTween.Completed:Connect(function()
+			TweenService:Create(Toast, TweenInfoSmooth, {
+				Position = UDim2.new(0, 0, 0, 0)
+			}):Play()
+			TweenService:Create(ToastStroke, TweenInfoSmooth, { Transparency = 0.35 }):Play()
+		end)
+
+		-- Progress drain
+		TweenService:Create(ProgFill,
+			TweenInfo.new(cfg.Duration, Enum.EasingStyle.Linear),
+			{ Size = UDim2.fromScale(0, 1) }
+		):Play()
+
+		-- Auto-dismiss
+		local dismissed = false
+		local function Dismiss()
+			if dismissed then return end
+			dismissed = true
+			local exitTween = TweenService:Create(Toast, TweenInfoSmooth, {
+				Position = UDim2.new(1.1, 0, 0, 0),
+				BackgroundTransparency = 0.6
 			})
 			TweenService:Create(ToastStroke, TweenInfoFast, { Transparency = 1 }):Play()
 			exitTween:Play()
 			exitTween.Completed:Connect(function()
-				Toast:Destroy()
+				TweenService:Create(Toast, TweenInfoFast, { Size = UDim2.new(1, 0, 0, 0) }):Play()
+				task.wait(0.2)
+				if Toast and Toast.Parent then Toast:Destroy() end
 			end)
 		end
-	end)
+
+		DismissBtn.MouseButton1Click:Connect(Dismiss)
+		task.delay(cfg.Duration, Dismiss)
+	end
+
+	task.spawn(ComputeAndAnimate)
 end
 
 -- -----------------------------------------------------------------------------
@@ -389,7 +566,8 @@ function Library:NewWindow(ConfigWindow)
 		Title = "Pinathub",
 		Description = "PinatHub Community",
 		Size = UDim2.fromOffset(630, 390), -- Compact PinatHub landscape proportions
-		Logo = PINATHUB_LOGO
+		Logo = PINATHUB_LOGO,
+		NeonGapLines = true
 	}, ConfigWindow or {})
 
 	-- Auto-cleanup any old instances
@@ -434,21 +612,23 @@ function Library:NewWindow(ConfigWindow)
 	ScreenGui.DisplayOrder = 999999  -- Render di atas menu dan UI default Roblox
 	ScreenGui.Parent = targetParent
 
-	-- Toast Notification Container (Bottom-Right)
+	-- Toast Notification Container — Top-Right, not flush to edge
 	local NotificationHolder = Instance.new("Frame")
 	NotificationHolder.Name = "NotificationHolder"
 	NotificationHolder.Parent = ScreenGui
-	NotificationHolder.AnchorPoint = Vector2.new(1, 1)
-	NotificationHolder.Position = UDim2.new(1, -20, 1, -20)
-	NotificationHolder.Size = UDim2.new(0, 280, 0, 320)
+	NotificationHolder.AnchorPoint = Vector2.new(1, 0)
+	NotificationHolder.Position = UDim2.new(1, -18, 0, 18)  -- top-right, 18px inset
+	NotificationHolder.Size = UDim2.new(0, 292, 1, -36)     -- tall enough for stacked toasts
 	NotificationHolder.BackgroundTransparency = 1
-	NotificationHolder.ZIndex = 100
+	NotificationHolder.ClipsDescendants = false
+	NotificationHolder.ZIndex = 200
 
 	local NotifLayout = Instance.new("UIListLayout")
 	NotifLayout.Parent = NotificationHolder
 	NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-	NotifLayout.Padding = UDim.new(0, 6)
+	NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Top  -- stack downward from top-right
+	NotifLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	NotifLayout.Padding = UDim.new(0, 7)
 
 	self.NotificationHolder = NotificationHolder
 
@@ -533,13 +713,46 @@ function Library:NewWindow(ConfigWindow)
 	sheenGrad.Rotation = 120
 	sheenGrad.Parent = glassSheen
 
-	-- Neon Edge Stroke (Amethyst Glow Rim)
+	-- Neon Edge Stroke (Amethyst Glow Rim with Continuous Moving Purple Neon Trace)
 	local MainStroke = Instance.new("UIStroke")
 	MainStroke.Name = "Stroke"
-	MainStroke.Color = Theme.BorderAccent
+	MainStroke.Color = Color3.fromRGB(255, 255, 255)
 	MainStroke.Thickness = 1.2
-	MainStroke.Transparency = 0.4
+	MainStroke.Transparency = 0
 	MainStroke.Parent = MainWindow
+
+	-- Moving Neon Purple Linear Border Trace (Corner to corner smoothly)
+	local StrokeGradient = Instance.new("UIGradient")
+	StrokeGradient.Name = "MovingNeonTrace"
+	StrokeGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 30, 55)),
+		ColorSequenceKeypoint.new(0.35, Color3.fromRGB(40, 30, 55)),
+		ColorSequenceKeypoint.new(0.47, Color3.fromRGB(168, 85, 247)), -- Neon Purple
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(235, 210, 255)), -- Subtle Bright Sparkle
+		ColorSequenceKeypoint.new(0.53, Color3.fromRGB(168, 85, 247)), -- Neon Purple
+		ColorSequenceKeypoint.new(0.65, Color3.fromRGB(40, 30, 55)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 30, 55)),
+	})
+	StrokeGradient.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.75),
+		NumberSequenceKeypoint.new(0.35, 0.75),
+		NumberSequenceKeypoint.new(0.47, 0.15),
+		NumberSequenceKeypoint.new(0.50, 0.0),
+		NumberSequenceKeypoint.new(0.53, 0.15),
+		NumberSequenceKeypoint.new(0.65, 0.75),
+		NumberSequenceKeypoint.new(1, 0.75),
+	})
+	StrokeGradient.Rotation = 0
+	StrokeGradient.Parent = MainStroke
+
+	local borderNeonConn
+	borderNeonConn = RunService.RenderStepped:Connect(function(dt)
+		if MainWindow and MainWindow.Parent and StrokeGradient and StrokeGradient.Parent then
+			StrokeGradient.Rotation = (StrokeGradient.Rotation + dt * 60) % 360
+		else
+			if borderNeonConn then borderNeonConn:Disconnect() end
+		end
+	end)
 
 	-- PinatHub Watermark Background Logo (Subtle & Dimmed)
 	local WindowBackgroundLogo = Instance.new("ImageLabel")
@@ -701,39 +914,72 @@ function Library:NewWindow(ConfigWindow)
 	LeftHeaderContainer.Parent = Header
 	LeftHeaderContainer.BackgroundTransparency = 1
 	LeftHeaderContainer.Position = UDim2.new(0, 14, 0, 0)
-	LeftHeaderContainer.Size = UDim2.new(0, 320, 1, 0)
+	LeftHeaderContainer.Size = UDim2.new(0, 260, 1, 0)
 
 	local LeftLayout = Instance.new("UIListLayout")
 	LeftLayout.Parent = LeftHeaderContainer
 	LeftLayout.FillDirection = Enum.FillDirection.Horizontal
 	LeftLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	LeftLayout.Padding = UDim.new(0, 8)
+	LeftLayout.Padding = UDim.new(0, 10)
 
-	-- Logo Pinathub
+	-- Logo Pinathub (Refined 26x26, High Visual Hierarchy)
 	local BrandLogo = Instance.new("ImageLabel")
 	BrandLogo.Name = "BrandLogo"
 	BrandLogo.Parent = LeftHeaderContainer
-	BrandLogo.Size = UDim2.new(0, 22, 0, 22)
+	BrandLogo.Size = UDim2.new(0, 26, 0, 26)
 	BrandLogo.BackgroundTransparency = 1
 	BrandLogo.Image = PINATHUB_LOGO
 	BrandLogo.ImageColor3 = Color3.fromRGB(255, 255, 255)
 	BrandLogo.ScaleType = Enum.ScaleType.Fit
 	BrandLogo.LayoutOrder = 1
 
-	-- Title "Pinathub | Drain Water" (Clean, No Subtitle)
+	-- Title & Subtitle Branding Hierarchy Container
+	local BrandTitleContainer = Instance.new("Frame")
+	BrandTitleContainer.Name = "BrandTitleContainer"
+	BrandTitleContainer.Parent = LeftHeaderContainer
+	BrandTitleContainer.BackgroundTransparency = 1
+	BrandTitleContainer.Size = UDim2.new(0, 0, 0, 32)
+	BrandTitleContainer.AutomaticSize = Enum.AutomaticSize.X
+	BrandTitleContainer.LayoutOrder = 2
+
+	local TitleListLayout = Instance.new("UIListLayout")
+	TitleListLayout.Parent = BrandTitleContainer
+	TitleListLayout.FillDirection = Enum.FillDirection.Vertical
+	TitleListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	TitleListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	TitleListLayout.Padding = UDim.new(0, 0)
+
+	local mainTitle = Config.Title or "PinatHub"
+	if string.find(string.lower(mainTitle), "pinathub") then
+		mainTitle = "PinatHub"
+	end
+
 	local BrandName = Instance.new("TextLabel")
 	BrandName.Name = "BrandName"
-	BrandName.Parent = LeftHeaderContainer
+	BrandName.Parent = BrandTitleContainer
 	BrandName.BackgroundTransparency = 1
-	BrandName.Size = UDim2.new(0, 0, 1, 0)
+	BrandName.Size = UDim2.new(0, 0, 0, 16)
 	BrandName.AutomaticSize = Enum.AutomaticSize.X
 	BrandName.Font = Enum.Font.GothamBold
-	BrandName.Text = Config.Title
+	BrandName.Text = mainTitle
 	BrandName.TextColor3 = Theme.Text
 	BrandName.TextSize = 13
 	BrandName.TextXAlignment = Enum.TextXAlignment.Left
-	BrandName.LayoutOrder = 2
+	BrandName.LayoutOrder = 1
+
+	local BrandSub = Instance.new("TextLabel")
+	BrandSub.Name = "BrandSub"
+	BrandSub.Parent = BrandTitleContainer
+	BrandSub.BackgroundTransparency = 1
+	BrandSub.Size = UDim2.new(0, 0, 0, 13)
+	BrandSub.AutomaticSize = Enum.AutomaticSize.X
+	BrandSub.Font = Enum.Font.GothamMedium
+	BrandSub.Text = "by @viunze"
+	BrandSub.TextColor3 = Theme.TextMuted
+	BrandSub.TextSize = 10
+	BrandSub.TextXAlignment = Enum.TextXAlignment.Left
+	BrandSub.LayoutOrder = 2
 
 	-- Right Header Container (Badges + Minimize & Close Buttons)
 	local RightHeaderContainer = Instance.new("Frame")
@@ -792,7 +1038,7 @@ function Library:NewWindow(ConfigWindow)
 		return pill, pText
 	end
 
-	-- Executor Badge Only (VD | Premium Removed)
+	-- Executor Badge Only
 	local currentExecutor = DetectExecutor()
 	local execPill, execText = CreatePillBadge("Executor: " .. currentExecutor, 1)
 	execText.RichText = true
@@ -918,38 +1164,109 @@ function Library:NewWindow(ConfigWindow)
 	SearchStroke.Parent = SearchFrame
 
 	local SearchIcon = Instance.new("ImageLabel")
-	SearchIcon.Name = "Icon"
+	SearchIcon.Name = "SearchIcon"
 	SearchIcon.Parent = SearchFrame
 	SearchIcon.AnchorPoint = Vector2.new(0, 0.5)
 	SearchIcon.Position = UDim2.new(0, 8, 0.5, 0)
-	SearchIcon.Size = UDim2.new(0, 13, 0, 13)
+	SearchIcon.Size = UDim2.new(0, 14, 0, 14)
 	SearchIcon.BackgroundTransparency = 1
-	SearchIcon.Image = TabIcons.Search
-	SearchIcon.ImageColor3 = Theme.TextMuted
+	SearchIcon.ImageTransparency = 0
+	SearchIcon.Image = "rbxassetid://2804603877"
+	SearchIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
 	SearchIcon.ScaleType = Enum.ScaleType.Fit
+	SearchIcon.ZIndex = 6
+	SearchIcon.Visible = true
 
 	local SearchBox = Instance.new("TextBox")
 	SearchBox.Name = "SearchBox"
 	SearchBox.Parent = SearchFrame
 	SearchBox.BackgroundTransparency = 1
 	SearchBox.Position = UDim2.new(0, 26, 0, 0)
-	SearchBox.Size = UDim2.new(1, -30, 1, 0)
+	SearchBox.Size = UDim2.new(1, -68, 1, 0)
 	SearchBox.Font = Enum.Font.Gotham
 	SearchBox.PlaceholderColor3 = Theme.TextMuted
-	SearchBox.PlaceholderText = "Search..."
+	SearchBox.PlaceholderText = "Search features..."
 	SearchBox.Text = ""
 	SearchBox.TextColor3 = Theme.Text
 	SearchBox.TextSize = 11
 	SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 	SearchBox.ClearTextOnFocus = false
+	SearchBox.ZIndex = 6
+
+	-- Keyboard Shortcut Badge (Ctrl K)
+	local KeyBadge = Instance.new("TextButton")
+	KeyBadge.Name = "KeyBadge"
+	KeyBadge.Parent = SearchFrame
+	KeyBadge.AnchorPoint = Vector2.new(1, 0.5)
+	KeyBadge.Position = UDim2.new(1, -6, 0.5, 0)
+	KeyBadge.Size = UDim2.new(0, 36, 0, 16)
+	KeyBadge.BackgroundColor3 = Theme.SurfaceActive
+	KeyBadge.BackgroundTransparency = 0.4
+	KeyBadge.BorderSizePixel = 0
+	KeyBadge.AutoButtonColor = false
+	KeyBadge.Text = ""
+	KeyBadge.ZIndex = 6
+
+	local KeyCorner = Instance.new("UICorner")
+	KeyCorner.CornerRadius = UDim.new(0, 4)
+	KeyCorner.Parent = KeyBadge
+
+	local KeyStroke = Instance.new("UIStroke")
+	KeyStroke.Color = Theme.BorderSoft
+	KeyStroke.Thickness = 0.8
+	KeyStroke.Transparency = 0.2
+	KeyStroke.Parent = KeyBadge
+
+	local KeyText = Instance.new("TextLabel")
+	KeyText.Name = "KeyText"
+	KeyText.Parent = KeyBadge
+	KeyText.BackgroundTransparency = 1
+	KeyText.Size = UDim2.new(1, 0, 1, 0)
+	KeyText.Font = Enum.Font.GothamBold
+	KeyText.Text = "Ctrl K"
+	KeyText.TextColor3 = Theme.TextMuted
+	KeyText.TextSize = 8.5
+	KeyText.TextXAlignment = Enum.TextXAlignment.Center
+	KeyText.ZIndex = 7
+
+	KeyBadge.MouseButton1Click:Connect(function()
+		pcall(function() SearchBox:CaptureFocus() end)
+	end)
 
 	SearchBox.Focused:Connect(function()
 		TweenService:Create(SearchStroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
-		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Theme.AccentGlow }):Play()
+		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+		TweenService:Create(KeyBadge, TweenInfoFast, { BackgroundTransparency = 0.8 }):Play()
+		TweenService:Create(KeyText, TweenInfoFast, { TextTransparency = 0.6 }):Play()
 	end)
 	SearchBox.FocusLost:Connect(function()
 		TweenService:Create(SearchStroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0 }):Play()
-		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+		TweenService:Create(SearchIcon, TweenInfoFast, { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+		TweenService:Create(KeyBadge, TweenInfoFast, { BackgroundTransparency = 0.4 }):Play()
+		TweenService:Create(KeyText, TweenInfoFast, { TextTransparency = 0 }):Play()
+	end)
+
+	local ctrlKConn
+	pcall(function()
+		ctrlKConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+			if gameProcessed then return end
+			if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.K then
+				local isCtrl = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)
+				if isCtrl then
+					task.defer(function()
+						if SearchBox and SearchBox.Parent then
+							pcall(function() SearchBox:CaptureFocus() end)
+						end
+					end)
+				end
+			end
+		end)
+		table.insert(onCloseCallbacks, function()
+			if ctrlKConn then
+				pcall(function() ctrlKConn:Disconnect() end)
+				ctrlKConn = nil
+			end
+		end)
 	end)
 
 	-- Tab List (ScrollingFrame)
@@ -959,7 +1276,7 @@ function Library:NewWindow(ConfigWindow)
 	TabList.BackgroundTransparency = 1
 	TabList.BorderSizePixel = 0
 	TabList.Position = UDim2.new(0, 0, 0, 46)
-	TabList.Size = UDim2.new(1, 0, 1, -90) -- Leaves 44px for Profile footer at bottom
+	TabList.Size = UDim2.new(1, 0, 1, -116) -- Leaves room for Search Frame (top) and Profile/Socials (bottom)
 	TabList.ScrollBarThickness = 2
 	TabList.ScrollBarImageColor3 = Theme.Border
 	TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -978,13 +1295,13 @@ function Library:NewWindow(ConfigWindow)
 
 	self:UpdateScrolling(TabList, TabListLayout)
 
-	-- Bottom User Profile (PinatHub Feature: Avatar Headshot + "Welcome, <username>")
+	-- Bottom User Profile & Community (PinatHub Feature: Avatar + Welcome + Discord & TikTok)
 	local ProfileFooter = Instance.new("Frame")
 	ProfileFooter.Name = "ProfileFooter"
 	ProfileFooter.Parent = Sidebar
 	ProfileFooter.AnchorPoint = Vector2.new(0, 1)
 	ProfileFooter.Position = UDim2.new(0, 0, 1, 0)
-	ProfileFooter.Size = UDim2.new(1, 0, 0, 44)
+	ProfileFooter.Size = UDim2.new(1, 0, 0, 68)
 	ProfileFooter.BackgroundColor3 = Theme.Sidebar
 	ProfileFooter.BackgroundTransparency = 0.1
 	ProfileFooter.BorderSizePixel = 0
@@ -1000,9 +1317,9 @@ function Library:NewWindow(ConfigWindow)
 	local AvatarImage = Instance.new("ImageLabel")
 	AvatarImage.Name = "Avatar"
 	AvatarImage.Parent = ProfileFooter
-	AvatarImage.AnchorPoint = Vector2.new(0, 0.5)
-	AvatarImage.Position = UDim2.new(0, 10, 0.5, 0)
-	AvatarImage.Size = UDim2.new(0, 26, 0, 26)
+	AvatarImage.AnchorPoint = Vector2.new(0, 0)
+	AvatarImage.Position = UDim2.new(0, 10, 0, 8)
+	AvatarImage.Size = UDim2.new(0, 22, 0, 22)
 	AvatarImage.BackgroundColor3 = Theme.Surface
 	AvatarImage.BorderSizePixel = 0
 	pcall(function()
@@ -1022,15 +1339,152 @@ function Library:NewWindow(ConfigWindow)
 	WelcomeText.Name = "Welcome"
 	WelcomeText.Parent = ProfileFooter
 	WelcomeText.BackgroundTransparency = 1
-	WelcomeText.Position = UDim2.new(0, 42, 0, 0)
-	WelcomeText.Size = UDim2.new(1, -48, 1, 0)
+	WelcomeText.Position = UDim2.new(0, 38, 0, 8)
+	WelcomeText.Size = UDim2.new(1, -48, 0, 22)
 	WelcomeText.Font = Enum.Font.GothamBold
 	local displayName = LocalPlayer and (LocalPlayer.DisplayName or LocalPlayer.Name) or "Player"
 	WelcomeText.Text = "Welcome, " .. displayName
 	WelcomeText.TextColor3 = Theme.TextSecondary
-	WelcomeText.TextSize = 11
+	WelcomeText.TextSize = 10.5
 	WelcomeText.TextTruncate = Enum.TextTruncate.AtEnd
 	WelcomeText.TextXAlignment = Enum.TextXAlignment.Left
+
+	-- Compact Social Links Container
+	local SocialLinks = Instance.new("Frame")
+	SocialLinks.Name = "SocialLinks"
+	SocialLinks.Parent = ProfileFooter
+	SocialLinks.BackgroundTransparency = 1
+	SocialLinks.Position = UDim2.new(0, 10, 0, 36)
+	SocialLinks.Size = UDim2.new(1, -20, 0, 24)
+
+	local SocialLayout = Instance.new("UIListLayout")
+	SocialLayout.Parent = SocialLinks
+	SocialLayout.FillDirection = Enum.FillDirection.Horizontal
+	SocialLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	SocialLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	SocialLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	SocialLayout.Padding = UDim.new(0, 6)
+
+	local function CopyText(str)
+		local fn = setclipboard or toclipboard or (Clipboard and Clipboard.set) or (syn and syn.write_clipboard)
+		if fn then pcall(fn, str) end
+	end
+
+	local function CreateSocialBtn(name, iconAsset, linkUrl, labelText, order, onAction)
+		local btn = Instance.new("TextButton")
+		btn.Name = name
+		btn.Parent = SocialLinks
+		btn.Size = UDim2.new(0.5, -3, 0, 22)
+		btn.BackgroundColor3 = Theme.Surface
+		btn.BackgroundTransparency = 0.5
+		btn.BorderSizePixel = 0
+		btn.AutoButtonColor = false
+		btn.Text = ""
+		btn.LayoutOrder = order
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 4)
+		corner.Parent = btn
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Theme.BorderSoft
+		stroke.Thickness = 0.8
+		stroke.Transparency = 0.4
+		stroke.Parent = btn
+
+		local btnLayout = Instance.new("UIListLayout")
+		btnLayout.Parent = btn
+		btnLayout.FillDirection = Enum.FillDirection.Horizontal
+		btnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+		btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		btnLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		btnLayout.Padding = UDim.new(0, 4)
+
+		local icon = Instance.new("ImageLabel")
+		icon.Name = "Icon"
+		icon.Parent = btn
+		icon.Size = UDim2.new(0, 14, 0, 14)
+		icon.BackgroundTransparency = 1
+		icon.ImageTransparency = 0
+		icon.Image = iconAsset
+		icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.ZIndex = 7
+		icon.Visible = true
+		icon.LayoutOrder = 1
+
+		local txt = Instance.new("TextLabel")
+		txt.Name = "Label"
+		txt.Parent = btn
+		txt.BackgroundTransparency = 1
+		txt.Size = UDim2.new(0, 0, 1, 0)
+		txt.AutomaticSize = Enum.AutomaticSize.X
+		txt.Font = Enum.Font.GothamBold
+		txt.Text = labelText
+		txt.TextColor3 = Theme.TextSecondary
+		txt.TextSize = 9
+		txt.ZIndex = 7
+		txt.LayoutOrder = 2
+
+		btn.MouseEnter:Connect(function()
+			TweenService:Create(btn, TweenInfoFast, { BackgroundTransparency = 0.2, BackgroundColor3 = Theme.SurfaceHover }):Play()
+			TweenService:Create(stroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
+			txt.TextColor3 = Theme.Text
+		end)
+		btn.MouseLeave:Connect(function()
+			TweenService:Create(btn, TweenInfoFast, { BackgroundTransparency = 0.5, BackgroundColor3 = Theme.Surface }):Play()
+			TweenService:Create(stroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0.4 }):Play()
+			txt.TextColor3 = Theme.TextSecondary
+		end)
+
+		btn.MouseButton1Click:Connect(function()
+			if onAction then
+				onAction()
+			else
+				CopyText(linkUrl)
+			end
+		end)
+
+		return btn
+	end
+
+	-- Discord Social Button (Asset ID: 18505728250, Invite: Y6Kjfu5XPN)
+	local discordInvite = (Config and Config.Discord) or "https://discord.gg/Y6Kjfu5XPN"
+	if not string.find(discordInvite, "Y6Kjfu5XPN") then
+		discordInvite = "https://discord.gg/Y6Kjfu5XPN"
+	end
+	CreateSocialBtn("DiscordBtn", "rbxassetid://18505728250", discordInvite, "Discord", 1, function()
+		CopyText(discordInvite)
+		pcall(function()
+			local req = (syn and syn.request) or (http and http.request) or request or http_request
+			if req then
+				req({
+					Url = "http://127.0.0.1:6463/rpc?v=1",
+					Method = "POST",
+					Headers = { ["Content-Type"] = "application/json", ["Origin"] = "https://discord.com" },
+					Body = HttpService:JSONEncode({ cmd = "INVITE_BROWSER", args = { code = "Y6Kjfu5XPN" }, nonce = HttpService:GenerateGUID(false) })
+				})
+			end
+		end)
+		Library:Notify({
+			Title = "Discord Invite",
+			Content = "Copied discord.gg/Y6Kjfu5XPN to clipboard!",
+			Type = "Info",
+			Duration = 3
+		})
+	end)
+
+	-- TikTok Social Button (Asset ID: 114030178331137, Username: @viunze)
+	local tiktokUrl = (Config and Config.TikTok) or "https://www.tiktok.com/@viunze"
+	CreateSocialBtn("TikTokBtn", "rbxassetid://114030178331137", tiktokUrl, "TikTok", 2, function()
+		CopyText(tiktokUrl)
+		Library:Notify({
+			Title = "TikTok Profile",
+			Content = "Copied tiktok.com/@viunze to clipboard!",
+			Type = "Info",
+			Duration = 3
+		})
+	end)
 
 	-- 8. Content Area
 	local Content = Instance.new("Frame")
@@ -1057,13 +1511,25 @@ function Library:NewWindow(ConfigWindow)
 	UIPageLayout.EasingDirection = Enum.EasingDirection.Out
 	UIPageLayout.TweenTime = 0.22
 
-	-- 9. Right Popout Drawer for Dropdown (PinatHub Screenshot 2 Style)
+	-- Fullscreen invisible backdrop for instant click-outside-to-close anywhere on UI
+	local PopoutBackdrop = Instance.new("TextButton")
+	PopoutBackdrop.Name = "PopoutBackdrop"
+	PopoutBackdrop.Parent = MainWindow
+	PopoutBackdrop.BackgroundTransparency = 1
+	PopoutBackdrop.Position = UDim2.new(0, 0, 0, 0)
+	PopoutBackdrop.Size = UDim2.fromScale(1, 1)
+	PopoutBackdrop.ZIndex = 28
+	PopoutBackdrop.Visible = false
+	PopoutBackdrop.Text = ""
+	PopoutBackdrop.AutoButtonColor = false
+
+	-- 9. Right Popout Drawer for Dropdown (PinatHub Slim 140px Style)
 	local PopoutDrawer = Instance.new("Frame")
 	PopoutDrawer.Name = "PopoutDrawer"
 	PopoutDrawer.Parent = MainWindow
 	PopoutDrawer.AnchorPoint = Vector2.new(1, 0)
 	PopoutDrawer.Position = UDim2.new(1, 0, 0, 46)
-	PopoutDrawer.Size = UDim2.new(0, 190, 1, -46)
+	PopoutDrawer.Size = UDim2.new(0, 140, 1, -46)
 	PopoutDrawer.BackgroundColor3 = Theme.Header
 	PopoutDrawer.BackgroundTransparency = 0.05
 	PopoutDrawer.BorderSizePixel = 0
@@ -1075,37 +1541,91 @@ function Library:NewWindow(ConfigWindow)
 	PopoutStroke.Thickness = 1.2
 	PopoutStroke.Parent = PopoutDrawer
 
+	local function ClosePopout()
+		PopoutDrawer.Visible = false
+		PopoutBackdrop.Visible = false
+	end
+	PopoutBackdrop.MouseButton1Click:Connect(ClosePopout)
+
+	-- Popout Header with Title & Close 'X' Button
+	local PopoutHeader = Instance.new("Frame")
+	PopoutHeader.Name = "PopoutHeader"
+	PopoutHeader.Parent = PopoutDrawer
+	PopoutHeader.BackgroundTransparency = 1
+	PopoutHeader.Position = UDim2.new(0, 6, 0, 6)
+	PopoutHeader.Size = UDim2.new(1, -12, 0, 20)
+
+	local PopoutTitle = Instance.new("TextLabel")
+	PopoutTitle.Name = "Title"
+	PopoutTitle.Parent = PopoutHeader
+	PopoutTitle.BackgroundTransparency = 1
+	PopoutTitle.Position = UDim2.new(0, 2, 0, 0)
+	PopoutTitle.Size = UDim2.new(1, -24, 1, 0)
+	PopoutTitle.Font = Enum.Font.GothamBold
+	PopoutTitle.Text = "Options"
+	PopoutTitle.TextColor3 = Theme.AccentGlow
+	PopoutTitle.TextSize = 10
+	PopoutTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+	local PopoutCloseBtn = Instance.new("ImageButton")
+	PopoutCloseBtn.Name = "Btn_PopoutClose"
+	PopoutCloseBtn.Parent = PopoutHeader
+	PopoutCloseBtn.AnchorPoint = Vector2.new(1, 0.5)
+	PopoutCloseBtn.Position = UDim2.new(1, 0, 0.5, 0)
+	PopoutCloseBtn.Size = UDim2.new(0, 16, 0, 16)
+	PopoutCloseBtn.BackgroundColor3 = Theme.Surface
+	PopoutCloseBtn.BackgroundTransparency = 0.5
+	PopoutCloseBtn.BorderSizePixel = 0
+	PopoutCloseBtn.Image = "rbxassetid://10747384394" -- Genuine Lucide X
+	PopoutCloseBtn.ImageColor3 = Theme.TextSecondary
+	PopoutCloseBtn.ScaleType = Enum.ScaleType.Fit
+	PopoutCloseBtn.AutoButtonColor = false
+
+	local PCB_Corner = Instance.new("UICorner")
+	PCB_Corner.CornerRadius = UDim.new(0, 4)
+	PCB_Corner.Parent = PopoutCloseBtn
+
+	PopoutCloseBtn.MouseEnter:Connect(function()
+		TweenService:Create(PopoutCloseBtn, TweenInfoFast, { BackgroundTransparency = 0, BackgroundColor3 = Theme.Danger }):Play()
+		TweenService:Create(PopoutCloseBtn, TweenInfoFast, { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+	end)
+	PopoutCloseBtn.MouseLeave:Connect(function()
+		TweenService:Create(PopoutCloseBtn, TweenInfoFast, { BackgroundTransparency = 0.5, BackgroundColor3 = Theme.Surface }):Play()
+		TweenService:Create(PopoutCloseBtn, TweenInfoFast, { ImageColor3 = Theme.TextSecondary }):Play()
+	end)
+	PopoutCloseBtn.MouseButton1Click:Connect(ClosePopout)
+
 	local PopoutSearchFrame = Instance.new("Frame")
 	PopoutSearchFrame.Name = "Search"
 	PopoutSearchFrame.Parent = PopoutDrawer
-	PopoutSearchFrame.Position = UDim2.new(0, 10, 0, 10)
-	PopoutSearchFrame.Size = UDim2.new(1, -20, 0, 28)
+	PopoutSearchFrame.Position = UDim2.new(0, 6, 0, 30)
+	PopoutSearchFrame.Size = UDim2.new(1, -12, 0, 22)
 	PopoutSearchFrame.BackgroundColor3 = Theme.Surface
 	PopoutSearchFrame.BorderSizePixel = 0
 
 	local PopoutSCorner = Instance.new("UICorner")
-	PopoutSCorner.CornerRadius = UDim.new(0, 6)
+	PopoutSCorner.CornerRadius = UDim.new(0, 5)
 	PopoutSCorner.Parent = PopoutSearchFrame
 
 	local PopoutSBox = Instance.new("TextBox")
 	PopoutSBox.Parent = PopoutSearchFrame
 	PopoutSBox.BackgroundTransparency = 1
-	PopoutSBox.Position = UDim2.new(0, 8, 0, 0)
-	PopoutSBox.Size = UDim2.new(1, -16, 1, 0)
+	PopoutSBox.Position = UDim2.new(0, 6, 0, 0)
+	PopoutSBox.Size = UDim2.new(1, -12, 1, 0)
 	PopoutSBox.Font = Enum.Font.Gotham
 	PopoutSBox.PlaceholderColor3 = Theme.TextMuted
 	PopoutSBox.PlaceholderText = "Search..."
 	PopoutSBox.Text = ""
 	PopoutSBox.TextColor3 = Theme.Text
-	PopoutSBox.TextSize = 11
+	PopoutSBox.TextSize = 10
 	PopoutSBox.TextXAlignment = Enum.TextXAlignment.Left
 
 	local PopoutScroll = Instance.new("ScrollingFrame")
 	PopoutScroll.Name = "Options"
 	PopoutScroll.Parent = PopoutDrawer
 	PopoutScroll.BackgroundTransparency = 1
-	PopoutScroll.Position = UDim2.new(0, 8, 0, 44)
-	PopoutScroll.Size = UDim2.new(1, -16, 1, -50)
+	PopoutScroll.Position = UDim2.new(0, 6, 0, 56)
+	PopoutScroll.Size = UDim2.new(1, -12, 1, -62)
 	PopoutScroll.ScrollBarThickness = 2
 	PopoutScroll.ScrollBarImageColor3 = Theme.Border
 	PopoutScroll.BorderSizePixel = 0
@@ -1113,9 +1633,64 @@ function Library:NewWindow(ConfigWindow)
 	local PopoutLayout = Instance.new("UIListLayout")
 	PopoutLayout.Parent = PopoutScroll
 	PopoutLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	PopoutLayout.Padding = UDim.new(0, 4)
+	PopoutLayout.Padding = UDim.new(0, 2)
 
 	self:UpdateScrolling(PopoutScroll, PopoutLayout)
+
+	-- Close Popout Drawer when user clicks anywhere on screen outside of it
+	UserInputService.InputBegan:Connect(function(input)
+		if not PopoutDrawer.Visible then return end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			local mPos = input.Position
+			local dPos = PopoutDrawer.AbsolutePosition
+			local dSize = PopoutDrawer.AbsoluteSize
+			local inside = (mPos.X >= dPos.X and mPos.X <= (dPos.X + dSize.X)) and (mPos.Y >= dPos.Y and mPos.Y <= (dPos.Y + dSize.Y))
+			if not inside then
+				task.defer(ClosePopout)
+			end
+		end
+	end)
+
+	-- Collapse all open paragraph panels when user clicks outside any of them
+	-- (multi-select: they individually stay open until click-outside or X)
+	UserInputService.InputBegan:Connect(function(input)
+		if #Library._ActiveParaFrames == 0 then return end
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then return end
+		local mPos = input.Position
+		local toCollapse = {}
+		for _, frame in ipairs(Library._ActiveParaFrames) do
+			if frame and frame.Parent then
+				local fPos = frame.AbsolutePosition
+				local fSize = frame.AbsoluteSize
+				local inside = (mPos.X >= fPos.X and mPos.X <= (fPos.X + fSize.X))
+					and (mPos.Y >= fPos.Y and mPos.Y <= (fPos.Y + fSize.Y))
+				if not inside then
+					table.insert(toCollapse, frame)
+				end
+			end
+		end
+		if #toCollapse > 0 then
+			task.defer(function()
+				for _, frame in ipairs(toCollapse) do
+					-- Find the HeaderBtn child and simulate collapse via UIStroke + size tween
+					local COLLAPSED_H = 26
+					local stroke = frame:FindFirstChildOfClass("UIStroke")
+					local chevron = frame:FindFirstChild("Chevron")
+					local title = frame:FindFirstChild("Title")
+					local divider = frame:FindFirstChild("Divider")
+					if divider then divider.Visible = false end
+					TweenService:Create(frame, TweenInfoSmooth, { Size = UDim2.new(1, 0, 0, COLLAPSED_H) }):Play()
+					if stroke then TweenService:Create(stroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0.45 }):Play() end
+					if chevron then TweenService:Create(chevron, TweenInfoFast, { Rotation = 0, ImageColor3 = Theme.TextMuted }):Play() end
+					if title then TweenService:Create(title, TweenInfoFast, { TextColor3 = Theme.NeonWhite }):Play() end
+					-- Remove from active list
+					for i, v in ipairs(Library._ActiveParaFrames) do
+						if v == frame then table.remove(Library._ActiveParaFrames, i) break end
+					end
+				end
+			end)
+		end
+	end)
 
 	-- 10. Tab System & Tab Creation Implementation
 	local TabCount = 0
@@ -1203,32 +1778,6 @@ function Library:NewWindow(ConfigWindow)
 			icon = tabIcon
 			descText = tabDesc or title
 		end
-		local function ResolveIcon(iconInput, fallbackTitle)
-			if type(iconInput) == "string" then
-				local trimmed = string.match(iconInput, "^%s*(.-)%s*$") or iconInput
-				if string.sub(trimmed, 1, 13) == "rbxassetid://" or string.sub(trimmed, 1, 10) == "rbxasset://" or string.sub(trimmed, 1, 4) == "http" then
-					return trimmed
-				end
-				if TabIcons[trimmed] then
-					return TabIcons[trimmed]
-				end
-				local lowerName = string.lower(trimmed)
-				if TabIcons[lowerName] then
-					return TabIcons[lowerName]
-				end
-			end
-			if fallbackTitle then
-				if TabIcons[fallbackTitle] then
-					return TabIcons[fallbackTitle]
-				end
-				local lowerTitle = string.lower(fallbackTitle)
-				if TabIcons[lowerTitle] then
-					return TabIcons[lowerTitle]
-				end
-			end
-			return PINATHUB_LOGO
-		end
-
 		icon = ResolveIcon(icon, title)
 		descText = descText or title
 
@@ -1306,7 +1855,88 @@ function Library:NewWindow(ConfigWindow)
 		local PageListLayout = Instance.new("UIListLayout")
 		PageListLayout.Parent = Page
 		PageListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		PageListLayout.Padding = UDim.new(0, 10)
+		PageListLayout.Padding = UDim.new(0, 8)
+
+		local sectionOrder = 0
+		local sectionGapLines = {}
+		local sectionNeonConn
+
+		local function AddSectionGapLine()
+			if Config.NeonGapLines == false then return end
+			local gapLine = Instance.new("Frame")
+			gapLine.Name = "SectionNeonGapLine"
+			gapLine.BackgroundTransparency = 1
+			gapLine.BorderSizePixel = 0
+			gapLine.Size = UDim2.new(1, -18, 0, 3)
+			gapLine.Position = UDim2.new(0, 9, 0, 0)
+			gapLine.LayoutOrder = sectionOrder * 2 - 1
+			gapLine.ZIndex = 3
+			gapLine.Parent = Page
+
+			local gapGradient = Instance.new("UIGradient")
+			gapGradient.Name = "MovingNeonTrace"
+			gapGradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(168, 85, 247)),
+				ColorSequenceKeypoint.new(0.16, Color3.fromRGB(168, 85, 247)),
+				ColorSequenceKeypoint.new(0.22, Color3.fromRGB(205, 125, 255)),
+				ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 245, 255)),
+				ColorSequenceKeypoint.new(0.28, Color3.fromRGB(205, 125, 255)),
+				ColorSequenceKeypoint.new(0.34, Color3.fromRGB(168, 85, 247)),
+				ColorSequenceKeypoint.new(0.47, Color3.fromRGB(168, 85, 247)),
+				ColorSequenceKeypoint.new(0.53, Color3.fromRGB(205, 125, 255)),
+				ColorSequenceKeypoint.new(0.56, Color3.fromRGB(255, 245, 255)),
+				ColorSequenceKeypoint.new(0.59, Color3.fromRGB(205, 125, 255)),
+				ColorSequenceKeypoint.new(0.66, Color3.fromRGB(168, 85, 247)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(168, 85, 247)),
+			})
+			gapGradient.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.16, 1),
+				NumberSequenceKeypoint.new(0.22, 0.35),
+				NumberSequenceKeypoint.new(0.25, 0),
+				NumberSequenceKeypoint.new(0.28, 0.35),
+				NumberSequenceKeypoint.new(0.34, 1),
+				NumberSequenceKeypoint.new(0.47, 1),
+				NumberSequenceKeypoint.new(0.53, 0.35),
+				NumberSequenceKeypoint.new(0.56, 0),
+				NumberSequenceKeypoint.new(0.59, 0.35),
+				NumberSequenceKeypoint.new(0.66, 1),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			gapGradient.Parent = gapLine
+			table.insert(sectionGapLines, gapGradient)
+			return gapLine
+		end
+
+		Page.ChildAdded:Connect(function(child)
+			if not child:IsA("GuiObject") or child.Name == "SectionNeonGapLine" or child.Name == "SubNavContainer" then return end
+			sectionOrder += 1
+			child.LayoutOrder = sectionOrder * 2
+			if sectionOrder > 1 and Config.NeonGapLines ~= false then
+				local gap = AddSectionGapLine()
+				if gap then
+					child:GetPropertyChangedSignal("Visible"):Connect(function()
+						gap.Visible = child.Visible
+					end)
+				end
+			end
+		end)
+
+		sectionNeonConn = RunService.RenderStepped:Connect(function(dt)
+			if not Page.Parent then
+				sectionNeonConn:Disconnect()
+				return
+			end
+			for index = #sectionGapLines, 1, -1 do
+				local gradient = sectionGapLines[index]
+				if gradient.Parent then
+					local sweep = (os.clock() * 1.05) % 2 - 1
+					gradient.Offset = Vector2.new(sweep, 0)
+				else
+					table.remove(sectionGapLines, index)
+				end
+			end
+		end)
 
 		Library:UpdateScrolling(Page, PageListLayout)
 
@@ -1323,6 +1953,9 @@ function Library:NewWindow(ConfigWindow)
 		local function SelectThisTab()
 			ActiveTabIndex = currentOrder + 1
 			UIPageLayout:JumpToIndex(currentOrder)
+			if PopoutDrawer then
+				PopoutDrawer.Visible = false
+			end
 
 			for _, t in ipairs(TabsCollection) do
 				local isActive = (t.Order == currentOrder)
@@ -1444,9 +2077,28 @@ function Library:NewWindow(ConfigWindow)
 			local ControlsLayout = Instance.new("UIListLayout")
 			ControlsLayout.Parent = ControlsContainer
 			ControlsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-			ControlsLayout.Padding = UDim.new(0, 5)
+			ControlsLayout.Padding = UDim.new(0, 4)
 
-			local isCollapsed = false
+			local defaultOpen = true
+			if type(sectionNameOrConfig) == "table" then
+				if sectionNameOrConfig.Opened ~= nil then
+					defaultOpen = (sectionNameOrConfig.Opened == true)
+				elseif sectionNameOrConfig.DefaultOpen ~= nil then
+					defaultOpen = (sectionNameOrConfig.DefaultOpen == true)
+				elseif sectionNameOrConfig.Collapsed ~= nil then
+					defaultOpen = not (sectionNameOrConfig.Collapsed == true)
+				end
+			end
+
+			local isCollapsed = not defaultOpen
+			if isCollapsed then
+				Chevron.Rotation = 0
+				SectionCard.Size = UDim2.new(1, 0, 0, 34)
+			else
+				Chevron.Rotation = 90
+				SectionCard.Size = UDim2.new(1, 0, 0, 36)
+			end
+
 			local function UpdateSectionSize()
 				if not isCollapsed then
 					SectionCard.Size = UDim2.new(1, 0, 0, ControlsLayout.AbsoluteContentSize.Y + 44)
@@ -1454,16 +2106,47 @@ function Library:NewWindow(ConfigWindow)
 			end
 			ControlsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateSectionSize)
 
-			-- Collapsible toggle
-			SecHeader.MouseButton1Click:Connect(function()
-				isCollapsed = not isCollapsed
-				if isCollapsed then
+			-- -----------------------------------------------------------------------------
+			-- 12. SECTION CONTROLS (PinatHub MODERN DESIGN)
+			-- -----------------------------------------------------------------------------
+			local SecObj = {}
+			SecObj.Frame = SectionCard
+			SecObj.Card = SectionCard
+			SecObj.Header = SecHeader
+			SecObj.Controls = ControlsContainer
+			SecObj.ControlsLayout = ControlsLayout
+
+			function SecObj:Collapse()
+				if not isCollapsed then
+					isCollapsed = true
 					TweenService:Create(Chevron, TweenInfoFast, { Rotation = 0 }):Play()
 					TweenService:Create(SectionCard, TweenInfoFast, { Size = UDim2.new(1, 0, 0, 34) }):Play()
-				else
+				end
+			end
+
+			function SecObj:Expand()
+				if isCollapsed then
+					isCollapsed = false
 					TweenService:Create(Chevron, TweenInfoFast, { Rotation = 90 }):Play()
 					TweenService:Create(SectionCard, TweenInfoFast, { Size = UDim2.new(1, 0, 0, ControlsLayout.AbsoluteContentSize.Y + 44) }):Play()
 				end
+			end
+
+			function SecObj:ToggleCollapse()
+				if isCollapsed then
+					self:Expand()
+				else
+					self:Collapse()
+				end
+			end
+
+			function SecObj:SetVisible(state)
+				SectionCard.Visible = state
+			end
+
+			-- Collapsible toggle
+			SecHeader.MouseButton1Click:Connect(function()
+				SecObj:ToggleCollapse()
 			end)
 
 			local secData = {
@@ -1472,11 +2155,6 @@ function Library:NewWindow(ConfigWindow)
 				Elements = {}
 			}
 			table.insert(tabData.Sections, secData)
-
-			-- -----------------------------------------------------------------------------
-			-- 12. SECTION CONTROLS (PinatHub MODERN DESIGN)
-			-- -----------------------------------------------------------------------------
-			local SecObj = {}
 
 			-- 12.1 TOGGLE SWITCH (PinatHub Style: Optional Inline Keybind [None] + Elastic Switch)
 			function SecObj:AddToggle(toggleConfig)
@@ -1678,6 +2356,9 @@ function Library:NewWindow(ConfigWindow)
 				end)
 
 				if cfg.Default then AnimateToggle(true) end
+				Library._ControlSetters[cfg.Title] = function(value)
+					ToggleState:Set(value)
+				end
 				table.insert(secData.Elements, { Title = cfg.Title, Frame = ItemFrame })
 				return ToggleState
 			end
@@ -1746,8 +2427,12 @@ function Library:NewWindow(ConfigWindow)
 				ActionIcon.Position = UDim2.new(1, -10, 0.5, 0)
 				ActionIcon.Size = UDim2.new(0, 15, 0, 15)
 				ActionIcon.BackgroundTransparency = 1
-				ActionIcon.Image = cfg.Icon or TabIcons.Cursor
-				ActionIcon.ImageColor3 = Theme.TextMuted
+				local btnIcon = TabIcons.Cursor
+				if cfg.Icon and cfg.Icon ~= "" then
+					btnIcon = ResolveIcon(cfg.Icon) or TabIcons.Cursor
+				end
+				ActionIcon.Image = btnIcon
+				ActionIcon.ImageColor3 = Theme.TextSecondary
 				ActionIcon.ScaleType = Enum.ScaleType.Fit
 
 				BtnFrame.MouseEnter:Connect(function()
@@ -1759,7 +2444,7 @@ function Library:NewWindow(ConfigWindow)
 				BtnFrame.MouseLeave:Connect(function()
 					TweenService:Create(BtnFrame, TweenInfoFast, { BackgroundTransparency = 0.55 }):Play()
 					TweenService:Create(BtnStroke, TweenInfoFast, { Color = Theme.BorderSoft }):Play()
-					TweenService:Create(ActionIcon, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+					TweenService:Create(ActionIcon, TweenInfoFast, { ImageColor3 = Theme.TextSecondary }):Play()
 				end)
 
 				BtnFrame.MouseButton1Click:Connect(function()
@@ -1775,74 +2460,220 @@ function Library:NewWindow(ConfigWindow)
 				return BtnFrame
 			end
 
-			-- 12.3 RICH PARAGRAPH (PinatHub Screenshot 3: Multi-line description card)
+			-- 12.3 RICH PARAGRAPH — Multi-select collapsible cards
+			-- Each paragraph starts collapsed (header-only). Clicking the header toggles expand/collapse
+			-- independently (multi-select: multiple can be open at once). Clicking anywhere outside
+			-- all open paragraph panels collapses them all. The X button hides the card entirely.
 			function SecObj:AddParagraph(paraConfig)
 				local cfg = Library:MakeConfig({
 					Title = "Information",
-					Content = ""
+					Content = "",
+					DefaultOpen = false
 				}, paraConfig or {})
 
 				if cfg.Desc and cfg.Content == "" then cfg.Content = cfg.Desc end
 				if cfg.Description and cfg.Content == "" then cfg.Content = cfg.Description end
 
+				-- Heights
+				local COLLAPSED_H = 26
+				local _isExpanded = cfg.DefaultOpen and true or false
+				local _computedExpandedH = COLLAPSED_H -- updated by ResizePara
+
+				-- Outer frame (clips children for smooth slide)
 				local ItemFrame = Instance.new("Frame")
 				ItemFrame.Name = "Para_" .. cfg.Title
 				ItemFrame.Parent = ControlsContainer
 				ItemFrame.BackgroundColor3 = Theme.SurfaceHover
-				ItemFrame.BackgroundTransparency = 0.65
+				ItemFrame.BackgroundTransparency = 0.6
 				ItemFrame.BorderSizePixel = 0
-				ItemFrame.Size = UDim2.new(1, 0, 0, 50)
+				ItemFrame.Size = UDim2.new(1, 0, 0, COLLAPSED_H)
 				ItemFrame.ClipsDescendants = true
 
 				local ItemCorner = Instance.new("UICorner")
-				ItemCorner.CornerRadius = UDim.new(0, 8)
+				ItemCorner.CornerRadius = UDim.new(0, 7)
 				ItemCorner.Parent = ItemFrame
 
 				local ItemStroke = Instance.new("UIStroke")
 				ItemStroke.Color = Theme.BorderSoft
 				ItemStroke.Thickness = 1
-				ItemStroke.Transparency = 0.5
+				ItemStroke.Transparency = 0.45
 				ItemStroke.Parent = ItemFrame
+
+				-- ── Header row (clickable to toggle) ──────────────────────────────────
+				local HeaderBtn = Instance.new("TextButton")
+				HeaderBtn.Name = "ParaHeader"
+				HeaderBtn.Parent = ItemFrame
+				HeaderBtn.BackgroundTransparency = 1
+				HeaderBtn.Position = UDim2.new(0, 0, 0, 0)
+				HeaderBtn.Size = UDim2.new(1, 0, 0, COLLAPSED_H)
+				HeaderBtn.Text = ""
+				HeaderBtn.AutoButtonColor = false
+				HeaderBtn.ZIndex = 3
+
+				-- Chevron icon (right-pointing when collapsed, down when expanded)
+				local ChevronIcon = Instance.new("ImageLabel")
+				ChevronIcon.Name = "Chevron"
+				ChevronIcon.Parent = ItemFrame
+				ChevronIcon.AnchorPoint = Vector2.new(0, 0.5)
+				ChevronIcon.Position = UDim2.new(0, 8, 0, COLLAPSED_H / 2)
+				ChevronIcon.Size = UDim2.new(0, 10, 0, 10)
+				ChevronIcon.BackgroundTransparency = 1
+				ChevronIcon.Image = TabIcons.ChevronRight -- right = collapsed
+				ChevronIcon.ImageColor3 = Theme.TextMuted
+				ChevronIcon.ScaleType = Enum.ScaleType.Fit
+				ChevronIcon.ZIndex = 2
 
 				local TitleLabel = Instance.new("TextLabel")
 				TitleLabel.Name = "Title"
 				TitleLabel.Parent = ItemFrame
 				TitleLabel.BackgroundTransparency = 1
-				TitleLabel.Position = UDim2.new(0, 12, 0, 8)
-				TitleLabel.Size = UDim2.new(1, -24, 0, 16)
+				TitleLabel.Position = UDim2.new(0, 22, 0, 0)
+				TitleLabel.Size = UDim2.new(1, -52, 0, COLLAPSED_H)
 				TitleLabel.Font = Enum.Font.GothamBold
 				TitleLabel.Text = cfg.Title
 				TitleLabel.TextColor3 = Theme.NeonWhite
-				TitleLabel.TextSize = 12
+				TitleLabel.TextSize = 11
 				TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-				TitleLabel.RichText = true  -- RichText enabled
+				TitleLabel.TextYAlignment = Enum.TextYAlignment.Center
+				TitleLabel.RichText = true
+				TitleLabel.ZIndex = 2
 
+				-- X close button (hides the card entirely)
+				local ParaCloseBtn = Instance.new("ImageButton")
+				ParaCloseBtn.Name = "Btn_ClosePara"
+				ParaCloseBtn.Parent = ItemFrame
+				ParaCloseBtn.AnchorPoint = Vector2.new(1, 0.5)
+				ParaCloseBtn.Position = UDim2.new(1, -7, 0, COLLAPSED_H / 2)
+				ParaCloseBtn.Size = UDim2.new(0, 13, 0, 13)
+				ParaCloseBtn.BackgroundTransparency = 1
+				ParaCloseBtn.Image = "rbxassetid://10747384394"
+				ParaCloseBtn.ImageColor3 = Theme.TextMuted
+				ParaCloseBtn.ScaleType = Enum.ScaleType.Fit
+				ParaCloseBtn.AutoButtonColor = false
+				ParaCloseBtn.ZIndex = 4
+
+				ParaCloseBtn.MouseEnter:Connect(function()
+					TweenService:Create(ParaCloseBtn, TweenInfoFast, { ImageColor3 = Theme.Danger }):Play()
+				end)
+				ParaCloseBtn.MouseLeave:Connect(function()
+					TweenService:Create(ParaCloseBtn, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+				end)
+
+				-- ── Content label ─────────────────────────────────────────────────────
 				local ContentLabel = Instance.new("TextLabel")
 				ContentLabel.Name = "Content"
 				ContentLabel.Parent = ItemFrame
 				ContentLabel.BackgroundTransparency = 1
-				ContentLabel.Position = UDim2.new(0, 12, 0, 26)
-				ContentLabel.Size = UDim2.new(1, -24, 0, 20)
+				ContentLabel.Position = UDim2.new(0, 10, 0, COLLAPSED_H + 2)
+				ContentLabel.Size = UDim2.new(1, -20, 0, 18)
 				ContentLabel.Font = Enum.Font.Gotham
 				ContentLabel.Text = cfg.Content
 				ContentLabel.TextColor3 = Theme.TextSecondary
-				ContentLabel.TextSize = 11
+				ContentLabel.TextSize = 10
 				ContentLabel.TextWrapped = true
 				ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
 				ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
-				ContentLabel.RichText = true  -- RichText enabled for tags
+				ContentLabel.RichText = true
+				ContentLabel.ZIndex = 2
 
+				-- Divider line between header and content
+				local ParaDivider = Instance.new("Frame")
+				ParaDivider.Name = "Divider"
+				ParaDivider.Parent = ItemFrame
+				ParaDivider.BackgroundColor3 = Theme.BorderSoft
+				ParaDivider.BorderSizePixel = 0
+				ParaDivider.Position = UDim2.new(0, 8, 0, COLLAPSED_H - 1)
+				ParaDivider.Size = UDim2.new(1, -16, 0, 1)
+				ParaDivider.BackgroundTransparency = 0.6
+				ParaDivider.Visible = false
+				ParaDivider.ZIndex = 2
+
+				-- ── Resize helper ─────────────────────────────────────────────────────
 				local function ResizePara()
-					ContentLabel.Size = UDim2.new(1, -24, 0, 1000)
-					local textHeight = ContentLabel.TextBounds.Y
-					ContentLabel.Size = UDim2.new(1, -24, 0, textHeight)
-					ItemFrame.Size = UDim2.new(1, 0, 0, textHeight + 36)
+					ContentLabel.Size = UDim2.new(1, -20, 0, 1000)
+					local textH = ContentLabel.TextBounds.Y
+					textH = math.max(textH, 14)
+					ContentLabel.Size = UDim2.new(1, -20, 0, textH)
+					_computedExpandedH = COLLAPSED_H + 6 + textH + 8
+					if _isExpanded then
+						ItemFrame.Size = UDim2.new(1, 0, 0, _computedExpandedH)
+					end
 				end
 
-				ContentLabel:GetPropertyChangedSignal("TextBounds"):Connect(ResizePara)
-				task.defer(ResizePara)
+				-- ── Expand / Collapse logic ───────────────────────────────────────────
+				local function ExpandPara()
+					_isExpanded = true
+					ParaDivider.Visible = true
+					TweenService:Create(ItemFrame, TweenInfoSmooth, { Size = UDim2.new(1, 0, 0, _computedExpandedH) }):Play()
+					TweenService:Create(ItemStroke, TweenInfoFast, { Color = Theme.BorderAccent, Transparency = 0.2 }):Play()
+					TweenService:Create(ChevronIcon, TweenInfoFast, { Rotation = 90, ImageColor3 = Theme.AccentGlow }):Play()
+					TweenService:Create(TitleLabel, TweenInfoFast, { TextColor3 = Theme.AccentGlow }):Play()
+					-- Register in global active list
+					local found = false
+					for _, v in ipairs(Library._ActiveParaFrames) do
+						if v == ItemFrame then found = true break end
+					end
+					if not found then
+						table.insert(Library._ActiveParaFrames, ItemFrame)
+					end
+				end
 
+				local function CollapsePara()
+					_isExpanded = false
+					ParaDivider.Visible = false
+					TweenService:Create(ItemFrame, TweenInfoSmooth, { Size = UDim2.new(1, 0, 0, COLLAPSED_H) }):Play()
+					TweenService:Create(ItemStroke, TweenInfoFast, { Color = Theme.BorderSoft, Transparency = 0.45 }):Play()
+					TweenService:Create(ChevronIcon, TweenInfoFast, { Rotation = 0, ImageColor3 = Theme.TextMuted }):Play()
+					TweenService:Create(TitleLabel, TweenInfoFast, { TextColor3 = Theme.NeonWhite }):Play()
+					-- Unregister from global active list
+					for i, v in ipairs(Library._ActiveParaFrames) do
+						if v == ItemFrame then table.remove(Library._ActiveParaFrames, i) break end
+					end
+				end
+
+				-- Header click: toggle this paragraph (multi-select: others stay open)
+				HeaderBtn.MouseButton1Click:Connect(function()
+					if _isExpanded then
+						CollapsePara()
+					else
+						ExpandPara()
+					end
+				end)
+
+				-- X button: hide the card entirely (does not track in active list after this)
+				ParaCloseBtn.MouseButton1Click:Connect(function()
+					CollapsePara()
+					local t = TweenService:Create(ItemFrame, TweenInfoFast, { BackgroundTransparency = 1 })
+					t:Play()
+					t.Completed:Connect(function()
+						ItemFrame.Visible = false
+						ItemFrame.BackgroundTransparency = 0.6
+					end)
+				end)
+
+				-- Hover glow on header
+				HeaderBtn.MouseEnter:Connect(function()
+					if not _isExpanded then
+						TweenService:Create(ItemFrame, TweenInfoFast, { BackgroundTransparency = 0.5 }):Play()
+					end
+				end)
+				HeaderBtn.MouseLeave:Connect(function()
+					if not _isExpanded then
+						TweenService:Create(ItemFrame, TweenInfoFast, { BackgroundTransparency = 0.6 }):Play()
+					end
+				end)
+
+				ContentLabel:GetPropertyChangedSignal("TextBounds"):Connect(ResizePara)
+				task.defer(function()
+					ResizePara()
+					if cfg.DefaultOpen then
+						ExpandPara()
+					end
+				end)
+
+				-- ── ParaObj API ───────────────────────────────────────────────────────
 				local ParaObj = {}
+				ParaObj.Frame = ItemFrame
 				function ParaObj:SetTitle(newTitle)
 					TitleLabel.Text = tostring(newTitle)
 				end
@@ -1862,6 +2693,23 @@ function Library:NewWindow(ConfigWindow)
 						ContentLabel.Text = tostring(arg1)
 					end
 					ResizePara()
+				end
+				function ParaObj:Expand()
+					ItemFrame.Visible = true
+					ExpandPara()
+				end
+				function ParaObj:Collapse()
+					CollapsePara()
+				end
+				function ParaObj:Open()
+					ItemFrame.Visible = true
+					ExpandPara()
+				end
+				function ParaObj:Close()
+					ItemFrame.Visible = false
+				end
+				function ParaObj:Toggle()
+					if _isExpanded then CollapsePara() else ExpandPara() end
 				end
 
 				table.insert(secData.Elements, { Title = cfg.Title, Frame = ItemFrame })
@@ -2116,6 +2964,9 @@ function Library:NewWindow(ConfigWindow)
 				function SubObj:Get()
 					return state
 				end
+				Library._ControlSetters[cfg.Title] = function(value)
+					SubObj:Set(value)
+				end
 
 				table.insert(secData.Elements, { Title = cfg.Title, Frame = ItemFrame })
 				return SubObj
@@ -2164,6 +3015,32 @@ function Library:NewWindow(ConfigWindow)
 				TitleLabel.TextSize = 12
 				TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+				local tsDecimals = (function()
+					local function countDec(val)
+						if not val then return 0 end
+						local s = tostring(val)
+						local dot = s:find("%.")
+						return dot and (#s - dot) or 0
+					end
+					if type(cfg.Decimals) == "number" and cfg.Decimals >= 0 then return math.min(math.floor(cfg.Decimals), 6) end
+					local incDec = countDec(cfg.Increment)
+					if incDec > 0 then return math.min(incDec, 6) end
+					local minDec = countDec(cfg.Min)
+					local defDec = countDec(cfg.DefaultSlider)
+					local maxDec = math.max(minDec, defDec)
+					if maxDec > 0 then return math.min(maxDec, 6) end
+					return 0
+				end)()
+
+				local function FormatTSValue(val)
+					val = tonumber(val) or 0
+					if tsDecimals > 0 then
+						return string.format("%." .. tsDecimals .. "f", val)
+					else
+						return tostring(math.floor(val + 0.5))
+					end
+				end
+
 				local ValLabel = Instance.new("TextLabel")
 				ValLabel.Name = "Value"
 				ValLabel.Parent = ItemFrame
@@ -2172,7 +3049,7 @@ function Library:NewWindow(ConfigWindow)
 				ValLabel.Size = UDim2.new(0, 50, 0, 16)
 				ValLabel.BackgroundTransparency = 1
 				ValLabel.Font = Enum.Font.Gotham
-				ValLabel.Text = tostring(cfg.DefaultSlider) .. cfg.Suffix
+				ValLabel.Text = FormatTSValue(cfg.DefaultSlider or cfg.Min) .. cfg.Suffix
 				ValLabel.TextColor3 = Theme.TextSecondary
 				ValLabel.TextSize = 11
 				ValLabel.TextXAlignment = Enum.TextXAlignment.Right
@@ -2245,10 +3122,22 @@ function Library:NewWindow(ConfigWindow)
 				end
 
 				local function UpdateS(val)
+					val = tonumber(val) or cfg.Min
+					if cfg.Increment and cfg.Increment > 0 then
+						local steps = math.floor((val - cfg.Min) / cfg.Increment + 0.5)
+						val = cfg.Min + (steps * cfg.Increment)
+						if tsDecimals > 0 then
+							local mult = 10 ^ tsDecimals
+							local rounded = math.floor(val * mult + 0.5) / mult
+							val = tonumber(string.format("%." .. tsDecimals .. "f", rounded)) or rounded
+						else
+							val = math.floor(val + 0.5)
+						end
+					end
 					sVal = math.clamp(val, cfg.Min, cfg.Max)
 					local pct = (sVal - cfg.Min) / math.max(cfg.Max - cfg.Min, 1)
 					Fill.Size = UDim2.new(pct, 0, 1, 0)
-					ValLabel.Text = tostring(math.floor(sVal)) .. cfg.Suffix
+					ValLabel.Text = FormatTSValue(sVal) .. cfg.Suffix
 				end
 
 				UpdateT(true)
@@ -2294,6 +3183,9 @@ function Library:NewWindow(ConfigWindow)
 				end
 				function TSObj:Get()
 					return tState, sVal
+				end
+				Library._ControlSetters[cfg.Title] = function(value)
+					TSObj:SetToggle(value)
 				end
 
 				table.insert(secData.Elements, { Title = cfg.Title, Frame = ItemFrame })
@@ -2429,6 +3321,51 @@ function Library:NewWindow(ConfigWindow)
 
 				if cfg.Desc and cfg.Description == "" then cfg.Description = cfg.Desc end
 
+				local function GetDecimals(inc, dec, minVal, defVal)
+					if type(dec) == "number" and dec >= 0 then return math.min(math.floor(dec), 6) end
+					local function countDec(val)
+						if not val then return 0 end
+						local s = tostring(val)
+						local dot = s:find("%.")
+						return dot and (#s - dot) or 0
+					end
+					local incDec = countDec(inc)
+					if incDec > 0 then return math.min(incDec, 6) end
+					local minDec = countDec(minVal)
+					local defDec = countDec(defVal)
+					local maxDec = math.max(minDec, defDec)
+					if maxDec > 0 then return math.min(maxDec, 6) end
+					return 0
+				end
+
+				local decimals = GetDecimals(cfg.Increment, cfg.Decimals or cfg.Precision or cfg.Rounding, cfg.Min, cfg.Default)
+
+				local function Round(num, inc, dec)
+					local incVal = tonumber(inc)
+					num = tonumber(num) or 0
+					if not incVal or incVal <= 0 then incVal = 1 end
+					local steps = math.floor((num - cfg.Min) / incVal + 0.5)
+					local raw = cfg.Min + (steps * incVal)
+					local d = (type(dec) == "number") and dec or decimals
+					if d > 0 then
+						local mult = 10 ^ d
+						local rounded = math.floor(raw * mult + 0.5) / mult
+						return tonumber(string.format("%." .. d .. "f", rounded)) or rounded
+					else
+						return math.floor(raw + 0.5)
+					end
+				end
+
+				local function FormatValue(val, inc, dec)
+					val = tonumber(val) or 0
+					local d = (type(dec) == "number") and dec or decimals
+					if d > 0 then
+						return string.format("%." .. d .. "f", val)
+					else
+						return tostring(math.floor(val + 0.5))
+					end
+				end
+
 				local ItemFrame = Instance.new("Frame")
 				ItemFrame.Name = "Slider_" .. cfg.Title
 				ItemFrame.Parent = ControlsContainer
@@ -2467,7 +3404,7 @@ function Library:NewWindow(ConfigWindow)
 				ValueInput.Size = UDim2.new(0, 50, 0, 16)
 				ValueInput.BackgroundTransparency = 1
 				ValueInput.Font = Enum.Font.GothamBold
-				ValueInput.Text = tostring(cfg.Default)
+				ValueInput.Text = FormatValue(cfg.Default, cfg.Increment, decimals)
 				ValueInput.TextColor3 = Theme.AccentGlow
 				ValueInput.TextSize = 11
 				ValueInput.TextXAlignment = Enum.TextXAlignment.Right
@@ -2511,15 +3448,11 @@ function Library:NewWindow(ConfigWindow)
 				local SliderState = { Value = cfg.Default }
 				local dragging = false
 
-				local function Round(num, inc)
-					return math.floor(num / inc + 0.5) * inc
-				end
-
 				function SliderState:Set(value)
-					value = math.clamp(Round(value, cfg.Increment), cfg.Min, cfg.Max)
+					value = math.clamp(Round(value, cfg.Increment, decimals), cfg.Min, cfg.Max)
 					self.Value = value
-					ValueInput.Text = tostring(value)
-					local scale = (value - cfg.Min) / (cfg.Max - cfg.Min)
+					ValueInput.Text = FormatValue(value, cfg.Increment, decimals)
+					local scale = (value - cfg.Min) / math.max(cfg.Max - cfg.Min, 0.0001)
 					TweenService:Create(RailFill, TweenInfoFast, { Size = UDim2.fromScale(scale, 1) }):Play()
 					TweenService:Create(Thumb, TweenInfoFast, { Position = UDim2.new(scale, 0, 0.5, 0) }):Play()
 					pcall(cfg.Callback, value)
@@ -2548,7 +3481,7 @@ function Library:NewWindow(ConfigWindow)
 
 				ValueInput.FocusLost:Connect(function()
 					local val = tonumber(ValueInput.Text)
-					if val then SliderState:Set(val) else ValueInput.Text = tostring(SliderState.Value) end
+					if val then SliderState:Set(val) else ValueInput.Text = FormatValue(SliderState.Value, cfg.Increment, decimals) end
 				end)
 
 				SliderState:Set(cfg.Default)
@@ -2678,16 +3611,31 @@ function Library:NewWindow(ConfigWindow)
 				UpdatePillDisplay()
 
 				-- Open Popout Drawer (PinatHub Screenshot 2)
+				-- renderedOptions tracks THIS dropdown's rows only for cleanup.
+				-- On open we also nuke ALL stale children in PopoutScroll so options
+				-- from a previously-opened dropdown never bleed through.
 				local renderedOptions = {}
 				local function OpenDrawer()
-					for _, item in ipairs(renderedOptions) do item:Destroy() end
+					-- ── Purge ALL existing option rows from the shared PopoutScroll ──
+					-- This is the fix for cross-dropdown option mixing: every child that
+					-- isn't the UIListLayout is an orphaned row from a prior dropdown.
+					for _, child in ipairs(PopoutScroll:GetChildren()) do
+						if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then
+							child:Destroy()
+						end
+					end
 					renderedOptions = {}
 
 					PopoutDrawer.Visible = true
+					PopoutBackdrop.Visible = true
+					PopoutTitle.Text = cfg.Title  -- Show which dropdown is open
 					PopoutSBox.Text = ""
 
 					local function RenderList()
-						for _, item in ipairs(renderedOptions) do item:Destroy() end
+						-- Clear only THIS dropdown's rendered rows (list re-render)
+						for _, item in ipairs(renderedOptions) do
+							if item and item.Parent then item:Destroy() end
+						end
 						renderedOptions = {}
 
 						local query = string.lower(PopoutSBox.Text or "")
@@ -2734,6 +3682,7 @@ function Library:NewWindow(ConfigWindow)
 
 								row.MouseButton1Click:Connect(function()
 									if cfg.Multi then
+										-- Multi-select: toggle item, keep drawer open
 										local idx = table.find(DropdownObj.Selected, strVal)
 										if idx then
 											table.remove(DropdownObj.Selected, idx)
@@ -2744,9 +3693,11 @@ function Library:NewWindow(ConfigWindow)
 										RenderList()
 										pcall(cfg.Callback, DropdownObj.Selected)
 									else
+										-- Single-select: update selection, keep drawer open.
+										-- Drawer closes ONLY via click-outside (UserInputService handler).
 										DropdownObj.Selected = { strVal }
 										UpdatePillDisplay()
-										PopoutDrawer.Visible = false
+										RenderList()
 										pcall(cfg.Callback, strVal)
 									end
 								end)
@@ -2837,6 +3788,7 @@ function Library:NewWindow(ConfigWindow)
 				BoxFrame.Size = UDim2.new(0, 105, 0, 22)
 				BoxFrame.BackgroundColor3 = Theme.SurfaceActive
 				BoxFrame.BorderSizePixel = 0
+				BoxFrame.ClipsDescendants = true
 
 				local BoxCorner = Instance.new("UICorner")
 				BoxCorner.CornerRadius = UDim.new(0, 5)
@@ -2860,6 +3812,8 @@ function Library:NewWindow(ConfigWindow)
 				TextBox.TextColor3 = Theme.Text
 				TextBox.TextSize = 11
 				TextBox.TextXAlignment = Enum.TextXAlignment.Left
+				TextBox.TextWrapped = false
+				TextBox.TextTruncate = Enum.TextTruncate.AtEnd
 
 				TextBox.Focused:Connect(function()
 					TweenService:Create(BoxStroke, TweenInfoFast, { Color = Theme.Accent, Transparency = 0.2 }):Play()
@@ -3441,10 +4395,1017 @@ function Library:NewWindow(ConfigWindow)
 			SecObj.AddTextInput = SecObj.AddInput
 			SecObj.TextInput = SecObj.AddInput
 
+-- =========================================================================
+-- SPECIALIZED UI EXTENSIONS FOR PINATHUB VIOLENCE DISTRICT (from otherscript.lua)
+-- =========================================================================
+
+-- 1. Custom Background Manager
+function SecObj:AddCustomBgManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Custom Background Manager",
+        DefaultAsset = "",
+        DefaultOverlay = 40,
+        DefaultScale = "Crop",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "CustomBgContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 110)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local cStroke = Instance.new("UIStroke")
+    cStroke.Color = Theme.BorderSoft
+    cStroke.Thickness = 1
+    cStroke.Parent = container
+
+    local preview = Instance.new("ImageLabel")
+    preview.Name = "BgPreview"
+    preview.Parent = container
+    preview.Position = UDim2.new(0, 8, 0, 8)
+    preview.Size = UDim2.new(0, 94, 0, 94)
+    preview.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    preview.BorderSizePixel = 0
+    preview.ScaleType = Enum.ScaleType[cfg.DefaultScale] or Enum.ScaleType.Crop
+    preview.Image = cfg.DefaultAsset ~= "" and cfg.DefaultAsset or "rbxassetid://118264723961739"
+    local prevCorner = Instance.new("UICorner")
+    prevCorner.CornerRadius = UDim.new(0, 4)
+    prevCorner.Parent = preview
+
+    local assetBox = Instance.new("TextBox")
+    assetBox.Name = "AssetInput"
+    assetBox.Parent = container
+    assetBox.Position = UDim2.new(0, 110, 0, 12)
+    assetBox.Size = UDim2.new(1, -118, 0, 28)
+    assetBox.BackgroundColor3 = Theme.Surface
+    assetBox.TextColor3 = Theme.TextPrimary
+    assetBox.PlaceholderText = "Roblox Asset ID (rbxassetid://...)"
+    assetBox.PlaceholderColor3 = Theme.TextMuted
+    assetBox.Font = Enum.Font.Gotham
+    assetBox.TextSize = 11
+    assetBox.Text = cfg.DefaultAsset
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 4)
+    boxCorner.Parent = assetBox
+
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Name = "ApplyBg"
+    applyBtn.Parent = container
+    applyBtn.Position = UDim2.new(0, 110, 0, 48)
+    applyBtn.Size = UDim2.new(1, -118, 0, 26)
+    applyBtn.BackgroundColor3 = Theme.Accent
+    applyBtn.TextColor3 = Color3.new(1, 1, 1)
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextSize = 11
+    applyBtn.Text = "Apply Background"
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = applyBtn
+
+    local statusLbl = Instance.new("TextLabel")
+    statusLbl.Name = "StatusLbl"
+    statusLbl.Parent = container
+    statusLbl.Position = UDim2.new(0, 110, 0, 80)
+    statusLbl.Size = UDim2.new(1, -118, 0, 18)
+    statusLbl.BackgroundTransparency = 1
+    statusLbl.Font = Enum.Font.Gotham
+    statusLbl.TextSize = 10
+    statusLbl.TextColor3 = Theme.TextSecondary
+    statusLbl.TextXAlignment = Enum.TextXAlignment.Left
+    statusLbl.Text = "Scale: " .. tostring(cfg.DefaultScale) .. " | Overlay: " .. tostring(cfg.DefaultOverlay) .. "%"
+
+    applyBtn.MouseButton1Click:Connect(function()
+        local raw = assetBox.Text:gsub("%s+", "")
+        local id = raw
+        if raw:match("^%d+$") then
+            id = "rbxassetid://" .. raw
+        end
+        preview.Image = id
+        statusLbl.Text = "Background Updated!"
+        cfg.Callback({ AssetId = id, Overlay = cfg.DefaultOverlay, ScaleType = cfg.DefaultScale })
+    end)
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        SetAsset = function(_, asset) assetBox.Text = asset; preview.Image = asset end,
+        SetStatus = function(_, txt) statusLbl.Text = txt end
+    }
+end
+
+-- 2. Custom Emote Wheel Manager (8-slot wheel)
+function SecObj:AddEmoteWheelManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Emote Wheel Manager",
+        Slots = { "KWIK FLIP", "Schadenfreude (laugh)", "Wave", "Pop off", "Backflip", "Griddy", "The Dab", "California girls" },
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "EmoteWheelContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 140)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 20)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "EMOTE WHEEL SLOTS (8 SLOTS)"
+
+    local grid = Instance.new("Frame")
+    grid.Parent = container
+    grid.Position = UDim2.new(0, 8, 0, 26)
+    grid.Size = UDim2.new(1, -16, 0, 80)
+    grid.BackgroundTransparency = 1
+
+    local uigrid = Instance.new("UIGridLayout")
+    uigrid.Parent = grid
+    uigrid.CellSize = UDim2.new(0.23, 0, 0, 36)
+    uigrid.CellPadding = UDim2.new(0.02, 0, 0, 4)
+
+    local slotButtons = {}
+    for i = 1, 8 do
+        local slotName = cfg.Slots[i] or ("Slot " .. i)
+        local btn = Instance.new("TextButton")
+        btn.Name = "Slot_" .. i
+        btn.Parent = grid
+        btn.BackgroundColor3 = Theme.Surface
+        btn.TextColor3 = Theme.TextPrimary
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 10
+        btn.Text = tostring(i) .. ". " .. slotName:sub(1, 10)
+        btn.ClipsDescendants = true
+        local bCorner = Instance.new("UICorner")
+        bCorner.CornerRadius = UDim.new(0, 4)
+        bCorner.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            cfg.Callback({ Slot = i, Name = slotName })
+        end)
+        slotButtons[i] = btn
+    end
+
+    local actionRow = Instance.new("Frame")
+    actionRow.Parent = container
+    actionRow.Position = UDim2.new(0, 8, 0, 110)
+    actionRow.Size = UDim2.new(1, -16, 0, 24)
+    actionRow.BackgroundTransparency = 1
+
+    local openWheelBtn = Instance.new("TextButton")
+    openWheelBtn.Parent = actionRow
+    openWheelBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    openWheelBtn.BackgroundColor3 = Theme.Accent
+    openWheelBtn.TextColor3 = Color3.new(1, 1, 1)
+    openWheelBtn.Font = Enum.Font.GothamBold
+    openWheelBtn.TextSize = 10
+    openWheelBtn.Text = "Open Emote Wheel"
+    local oCorner = Instance.new("UICorner")
+    oCorner.CornerRadius = UDim.new(0, 4)
+    oCorner.Parent = openWheelBtn
+
+    local stopAnimBtn = Instance.new("TextButton")
+    stopAnimBtn.Parent = actionRow
+    stopAnimBtn.Position = UDim2.new(0.52, 0, 0, 0)
+    stopAnimBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    stopAnimBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    stopAnimBtn.TextColor3 = Color3.new(1, 1, 1)
+    stopAnimBtn.Font = Enum.Font.GothamBold
+    stopAnimBtn.TextSize = 10
+    stopAnimBtn.Text = "Stop Animation"
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(0, 4)
+    sCorner.Parent = stopAnimBtn
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        OnOpenWheel = function(_, cb) openWheelBtn.MouseButton1Click:Connect(cb) end,
+        OnStopAnim = function(_, cb) stopAnimBtn.MouseButton1Click:Connect(cb) end
+    }
+end
+
+-- 3. Perk Loadout Manager (3 slots + Loadout Selector)
+function SecObj:AddPerkLoadoutManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Survivor Perk Loadout",
+        Perk1 = "None",
+        Perk2 = "None",
+        Perk3 = "None",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "PerkLoadoutContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 80)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "PERK SLOTS (SURVIVOR PERKS)"
+
+    local row = Instance.new("Frame")
+    row.Parent = container
+    row.Position = UDim2.new(0, 8, 0, 26)
+    row.Size = UDim2.new(1, -16, 0, 48)
+    row.BackgroundTransparency = 1
+
+    local pButtons = {}
+    for i = 1, 3 do
+        local pBtn = Instance.new("TextButton")
+        pBtn.Name = "PerkSlot_" .. i
+        pBtn.Parent = row
+        pBtn.Position = UDim2.new((i - 1) * 0.34, 0, 0, 0)
+        pBtn.Size = UDim2.new(0.31, 0, 0, 42)
+        pBtn.BackgroundColor3 = Theme.Surface
+        pBtn.TextColor3 = Theme.TextPrimary
+        pBtn.Font = Enum.Font.GothamMedium
+        pBtn.TextSize = 10
+        pBtn.Text = "Slot " .. i .. "\n" .. (i == 1 and cfg.Perk1 or (i == 2 and cfg.Perk2 or cfg.Perk3))
+        local pbCorner = Instance.new("UICorner")
+        pbCorner.CornerRadius = UDim.new(0, 4)
+        pbCorner.Parent = pBtn
+        pButtons[i] = pBtn
+    end
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {
+        SetPerks = function(_, p1, p2, p3)
+            pButtons[1].Text = "Slot 1\n" .. tostring(p1)
+            pButtons[2].Text = "Slot 2\n" .. tostring(p2)
+            pButtons[3].Text = "Slot 3\n" .. tostring(p3)
+        end
+    }
+end
+
+-- 4. Visual Preset Manager (Ambient Color & Lighting Preset)
+function SecObj:AddVisualPresetManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Lighting Visual Presets",
+        Presets = { "Default", "Cinematic", "Vibrant", "Grim Noir", "Cyberpunk", "Midnight" },
+        CurrentPreset = "Default",
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "VisualPresetContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 72)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "LIGHTING & COLOR PRESET CONTROLLER"
+
+    local grid = Instance.new("Frame")
+    grid.Parent = container
+    grid.Position = UDim2.new(0, 8, 0, 26)
+    grid.Size = UDim2.new(1, -16, 0, 40)
+    grid.BackgroundTransparency = 1
+
+    local layout = Instance.new("UIGridLayout")
+    layout.Parent = grid
+    layout.CellSize = UDim2.new(0.31, 0, 0, 18)
+    layout.CellPadding = UDim2.new(0.02, 0, 0, 3)
+
+    for _, presetName in ipairs(cfg.Presets) do
+        local btn = Instance.new("TextButton")
+        btn.Name = "Preset_" .. presetName
+        btn.Parent = grid
+        btn.BackgroundColor3 = (presetName == cfg.CurrentPreset) and Theme.Accent or Theme.Surface
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 9
+        btn.Text = presetName
+        local bCorner = Instance.new("UICorner")
+        bCorner.CornerRadius = UDim.new(0, 4)
+        bCorner.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            for _, child in ipairs(grid:GetChildren()) do
+                if child:IsA("TextButton") then child.BackgroundColor3 = Theme.Surface end
+            end
+            btn.BackgroundColor3 = Theme.Accent
+            cfg.Callback(presetName)
+        end)
+    end
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {}
+end
+
+-- 5. Fog Manager (Color + Fog Start & End)
+function SecObj:AddFogManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Custom Fog Controller",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Fog Controller", Desc = "Managed dynamically via Lighting settings below." })
+end
+
+-- 6. Bloom Manager (Intensity, Size, Threshold)
+function SecObj:AddBloomManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Bloom Controller",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Bloom Controller", Desc = "Adjust bloom parameters in real-time." })
+end
+
+-- 7. Info Banner Configurator
+function SecObj:AddInfoBannerConfig(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Info Banner Configuration",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Info Banner", Desc = "HUD display: Map, Killer, Perks, FPS, Ping." })
+end
+
+-- 8. Aimbot Preview with Calibration Canvas
+function SecObj:AddAimbotPreview(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Aimbot Calibration & FOV Preview",
+        DefaultRadius = 150,
+        Callback = function() end
+    }, cfg or {})
+
+    local container = Instance.new("Frame")
+    container.Name = "AimbotPreviewContainer"
+    container.Parent = ControlsContainer
+    container.BackgroundColor3 = Theme.BackgroundDark
+    container.BackgroundTransparency = 0.5
+    container.Size = UDim2.new(1, 0, 0, 90)
+    container.BorderSizePixel = 0
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Parent = container
+    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, -16, 0, 18)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextColor3 = Theme.AccentGlow
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Text = "AIMBOT TARGET RETICLE & FOV PREVIEW"
+
+    local canvas = Instance.new("Frame")
+    canvas.Parent = container
+    canvas.Position = UDim2.new(0, 8, 0, 24)
+    canvas.Size = UDim2.new(0, 60, 0, 60)
+    canvas.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    local canCorner = Instance.new("UICorner")
+    canCorner.CornerRadius = UDim.new(1, 0)
+    canCorner.Parent = canvas
+    local canStroke = Instance.new("UIStroke")
+    canStroke.Color = Theme.Accent
+    canStroke.Thickness = 1.5
+    canStroke.Parent = canvas
+
+    local centerDot = Instance.new("Frame")
+    centerDot.Parent = canvas
+    centerDot.AnchorPoint = Vector2.new(0.5, 0.5)
+    centerDot.Position = UDim2.new(0.5, 0, 0.5, 0)
+    centerDot.Size = UDim2.new(0, 4, 0, 4)
+    centerDot.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = centerDot
+
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Parent = container
+    infoLabel.Position = UDim2.new(0, 80, 0, 28)
+    infoLabel.Size = UDim2.new(1, -88, 0, 48)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextSize = 11
+    infoLabel.TextColor3 = Theme.TextSecondary
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    infoLabel.Text = "FOV Circle active on screen.\nHorizontal / Vertical offsets calibrated dynamically for ballistics."
+
+    table.insert(secData.Elements, { Title = cfg.Title, Frame = container })
+    return {}
+end
+
+-- 9. Stalker Killer Manager
+function SecObj:AddStalkerManager(cfg)
+    cfg = Library:MakeConfig({
+        Title = "Stalker Ability Suite",
+        Callback = function() end
+    }, cfg or {})
+    return self:AddParagraph({ Title = "Stalker Suite", Desc = "Controls for Stalker killer abilities (cooldown bypass, grab, corrupt)." })
+end
+
+
 			return SecObj
 		end
 
+		-- -----------------------------------------------------------------------------
+		-- 11.1 SUB-TABS & CATEGORY PILL NAVIGATION SYSTEM
+		-- -----------------------------------------------------------------------------
+		function TabObj:AddSubNav(navConfig)
+			navConfig = navConfig or {}
+			if self ~= TabObj and type(self) == "table" and (self.Categories or self.Tabs or self.IncludeAll ~= nil or self.Default) then
+				navConfig = self
+			end
+			local categories = navConfig.Categories or navConfig.Tabs or {}
+			local includeAll = (navConfig.IncludeAll ~= false)
+			local defaultCat = navConfig.Default or (includeAll and "All") or (categories[1] and (type(categories[1]) == "table" and (categories[1].Name or categories[1].Title or categories[1].Key) or categories[1])) or "All"
+			local onSelectCallback = navConfig.Callback or function() end
+
+			local SubNavContainer = Instance.new("Frame")
+			SubNavContainer.Name = "SubNavContainer"
+			SubNavContainer.Parent = Page
+			SubNavContainer.BackgroundTransparency = 1
+			SubNavContainer.BorderSizePixel = 0
+			SubNavContainer.Size = UDim2.new(1, 0, 0, 34)
+			SubNavContainer.LayoutOrder = -100
+			SubNavContainer.Visible = false
+			SubNavContainer.ZIndex = 5
+			SubNavContainer.ClipsDescendants = false
+
+			local nonAllCount = 0
+			local function checkNavVisibility()
+				SubNavContainer.Visible = (nonAllCount > 1)
+				if SubNavContainer.Visible then
+					pcall(function() Library:UpdateScrolling(Page, PageListLayout) end)
+				end
+			end
+
+			SubNavContainer:GetPropertyChangedSignal("Visible"):Connect(function()
+				pcall(function() Library:UpdateScrolling(Page, PageListLayout) end)
+			end)
+
+			local SubNavScroll = Instance.new("ScrollingFrame")
+			SubNavScroll.Name = "SubNavScroll"
+			SubNavScroll.Parent = SubNavContainer
+			SubNavScroll.BackgroundTransparency = 1
+			SubNavScroll.BorderSizePixel = 0
+			SubNavScroll.Position = UDim2.new(0, 0, 0, 0)
+			SubNavScroll.Size = UDim2.new(1, 0, 1, 0)
+			SubNavScroll.ScrollBarThickness = 2
+			SubNavScroll.ScrollBarImageColor3 = Theme.Accent
+			SubNavScroll.ScrollBarImageTransparency = 0.5
+			SubNavScroll.BottomImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+			SubNavScroll.MidImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+			SubNavScroll.TopImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+			SubNavScroll.ClipsDescendants = true
+			SubNavScroll.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
+			SubNavScroll.ScrollingDirection = Enum.ScrollingDirection.X
+			SubNavScroll.AutomaticCanvasSize = Enum.AutomaticSize.None
+			SubNavScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+			SubNavScroll.CanvasPosition = Vector2.new(0, 0)
+			SubNavScroll.HorizontalScrollBarInset = Enum.ScrollBarInset.None
+
+			local SubNavLayout = Instance.new("UIListLayout")
+			SubNavLayout.Parent = SubNavScroll
+			SubNavLayout.FillDirection = Enum.FillDirection.Horizontal
+			SubNavLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			SubNavLayout.Padding = UDim.new(0, 6)
+			SubNavLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+			local SubNavPadding = Instance.new("UIPadding")
+			SubNavPadding.Parent = SubNavScroll
+			SubNavPadding.PaddingLeft = UDim.new(0, 4)
+			SubNavPadding.PaddingRight = UDim.new(0, 24)
+			SubNavPadding.PaddingTop = UDim.new(0, 2)
+			SubNavPadding.PaddingBottom = UDim.new(0, 4)
+
+			local LeftScrollBtn = Instance.new("TextButton")
+			LeftScrollBtn.Name = "LeftScrollBtn"
+			LeftScrollBtn.Parent = SubNavContainer
+			LeftScrollBtn.AnchorPoint = Vector2.new(0, 0.5)
+			LeftScrollBtn.Position = UDim2.new(0, 0, 0.5, -1)
+			LeftScrollBtn.Size = UDim2.new(0, 18, 0, 24)
+			LeftScrollBtn.BackgroundColor3 = Theme.Surface
+			LeftScrollBtn.BackgroundTransparency = 0.15
+			LeftScrollBtn.BorderSizePixel = 0
+			LeftScrollBtn.Text = "‹"
+			LeftScrollBtn.Font = Enum.Font.GothamBold
+			LeftScrollBtn.TextSize = 16
+			LeftScrollBtn.TextColor3 = Theme.NeonWhite
+			LeftScrollBtn.ZIndex = 10
+			LeftScrollBtn.Visible = false
+
+			local LeftBtnCorner = Instance.new("UICorner")
+			LeftBtnCorner.CornerRadius = UDim.new(0, 6)
+			LeftBtnCorner.Parent = LeftScrollBtn
+
+			local LeftBtnStroke = Instance.new("UIStroke")
+			LeftBtnStroke.Color = Theme.BorderSoft
+			LeftBtnStroke.Thickness = 1
+			LeftBtnStroke.Transparency = 0.4
+			LeftBtnStroke.Parent = LeftScrollBtn
+
+			local RightScrollBtn = Instance.new("TextButton")
+			RightScrollBtn.Name = "RightScrollBtn"
+			RightScrollBtn.Parent = SubNavContainer
+			RightScrollBtn.AnchorPoint = Vector2.new(1, 0.5)
+			RightScrollBtn.Position = UDim2.new(1, 0, 0.5, -1)
+			RightScrollBtn.Size = UDim2.new(0, 18, 0, 24)
+			RightScrollBtn.BackgroundColor3 = Theme.Surface
+			RightScrollBtn.BackgroundTransparency = 0.15
+			RightScrollBtn.BorderSizePixel = 0
+			RightScrollBtn.Text = "›"
+			RightScrollBtn.Font = Enum.Font.GothamBold
+			RightScrollBtn.TextSize = 16
+			RightScrollBtn.TextColor3 = Theme.NeonWhite
+			RightScrollBtn.ZIndex = 10
+			RightScrollBtn.Visible = false
+
+			local RightBtnCorner = Instance.new("UICorner")
+			RightBtnCorner.CornerRadius = UDim.new(0, 6)
+			RightBtnCorner.Parent = RightScrollBtn
+
+			local RightBtnStroke = Instance.new("UIStroke")
+			RightBtnStroke.Color = Theme.BorderSoft
+			RightBtnStroke.Thickness = 1
+			RightBtnStroke.Transparency = 0.4
+			RightBtnStroke.Parent = RightScrollBtn
+
+			local function updateScrollArrows()
+				local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+				if maxX <= 4 then
+					LeftScrollBtn.Visible = false
+					RightScrollBtn.Visible = false
+				else
+					local curX = SubNavScroll.CanvasPosition.X
+					LeftScrollBtn.Visible = (curX > 4)
+					RightScrollBtn.Visible = (curX < maxX - 4)
+				end
+			end
+
+			local function updateCanvas()
+				local contentWidth = SubNavLayout.AbsoluteContentSize.X
+				local padLeft = SubNavPadding.PaddingLeft.Offset
+				local padRight = SubNavPadding.PaddingRight.Offset
+				local totalNeeded = contentWidth + padLeft + padRight + 12
+				SubNavScroll.CanvasSize = UDim2.new(0, totalNeeded, 0, 0)
+				updateScrollArrows()
+			end
+
+			SubNavLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+			SubNavScroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateCanvas)
+			SubNavScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(updateScrollArrows)
+			SubNavScroll:GetPropertyChangedSignal("CanvasSize"):Connect(updateScrollArrows)
+			task.defer(updateCanvas)
+
+			local function handleMouseWheel(input)
+				if input.UserInputType == Enum.UserInputType.MouseWheel then
+					local scrollDelta = input.Position.Z
+					local scrollSpeed = 55
+					local currentX = SubNavScroll.CanvasPosition.X
+					local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+					if maxX > 0 then
+						local targetX = math.clamp(currentX - (scrollDelta * scrollSpeed), 0, maxX)
+						TweenService:Create(SubNavScroll, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							CanvasPosition = Vector2.new(targetX, 0)
+						}):Play()
+					end
+				end
+			end
+
+			SubNavScroll.InputChanged:Connect(handleMouseWheel)
+			SubNavContainer.InputChanged:Connect(handleMouseWheel)
+
+			LeftScrollBtn.MouseButton1Click:Connect(function()
+				local curX = SubNavScroll.CanvasPosition.X
+				local targetX = math.max(0, curX - 110)
+				TweenService:Create(SubNavScroll, TweenInfoFast, { CanvasPosition = Vector2.new(targetX, 0) }):Play()
+			end)
+
+			RightScrollBtn.MouseButton1Click:Connect(function()
+				local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+				local curX = SubNavScroll.CanvasPosition.X
+				local targetX = math.min(maxX, curX + 110)
+				TweenService:Create(SubNavScroll, TweenInfoFast, { CanvasPosition = Vector2.new(targetX, 0) }):Play()
+			end)
+
+			local SubNavObj = {
+				Container = SubNavContainer,
+				Scroll = SubNavScroll,
+				ActiveCategory = defaultCat,
+				Pills = {},
+				RegisteredSections = {},
+				Categories = {}
+			}
+
+			local function ensurePillVisible(btn)
+				if not btn or not SubNavScroll then return end
+				task.defer(function()
+					pcall(function()
+						local scrollMin = SubNavScroll.CanvasPosition.X
+						local scrollWidth = SubNavScroll.AbsoluteWindowSize.X
+						if scrollWidth <= 0 then return end
+						local scrollMax = scrollMin + scrollWidth
+
+						local btnMin = btn.AbsolutePosition.X - SubNavScroll.AbsolutePosition.X + scrollMin
+						local btnWidth = btn.AbsoluteSize.X
+						local btnMax = btnMin + btnWidth
+
+						local targetX = nil
+						if btnMin < scrollMin + 8 then
+							targetX = math.max(0, btnMin - 14)
+						elseif btnMax > scrollMax - 8 then
+							local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - scrollWidth)
+							targetX = math.min(maxX, btnMax - scrollWidth + 14)
+						end
+
+						if targetX and math.abs(targetX - scrollMin) > 2 then
+							TweenService:Create(SubNavScroll, TweenInfoFast, {
+								CanvasPosition = Vector2.new(targetX, 0)
+							}):Play()
+						end
+					end)
+				end)
+			end
+
+			local function updatePillStyles()
+				for catName, pillData in pairs(SubNavObj.Pills) do
+					local isActive = (catName == SubNavObj.ActiveCategory)
+					local btn = pillData.Button
+					local stroke = pillData.Stroke
+					local label = pillData.Label
+					local icon = pillData.Icon
+
+					if isActive then
+						TweenService:Create(btn, TweenInfoFast, {
+							BackgroundColor3 = Theme.Accent,
+							BackgroundTransparency = 0.2
+						}):Play()
+						if stroke then
+							TweenService:Create(stroke, TweenInfoFast, {
+								Color = Theme.AccentGlow,
+								Transparency = 0
+							}):Play()
+						end
+						if label then
+							label.Font = Enum.Font.GothamBold
+							TweenService:Create(label, TweenInfoFast, {
+								TextColor3 = Theme.NeonWhite
+							}):Play()
+						end
+						if icon then
+							TweenService:Create(icon, TweenInfoFast, {
+								ImageColor3 = Theme.NeonWhite
+							}):Play()
+						end
+						ensurePillVisible(btn)
+					else
+						TweenService:Create(btn, TweenInfoFast, {
+							BackgroundColor3 = Theme.Surface,
+							BackgroundTransparency = 0.45
+						}):Play()
+						if stroke then
+							TweenService:Create(stroke, TweenInfoFast, {
+								Color = Theme.BorderSoft,
+								Transparency = 0.5
+							}):Play()
+						end
+						if label then
+							label.Font = Enum.Font.Gotham
+							TweenService:Create(label, TweenInfoFast, {
+								TextColor3 = Theme.TextSecondary
+							}):Play()
+						end
+						if icon then
+							TweenService:Create(icon, TweenInfoFast, {
+								ImageColor3 = Theme.TextMuted
+							}):Play()
+						end
+					end
+				end
+			end
+
+			local function filterSections()
+				local active = SubNavObj.ActiveCategory
+				for _, reg in ipairs(SubNavObj.RegisteredSections) do
+					local matches = (active == "All") or (reg.Category == nil) or (reg.Category == "All") or (reg.Category == active)
+					if reg.Card then
+						reg.Card.Visible = matches
+					end
+					-- Automatically expand section when viewing its specific category
+					if matches and active ~= "All" and reg.SecObj and reg.SecObj.Expand then
+						pcall(function() reg.SecObj:Expand() end)
+					end
+				end
+			end
+
+			function SubNavObj:SelectCategory(catName)
+				if SubNavObj.ActiveCategory == catName then return end
+				SubNavObj.ActiveCategory = catName
+				updatePillStyles()
+				filterSections()
+				pcall(onSelectCallback, catName)
+			end
+
+			function SubNavObj:RegisterSection(catName, sectionCardOrObj, optionalSecObj)
+				local card = nil
+				local secObj = optionalSecObj
+				if typeof(sectionCardOrObj) == "Instance" then
+					card = sectionCardOrObj
+				elseif type(sectionCardOrObj) == "table" then
+					secObj = secObj or sectionCardOrObj
+					card = sectionCardOrObj.Card or sectionCardOrObj.Frame
+				end
+				if not card then return end
+
+				table.insert(SubNavObj.RegisteredSections, {
+					Category = catName,
+					Card = card,
+					SecObj = secObj
+				})
+
+				local matches = (SubNavObj.ActiveCategory == "All") or (catName == nil) or (catName == "All") or (catName == SubNavObj.ActiveCategory)
+				card.Visible = matches
+			end
+
+			local pillOrder = 0
+			SubNavObj.AddPill = function(self, ...)
+				return self:AddCategory(...)
+			end
+
+			function SubNavObj:AddCategory(catConfig, optionalIcon)
+				local name = ""
+				local icon = nil
+				if self ~= SubNavObj and (type(self) == "string" or (type(self) == "table" and (self.Name or self.Title or self.Key))) then
+					optionalIcon = catConfig
+					catConfig = self
+				end
+
+				if type(catConfig) == "table" then
+					name = catConfig.Name or catConfig.Title or catConfig.Key or ""
+					icon = catConfig.Icon or optionalIcon
+				else
+					name = tostring(catConfig or "")
+					icon = optionalIcon
+				end
+				if name == "" or SubNavObj.Pills[name] then return end
+
+				pillOrder = pillOrder + 1
+
+				local resolvedIcon = nil
+				if icon then
+					resolvedIcon = ResolveIcon(icon, name)
+				end
+				local hasIcon = (resolvedIcon ~= nil)
+
+				local textBounds = TextService:GetTextSize(name, 11, Enum.Font.GothamBold, Vector2.new(2000, 26))
+				local textWidth = math.max(12, math.ceil(textBounds.X))
+
+				local padLeft = hasIcon and 10 or 12
+				local padRight = 12
+				local iconWidth = hasIcon and 14 or 0
+				local gap = hasIcon and 6 or 0
+				local totalPillWidth = padLeft + iconWidth + gap + textWidth + padRight
+
+				local PillBtn = Instance.new("TextButton")
+				PillBtn.Name = "Pill_" .. name
+				PillBtn.Parent = SubNavScroll
+				PillBtn.AutoButtonColor = false
+				PillBtn.Text = ""
+				PillBtn.LayoutOrder = (name == "All") and 0 or pillOrder
+				PillBtn.Size = UDim2.new(0, math.max(44, totalPillWidth), 0, 26)
+				PillBtn.AutomaticSize = Enum.AutomaticSize.X
+				PillBtn.BackgroundColor3 = (name == SubNavObj.ActiveCategory) and Theme.Accent or Theme.Surface
+				PillBtn.BackgroundTransparency = (name == SubNavObj.ActiveCategory) and 0.2 or 0.45
+				PillBtn.BorderSizePixel = 0
+				PillBtn.ClipsDescendants = false
+
+				local PillCorner = Instance.new("UICorner")
+				PillCorner.CornerRadius = UDim.new(1, 0)
+				PillCorner.Parent = PillBtn
+
+				local PillStroke = Instance.new("UIStroke")
+				PillStroke.Color = (name == SubNavObj.ActiveCategory) and Theme.AccentGlow or Theme.BorderSoft
+				PillStroke.Thickness = 1
+				PillStroke.Transparency = (name == SubNavObj.ActiveCategory) and 0 or 0.5
+				PillStroke.Parent = PillBtn
+
+				local PillPadding = Instance.new("UIPadding")
+				PillPadding.Parent = PillBtn
+				PillPadding.PaddingLeft = UDim.new(0, padLeft)
+				PillPadding.PaddingRight = UDim.new(0, padRight)
+				PillPadding.PaddingTop = UDim.new(0, 0)
+				PillPadding.PaddingBottom = UDim.new(0, 0)
+
+				local ContentLayout = Instance.new("UIListLayout")
+				ContentLayout.Parent = PillBtn
+				ContentLayout.FillDirection = Enum.FillDirection.Horizontal
+				ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+				ContentLayout.Padding = UDim.new(0, 6)
+				ContentLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+				local IconImg
+				if hasIcon then
+					IconImg = Instance.new("ImageLabel")
+					IconImg.Name = "Icon"
+					IconImg.Parent = PillBtn
+					IconImg.LayoutOrder = 1
+					IconImg.BackgroundTransparency = 1
+					IconImg.Size = UDim2.new(0, 14, 0, 14)
+					IconImg.Image = resolvedIcon
+					IconImg.ImageColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextMuted
+					IconImg.ScaleType = Enum.ScaleType.Fit
+				end
+
+				local Label = Instance.new("TextLabel")
+				Label.Name = "Label"
+				Label.Parent = PillBtn
+				Label.LayoutOrder = 2
+				Label.BackgroundTransparency = 1
+				Label.Text = name
+				Label.Font = (name == SubNavObj.ActiveCategory) and Enum.Font.GothamBold or Enum.Font.Gotham
+				Label.TextSize = 11
+				Label.TextColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextSecondary
+				Label.Size = UDim2.new(0, textWidth, 1, 0)
+				Label.AutomaticSize = Enum.AutomaticSize.X
+				Label.TextXAlignment = Enum.TextXAlignment.Left
+				Label.TextYAlignment = Enum.TextYAlignment.Center
+				Label.TextTruncate = Enum.TextTruncate.None
+				Label.ClipsDescendants = false
+
+				PillBtn.MouseEnter:Connect(function()
+					if SubNavObj.ActiveCategory ~= name then
+						TweenService:Create(PillBtn, TweenInfoFast, { BackgroundTransparency = 0.25 }):Play()
+						TweenService:Create(Label, TweenInfoFast, { TextColor3 = Theme.Text }):Play()
+						if IconImg then
+							TweenService:Create(IconImg, TweenInfoFast, { ImageColor3 = Theme.NeonGray }):Play()
+						end
+					end
+				end)
+
+				PillBtn.MouseLeave:Connect(function()
+					if SubNavObj.ActiveCategory ~= name then
+						TweenService:Create(PillBtn, TweenInfoFast, { BackgroundTransparency = 0.45 }):Play()
+						TweenService:Create(Label, TweenInfoFast, { TextColor3 = Theme.TextSecondary }):Play()
+						if IconImg then
+							TweenService:Create(IconImg, TweenInfoFast, { ImageColor3 = Theme.TextMuted }):Play()
+						end
+					end
+				end)
+
+				-- Gesture & Drag-to-scroll support for touch / mouse swipe
+				local isDragging = false
+				local dragStartPos = nil
+				local dragStartCanvasX = 0
+				local dragThreshold = 6
+
+				PillBtn.InputBegan:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+						isDragging = false
+						dragStartPos = input.Position
+						dragStartCanvasX = SubNavScroll.CanvasPosition.X
+					end
+				end)
+
+				PillBtn.InputChanged:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseWheel then
+						handleMouseWheel(input)
+						return
+					end
+
+					if dragStartPos and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+						local delta = input.Position - dragStartPos
+						if math.abs(delta.X) > dragThreshold or math.abs(delta.Y) > dragThreshold then
+							isDragging = true
+						end
+						if isDragging then
+							local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+							if maxX > 0 then
+								local targetX = math.clamp(dragStartCanvasX - delta.X, 0, maxX)
+								SubNavScroll.CanvasPosition = Vector2.new(targetX, 0)
+							end
+						end
+					end
+				end)
+
+				PillBtn.InputEnded:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+						local wasDragging = isDragging
+						dragStartPos = nil
+						isDragging = false
+						if not wasDragging then
+							SubNavObj:SelectCategory(name)
+						end
+					end
+				end)
+
+				PillBtn.TouchSwipe:Connect(function(swipeDir)
+					local scrollSpeed = 80
+					local currentX = SubNavScroll.CanvasPosition.X
+					local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+					if maxX > 0 then
+						local targetX = currentX
+						if swipeDir == Enum.SwipeDirection.Left then
+							targetX = math.min(maxX, currentX + scrollSpeed)
+						elseif swipeDir == Enum.SwipeDirection.Right then
+							targetX = math.max(0, currentX - scrollSpeed)
+						end
+						TweenService:Create(SubNavScroll, TweenInfoFast, {
+							CanvasPosition = Vector2.new(targetX, 0)
+						}):Play()
+					end
+				end)
+
+				SubNavObj.Pills[name] = {
+					Button = PillBtn,
+					Stroke = PillStroke,
+					Label = Label,
+					Icon = IconImg
+				}
+				table.insert(SubNavObj.Categories, name)
+				if name ~= "All" then
+					nonAllCount = nonAllCount + 1
+				end
+				checkNavVisibility()
+				updateCanvas()
+			end
+
+			function SubNavObj:GetSubTab(catName)
+				local proxy = {}
+				setmetatable(proxy, {
+					__index = function(_, k)
+						if k == "AddSection" or k == "Section" then
+							return function(_, secCfg)
+								local sec = TabObj:AddSection(secCfg)
+								SubNavObj:RegisterSection(catName, sec.Card or sec.Frame, sec)
+								return sec
+							end
+						end
+						return TabObj[k]
+					end
+				})
+				return proxy
+			end
+
+			if includeAll then
+				SubNavObj:AddCategory({ Name = "All", Icon = "rbxassetid://10723407389" })
+			end
+
+			for _, cat in ipairs(categories) do
+				SubNavObj:AddCategory(cat)
+			end
+
+			updatePillStyles()
+			return SubNavObj
+		end
+
+		TabObj.SubNav = TabObj.AddSubNav
+		TabObj.AddSubTabs = TabObj.AddSubNav
+		TabObj.SubTabs = TabObj.AddSubNav
+
 		TabObj.Section = TabObj.AddSection
+		TabObj.Page = Page
+		TabObj.Container = Page
+		TabObj.Layout = PageListLayout
 		return TabObj
 	end
 
@@ -3464,6 +5425,7 @@ function Library:NewWindow(ConfigWindow)
 	end
 
 	Window.AddTab = Window.T
+	Window.AddTab = Window.T
 	Window.Tab = Window.T
 	Window.NewTab = Window.T
 	Window.CreateWindow = Window.NewWindow
@@ -3477,1924 +5439,4 @@ function Library:SetTheme(...) end
 function Library:AddTheme(...) end
 function Library:SetNotificationLower(...) end
 
--- ------------------------------------------------------------
--- PINATHUB | DRAIN WATER - COMPLETE EDITION
--- WindUI v2 | Full Auto Farm + Advanced Features (Independent)
--- ------------------------------------------------------------
-repeat task.wait() until game:IsLoaded()
-
--- ------------------------------------------------------------
--- ANTI-AFK
--- ------------------------------------------------------------
-local VirtualUser = game:service'VirtualUser'
-game:service'Players'.LocalPlayer.Idled:connect(function()
-    warn("anti-afk")
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-end)
-
--- ------------------------------------------------------------
--- SERVICES
--- ------------------------------------------------------------
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-local TweenService = game:GetService("TweenService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local LocalPlayer = Players.LocalPlayer
-
--- ------------------------------------------------------------
--- EXECUTOR COMPATIBILITY
--- ------------------------------------------------------------
-local function noop() end
-local set_clipboard = setclipboard or (syn and syn.setclipboard) or noop
-
--- ------------------------------------------------------------
--- LIGHTING SETUP
--- ------------------------------------------------------------
-Lighting.ClockTime = 14
-Lighting.GlobalShadows = false
-
--- ------------------------------------------------------------
-
--- GENERATION GUARD
--- ------------------------------------------------------------
-_G.__DRAINWATER = (_G.__DRAINWATER or 0) + 1
-local GEN = _G.__DRAINWATER
-local function alive() return _G.__DRAINWATER == GEN end
-
--- ------------------------------------------------------------
--- SAFE LOAD CONFIGURATIONS
--- ------------------------------------------------------------
-local function safeRequire(module)
-    local success, result = pcall(require, module)
-    if success then
-        return result
-    else
-        warn("Failed to load module:", module, tostring(result))
-        return nil
-    end
-end
-
-local TrainingAreaHelper = safeRequire(ReplicatedStorage:FindFirstChild("Config") and ReplicatedStorage.Config:FindFirstChild("TrainingAreaHelper"))
-local ShopHelper = safeRequire(ReplicatedStorage:FindFirstChild("Config") and ReplicatedStorage.Config:FindFirstChild("ShopHelper"))
-local PetHelper = safeRequire(ReplicatedStorage:FindFirstChild("Config") and ReplicatedStorage.Config:FindFirstChild("PetHelper"))
-local TrainingAreaConfig = safeRequire(ReplicatedStorage:FindFirstChild("Config") and ReplicatedStorage.Config:FindFirstChild("TrainingAreaHelper") and ReplicatedStorage.Config.TrainingAreaHelper:FindFirstChild("TrainingAreaConfig"))
-
-local SpinHelper = nil
-pcall(function()
-    SpinHelper = require(ReplicatedStorage.Config.SpinHelper)
-end)
-
--- ------------------------------------------------------------
--- CONFIG
--- ------------------------------------------------------------
-local CONFIG = {
-    -- Master Switch
-    auto = false,
-    
-    -- Farm Components
-    drain = false,
-    click = false,
-    fish = false,
-    display = false,
-    sell = false,
-    
-    -- AUTO SELL FISH (NEW)
-    autoSellFish = false,
-    sellProtected = false,
-    sellThreshold = 0.92,
-    sellInterval = 30,
-    
-    -- Upgrade Components
-    pumps = false,
-    auras = false,
-    upgrades = false,
-    eggs = false,
-    pets = false,
-    merge = false,
-    rebirth = false,
-    offline = false,
-    
-    -- Settings
-    clickRate = 20,
-    fillRatio = 0.92,
-    rebirthUntil = 0,
-    spendEvery = 10,
-    diveSeconds = 30,
-    harvestAfter = 15,
-    stallSeconds = 30,
-    claimShare = 0.35,
-    topupShare = 0.1,
-    pumpReach = 2.5,
-    claimRadius = 14,
-    settle = 0.5,
-    
-    -- Advanced Features
-    autoTrainingArea = false,
-    autoSpin = false,
-    autoShopItems = false,
-    autoPetUpgrade = false,
-    autoFishTraining = false,
-    autoClaimLimitedFish = false,
-    autoBuyStamina = false,
-    maxTrainingArea = 9,
-    spinInterval = 60,
-}
-
--- ------------------------------------------------------------
--- STATE
--- ------------------------------------------------------------
-local STATE = {
-    phase = "idle", note = "",
-    stage = 1, remaining = 0, water = 0, cash = 0, level = 0, rebirth = 0,
-    displayed = 0, slots = 0, backpack = 0, capacity = 0,
-    pump = 1, pumpMult = 1, aura = 0, claimed = 0, sold = 0, placed = 0,
-    rate = 0,
-    deepest = 1, lastProgress = 0, reserve = 0,
-    busy = false,
-    trainingArea = 1,
-    spinCount = 0,
-    limitedFishClaimed = 0,
-    lastSellTime = 0,
-}
-
--- ------------------------------------------------------------
--- ORIGINAL DRAIN WATER LOGIC
--- ------------------------------------------------------------
-
-local function short(n)
-    n = tonumber(n) or 0
-    local units = { { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } }
-    for _, u in ipairs(units) do
-        if math.abs(n) >= u[1] then return string.format("%.2f%s", n / u[1], u[2]) end
-    end
-    return string.format("%d", n)
-end
-
-local function note(text) STATE.note = text end
-
-local abbConvert
-local function num(v)
-    if type(v) == "number" then return v end
-    if type(v) ~= "string" then return nil end
-    local plain = tonumber(v)
-    if plain then return plain end
-    if abbConvert == nil then
-        local utils = ReplicatedStorage:FindFirstChild("Utils")
-        local module = utils and utils:FindFirstChild("AbbNumber")
-        local ok, loaded = pcall(require, module)
-        abbConvert = (ok and type(loaded) == "table" and loaded.ConvertToNumber) or false
-    end
-    if not abbConvert then return nil end
-    local ok, parsed = pcall(abbConvert, v)
-    return (ok and type(parsed) == "number") and parsed or nil
-end
-
-local function value(folder, key, default)
-    local f = LocalPlayer:FindFirstChild(folder)
-    local v = f and f:FindFirstChild(key)
-    return v and v.Value or default
-end
-
-local function char()
-    local model = LocalPlayer.Character
-    if not model then return nil, nil, nil end
-    return model, model:FindFirstChild("HumanoidRootPart"), model:FindFirstChildOfClass("Humanoid")
-end
-
-local function pin(getPos)
-    local stop, conn = false, nil
-    conn = RunService.Heartbeat:Connect(function()
-        if stop or GEN ~= _G.__DRAINWATER then conn:Disconnect() return end
-        local _, hrp = char()
-        local pos = getPos()
-        if hrp and pos then hrp.CFrame = CFrame.new(pos) end
-    end)
-    return function() stop = true pcall(function() conn:Disconnect() end) end
-end
-
-local function withLock(name, fn)
-    if STATE.busy then return false end
-    STATE.busy = true
-    local ok, err = pcall(fn)
-    STATE.busy = false
-    if not ok then note(name .. " failed: " .. tostring(err)) end
-    return ok
-end
-
-local function invoke(fn, ...)
-    if not fn then return nil end
-    local args = table.pack(...)
-    local out, done = nil, false
-    task.spawn(function()
-        local ok, res = pcall(function() return fn:InvokeServer(table.unpack(args, 1, args.n)) end)
-        out, done = ok and res or nil, true
-    end)
-    local t0 = os.clock()
-    while not done and os.clock() - t0 < 5 do task.wait(0.05) end
-    return out
-end
-
-local Remote = ReplicatedStorage:WaitForChild("Remote", 10)
-local EV, FN = Remote:WaitForChild("Event", 10), Remote:WaitForChild("Function", 10)
-
-local function ev(category, name)
-    local folder = EV:FindFirstChild(category)
-    return folder and folder:FindFirstChild(name)
-end
-
-local function fn(category, name)
-    local folder = FN:FindFirstChild(category)
-    return folder and folder:FindFirstChild(name)
-end
-
-local SCENE = "\228\184\187\229\156\186\230\153\175"
-local VERIFY = "\233\170\140\232\175\129\229\156\186\230\153\175"
-local STAGE_PREFIX = "\229\133\179\229\141\161"
-local WATER_PART = "\230\176\180\233\157\162"
-local PLACE_BUTTON = "\230\148\190\231\189\174\230\140\137\233\146\174"
-local COLLECT_BUTTON = "\230\148\182\233\155\134\230\140\137\233\146\174"
-
-local function verifyFolder()
-    local scene = workspace:FindFirstChild(SCENE)
-    return scene and scene:FindFirstChild(VERIFY)
-end
-
-local function poolOf(stageId)
-    local verify = verifyFolder()
-    local stage = verify and verify:FindFirstChild(STAGE_PREFIX .. tostring(stageId))
-    return stage and stage:FindFirstChild(WATER_PART)
-end
-
-local function poolStand(part)
-    if not part then return nil end
-    return part.Position + Vector3.new(0, part.Size.Y / 2 + 3, 0)
-end
-
-local function stageRows()
-    local out = invoke(fn("Stage", "[C-S]GetStageState"))
-    return type(out) == "table" and out or {}
-end
-
-local function remainingOf(stageId)
-    for _, row in ipairs(stageRows()) do
-        if row.stageId == stageId then return row.remaining, row.required end
-    end
-    return nil
-end
-
--- state
-local function refresh()
-    STATE.stage = value("Stage", "stage", 1)
-    STATE.water = value("Level", "water", 0)
-    STATE.cash = value("Cash", "cash", 0)
-    STATE.level = value("Level", "level", 0)
-    STATE.rebirth = value("Rebirth", "rebirth", 0)
-    STATE.backpack = value("BackpackData", "amount", 0)
-    STATE.capacity = value("BackpackData", "capacity", 0)
-    STATE.pump = LocalPlayer:GetAttribute("EquippedPumpId") or 1
-    STATE.aura = LocalPlayer:GetAttribute("EquippedAuraId") or 0
-    local cfg = rawget(_G, "__DRAINWATER_PUMPCFG")
-    local row = cfg and (cfg[tostring(STATE.pump)] or cfg[STATE.pump])
-    if row then STATE.pumpMult = num(row.multiplier) or STATE.pumpMult end
-end
-
--- click (INDEPENDENT)
-local function clickLoop()
-    local remote = ev("Level", "[C-S]Click")
-    while GEN == _G.__DRAINWATER do
-        if CONFIG.click and remote then
-            pcall(function() remote:FireServer() end)
-            task.wait(1 / math.max(1, CONFIG.clickRate))
-        else
-            task.wait(0.4)
-        end
-    end
-end
-
--- fish
-local function worldFish()
-    local verify = verifyFolder()
-    local folder = verify and verify:FindFirstChild("WorldFish")
-    return folder
-end
-
-local function clearedStages()
-    local done = {}
-    for _, row in ipairs(stageRows()) do
-        if row.completed then done[tostring(row.stageId)] = true end
-    end
-    for id = 1, 15 do
-        if LocalPlayer:GetAttribute("StageCompleted_" .. id) then done[tostring(id)] = true end
-    end
-    return done
-end
-
-local function claimableFish()
-    local out = {}
-    local folder = worldFish()
-    if not folder then return out end
-    local cleared = clearedStages()
-    for _, model in ipairs(folder:GetChildren()) do
-        if model:GetAttribute("Claimed") ~= true then
-            local prompt = model:FindFirstChildWhichIsA("ProximityPrompt", true)
-            local stageId = tostring(model:GetAttribute("StageId"))
-            if prompt and prompt.Enabled and cleared[stageId] then
-                local parent = prompt.Parent
-                local pos = parent:IsA("BasePart") and parent.Position
-                    or (parent:IsA("Model") and parent:GetPivot().Position)
-                if pos then
-                    local mutation = model:GetAttribute("Mutation")
-                    local mutMult = num(model:GetAttribute("MutationMultiplier")) or 1
-                    out[#out + 1] = {
-                        model = model, prompt = prompt, pos = pos,
-                        price = num(model:GetAttribute("Price")) or 0,
-                        rarity = model:GetAttribute("Rarity"),
-                        mutation = mutation, mutMult = mutMult,
-                    }
-                end
-            end
-        end
-    end
-    table.sort(out, function(a, b)
-        if a.price ~= b.price then return a.price > b.price end
-        return (a.mutMult or 1) > (b.mutMult or 1)
-    end)
-    return out
-end
-
-local function carried()
-    local data = invoke(fn("Fish", "[C-S]GetCarryFishData"))
-    if type(data) ~= "table" then return {}, 0, 0 end
-    return data.Items or {}, tonumber(data.Count) or 0, tonumber(data.Capacity) or 0
-end
-
-local function tankState()
-    local ui = invoke(fn("FishShow", "[C-S]GetUIState"))
-    if type(ui) ~= "table" then return nil end
-    STATE.displayed = tonumber(ui.displayedCount) or 0
-    STATE.slots = tonumber(ui.unlockedSlots) or 0
-    return ui
-end
-
-local function claimNearby(budgetSeconds, minPrice)
-    local list = claimableFish()
-    if #list == 0 then return 0 end
-    if minPrice and minPrice > 0 then
-        local keep = {}
-        for _, fish in ipairs(list) do
-            if fish.price >= minPrice then keep[#keep + 1] = fish end
-        end
-        list = keep
-        if #list == 0 then return 0 end
-    end
-    local _, count, capacity = carried()
-    local taken = 0
-    local t0 = os.clock()
-    for _, fish in ipairs(list) do
-        if count + taken >= math.max(1, capacity) then break end
-        if os.clock() - t0 > (budgetSeconds or 8) then break end
-        local _, had = carried()
-        local unpin = pin(function() return fish.pos + Vector3.new(0, 3, 0) end)
-        task.wait(CONFIG.settle)
-        pcall(function() fireproximityprompt(fish.prompt) end)
-        task.wait(0.3)
-        unpin()
-        local _, now = carried()
-        if now > had then
-            taken = taken + 1
-            STATE.claimed = STATE.claimed + 1
-            note("claimed " .. tostring(fish.rarity) .. " " .. short(fish.price))
-        else
-            break
-        end
-    end
-    return taken
-end
-
-local function plotButtons()
-    local plot = workspace:FindFirstChild(tostring(LocalPlayer:GetAttribute("FishShowPlotId")))
-    if not plot then return nil, nil end
-    local function posOf(name)
-        local part = plot:FindFirstChild(name, true)
-        if not part then return nil end
-        if part:IsA("BasePart") then return part.Position end
-        if part:IsA("Model") then return part:GetPivot().Position end
-        local inner = part:FindFirstChildWhichIsA("BasePart", true)
-        return inner and inner.Position
-    end
-    return posOf(PLACE_BUTTON), posOf(COLLECT_BUTTON)
-end
-
--- ------------------------------------------------------------
--- AUTO SELL FISH (DARI DECOMPILE SCRIPTS)
--- ------------------------------------------------------------
-
--- Sell all fish function
-local function sellAllFish(force)
-    local before = STATE.cash
-    local sellRemote = fn("Fish", "[C-S]SellAllFish")
-    
-    if not sellRemote then
-        note("Sell remote not found!")
-        return false
-    end
-    
-    -- Jika force enabled, kita coba sell dengan parameter
-    if force or CONFIG.sellProtected then
-        -- Coba sell semua termasuk protected
-        local result = invoke(sellRemote)
-        task.wait(0.3)
-        refresh()
-        local gained = STATE.cash - before
-        if gained > 0 then
-            STATE.sold = STATE.sold + 1
-            note("Force sold fish for " .. short(gained))
-            return true
-        end
-    end
-    
-    -- Sell normal (tidak menjual protected)
-    local result = invoke(sellRemote)
-    task.wait(0.3)
-    refresh()
-    local gained = STATE.cash - before
-    if gained > 0 then
-        STATE.sold = STATE.sold + 1
-        note("Sold fish for " .. short(gained))
-        return true
-    end
-    
-    return false
-end
-
--- Auto Sell Loop (Independent)
-local function autoSellLoop()
-    while GEN == _G.__DRAINWATER do
-        if not CONFIG.autoSellFish then
-            task.wait(0.5)
-            continue
-        end
-        
-        local _, count, capacity = carried()
-        
-        -- Cek apakah sudah waktunya sell (berdasarkan threshold)
-        if capacity > 0 and count >= capacity * CONFIG.sellThreshold then
-            withLock("auto_sell", function()
-                sellAllFish(CONFIG.sellProtected)
-                STATE.lastSellTime = os.clock()
-            end)
-        elseif CONFIG.autoSellFish and os.clock() - STATE.lastSellTime > CONFIG.sellInterval then
-            -- Sell periodik jika ada fish dan belum sell dalam interval
-            if count > 0 then
-                withLock("auto_sell", function()
-                    sellAllFish(CONFIG.sellProtected)
-                    STATE.lastSellTime = os.clock()
-                end)
-            end
-        end
-        
-        task.wait(1)
-    end
-end
-
--- ------------------------------------------------------------
--- PLOT TRIP (DENGAN AUTO SELL)
--- ------------------------------------------------------------
-local function plotTrip()
-    local placePos, collectPos = plotButtons()
-    if not placePos then note("no plot found") return false end
-
-    local unpin = pin(function() return placePos + Vector3.new(0, 4, 0) end)
-    task.wait(CONFIG.settle + 0.4)
-    local ui = tankState()
-
-    local inventory = {}
-    if ui and type(ui.items) == "table" then
-        for _, item in pairs(ui.items) do
-            if type(item) == "table" and item.uid then inventory[#inventory + 1] = item end
-        end
-    end
-    table.sort(inventory, function(a, b)
-        return (tonumber(a.price) or 0) > (tonumber(b.price) or 0)
-    end)
-
-    local free = math.max(0, (STATE.slots or 0) - (STATE.displayed or 0))
-    for _, item in ipairs(inventory) do
-        if free <= 0 or not CONFIG.display then break end
-        local reply = invoke(fn("FishShow", "[C-S]PlaceFishUI"), item.uid)
-        if type(reply) == "table" and reply.success then
-            STATE.placed = STATE.placed + 1
-            free = free - 1
-            note("displayed " .. tostring(item.name) .. " " .. short(item.price))
-        end
-        task.wait(0.15)
-    end
-    invoke(fn("FishShow", "[C-S]BestFishUI"))
-
-    -- AUTO SELL (dari display)
-    if CONFIG.sell or CONFIG.autoSellFish then
-        sellAllFish(CONFIG.sellProtected)
-    end
-
-    if collectPos then
-        unpin()
-        unpin = pin(function() return collectPos + Vector3.new(0, 4, 0) end)
-        task.wait(CONFIG.settle)
-        refresh()
-    end
-    unpin()
-    tankState()
-    return true
-end
-
--- ------------------------------------------------------------
--- DRAIN LOOP (INDEPENDENT)
--- ------------------------------------------------------------
-local function drainLoop()
-    while GEN == _G.__DRAINWATER do
-        if not CONFIG.drain then
-            task.wait(0.5)
-            continue
-        end
-        
-        refresh()
-        local stageId = STATE.stage
-        local pool = poolOf(stageId)
-        if not pool then note("no pool for stage " .. stageId) task.wait(1) continue end
-
-        local unpin = pin(function()
-            local current = value("Stage", "stage", stageId)
-            local part = (current == stageId) and pool or poolOf(current)
-            if part then
-                if current ~= stageId then stageId, pool = current, part end
-                return poolStand(part)
-            end
-            return nil
-        end)
-
-        local t0 = os.clock()
-        while CONFIG.drain and GEN == _G.__DRAINWATER do
-            task.wait(0.5)
-            refresh()
-            local left = remainingOf(STATE.stage)
-            STATE.remaining = left or 0
-            local dt = os.clock() - t0
-            if left and dt > 0.5 then
-                STATE.rate = math.max(0, left / dt)
-            end
-            note(string.format("stage %d   %s left   %s/s   pump x%s",
-                STATE.stage, short(STATE.remaining), short(STATE.rate), short(STATE.pumpMult)))
-            local _, count, capacity = carried()
-            
-            -- Auto sell check dalam drain loop
-            if CONFIG.autoSellFish and capacity > 0 and count >= capacity * CONFIG.sellThreshold then
-                unpin()
-                withLock("auto_sell", function()
-                    sellAllFish(CONFIG.sellProtected)
-                    STATE.lastSellTime = os.clock()
-                end)
-                -- Re-pin setelah sell
-                unpin = pin(function()
-                    local current = value("Stage", "stage", stageId)
-                    local part = (current == stageId) and pool or poolOf(current)
-                    if part then
-                        if current ~= stageId then stageId, pool = current, part end
-                        return poolStand(part)
-                    end
-                    return nil
-                end)
-            end
-            
-            if count >= math.max(1, capacity) then break end
-            if os.clock() - t0 > CONFIG.diveSeconds then break end
-        end
-        unpin()
-        
-        if not CONFIG.drain then break end
-        
-        if CONFIG.fish then
-            withLock("harvest", function()
-                local best = 0
-                for _, fish in ipairs(claimableFish()) do
-                    if fish.price > best then best = fish.price end
-                end
-                claimNearby(12, best * CONFIG.claimShare)
-            end)
-        end
-        
-        local _, count, capacity = carried()
-        if CONFIG.fish and count > 0 and (capacity > 0 and count >= capacity * CONFIG.fillRatio) then
-            withLock("plot", function() plotTrip() end)
-        end
-        
-        task.wait(0.5)
-    end
-end
-
--- ------------------------------------------------------------
--- ADVANCED FEATURES (INDEPENDENT)
--- ------------------------------------------------------------
-
-local function autoUpgradeTrainingArea()
-    if not CONFIG.autoTrainingArea then return end
-    if not TrainingAreaHelper then return end
-    if not TrainingAreaConfig then return end
-    
-    local currentArea = STATE.trainingArea or 1
-    local nextArea = currentArea + 1
-    
-    if nextArea > CONFIG.maxTrainingArea then return end
-    
-    local config = TrainingAreaConfig[tostring(nextArea)]
-    if not config then return end
-    
-    local rebirthRequired = config.rebirthRequired or 0
-    if STATE.rebirth < rebirthRequired then return end
-    
-    local price = TrainingAreaHelper.GetMiningPrice and TrainingAreaHelper.GetMiningPrice(nextArea)
-    if price and STATE.cash >= price then
-        local remote = ev("Training", "[C-S]BuyTrainingArea")
-        if remote then
-            pcall(function() remote:FireServer(nextArea) end)
-            task.wait(0.5)
-            refresh()
-            STATE.trainingArea = nextArea
-            note("Upgraded to Training Area " .. nextArea .. " (x" .. config.multiplier .. ")")
-        end
-    end
-end
-
-local function autoSpin()
-    if not CONFIG.autoSpin then return end
-    if not SpinHelper then return end
-    
-    local spinData = invoke(fn("Spin", "[C-S]GetSpinData"))
-    if not spinData or spinData.availableSpins <= 0 then return end
-    
-    local remote = ev("Spin", "[C-S]Spin")
-    if remote then
-        local success, reward = pcall(function() return remote:InvokeServer() end)
-        if success and reward then
-            STATE.spinCount = STATE.spinCount + 1
-            note("Spin reward: " .. tostring(reward))
-        end
-    end
-end
-
-local function autoBuyShopItems()
-    if not CONFIG.autoShopItems then return end
-    if not ShopHelper then return end
-    
-    local configs = ShopHelper.GetAllConfig and ShopHelper.GetAllConfig()
-    if not configs then return end
-    
-    for key, item in pairs(configs) do
-        if item.kind == "CashMultiplier" and CONFIG.autoBuyStamina then
-            local remote = ev("Shop", "[C-S]BuyProduct")
-            if remote then
-                pcall(function() remote:FireServer(key) end)
-                task.wait(0.3)
-            end
-        elseif item.kind == "RepeatableProduct" and CONFIG.autoClaimLimitedFish then
-            local stock = Workspace:GetAttribute("MechaGaiokaRemaining") or 0
-            if stock > 0 then
-                local remote = ev("Shop", "[C-S]BuyProduct")
-                if remote then
-                    pcall(function() remote:FireServer(key) end)
-                    STATE.limitedFishClaimed = STATE.limitedFishClaimed + 1
-                    task.wait(0.5)
-                end
-            end
-        end
-    end
-end
-
-local function autoUpgradePets()
-    if not CONFIG.autoPetUpgrade then return end
-    if not PetHelper then return end
-    
-    local equip = ev("Pet", "EquipBest")
-    if equip then pcall(function() equip:FireServer() end) end
-    
-    local petData = invoke(fn("Pet", "GetPlayerPetData"))
-    if not petData then return end
-    
-    local allPets = PetHelper.GetAllPetConfig and PetHelper.GetAllPetConfig()
-    if not allPets then return end
-    
-    local bestPet = nil
-    local bestValue = 0
-    
-    for id, config in pairs(allPets) do
-        local value = (config.add or 0) * (config.luckWeight or 1)
-        if value > bestValue then
-            bestValue = value
-            bestPet = id
-        end
-    end
-    
-    if bestPet then
-        for _, pet in pairs(petData.UnEquipPet or {}) do
-            if pet.ID == tonumber(bestPet) and pet.Star < 3 then
-                local upgrade = ev("Pet", "UpgradePet")
-                if upgrade then
-                    pcall(function() upgrade:FireServer(pet.UID) end)
-                    task.wait(0.2)
-                end
-            end
-        end
-    end
-end
-
-local function autoFishTraining()
-    if not CONFIG.autoFishTraining then return end
-    
-    local plotId = LocalPlayer:GetAttribute("FishShowPlotId")
-    if not plotId then return end
-    
-    local remote = ev("Fish", "[C-S]TrainFish")
-    if remote then
-        pcall(function() remote:FireServer() end)
-        task.wait(0.3)
-    end
-end
-
-local function autoClaimLimitedFish()
-    if not CONFIG.autoClaimLimitedFish then return end
-    
-    local available = Workspace:GetAttribute("MechaGaiokaStockAvailable") == true
-    local soldOut = Workspace:GetAttribute("MechaGaiokaSoldOut") == true
-    local remaining = Workspace:GetAttribute("MechaGaiokaRemaining") or 0
-    
-    if available and not soldOut and remaining > 0 then
-        local buy = ev("Fish", "[C-S]BuyLimitedFish")
-        if buy then
-            pcall(function() buy:FireServer() end)
-            task.wait(0.5)
-            STATE.limitedFishClaimed = STATE.limitedFishClaimed + 1
-            note("Claimed limited fish! Remaining: " .. (remaining - 1))
-        end
-    end
-end
-
-local function autoClaimBestFishReward()
-    local state = invoke(fn("FishShow", "[C-S]GetState"))
-    if state and state.bestFishReward and state.bestFishReward.amount > 0 then
-        local claim = fn("FishShow", "[C-S]ClaimBestFishReward")
-        if claim then
-            local result = invoke(claim)
-            if result and result.success then
-                note("Claimed Best Fish Reward")
-            end
-        end
-    end
-end
-
-local function autoClaimOfflineCash()
-    if not CONFIG.offline then return end
-    
-    local state = invoke(fn("FishShow", "[C-S]GetState"))
-    if state and state.offlinePendingCash and state.offlinePendingCash > 0 then
-        local claim = fn("FishShow", "[C-S]ClaimOfflineCash")
-        if claim then
-            local result = invoke(claim)
-            if result and result.success then
-                note("Claimed offline cash: " .. short(state.offlinePendingCash))
-            end
-        end
-    end
-end
-
--- ------------------------------------------------------------
--- SPENDING (INDEPENDENT)
--- ------------------------------------------------------------
-local function configModule(name)
-    local root = ReplicatedStorage:FindFirstChild("Config") or ReplicatedStorage
-    local module = root:FindFirstChild(name, true)
-    if not module then return nil end
-    local ok, loaded = pcall(require, module)
-    return ok and loaded or nil
-end
-
-local function ladderBuy(helper, getter, buyEvent, equipEvent, ownedGetter, label)
-    local cfg = configModule(helper)
-    local all = cfg and cfg[getter] and select(2, pcall(cfg[getter]))
-    if type(all) ~= "table" then return false end
-
-    local owned = {}
-    local data = invoke(ownedGetter)
-    if type(data) == "table" and type(data.Owned) == "table" then
-        for id, flag in pairs(data.Owned) do
-            if flag then owned[tostring(id)] = true end
-        end
-    end
-    local equipped = type(data) == "table" and data.Equipped or nil
-
-    local best
-    for id, entry in pairs(all) do
-        local price = num(entry.cashPrice)
-        local mult = num(entry.multiplier) or 0
-        if price and price <= STATE.cash then
-            if not best or mult > best.mult then best = { id = id, mult = mult, price = price,
-                name = tostring(entry.name or id) }
-            end
-        end
-    end
-    if not best then return false end
-
-    local currentMult = 0
-    for id, entry in pairs(all) do
-        if tostring(id) == tostring(equipped) then currentMult = num(entry.multiplier) or 0 end
-    end
-    if best.mult <= currentMult then return false end
-
-    local before = STATE.cash
-    if not owned[tostring(best.id)] then
-        pcall(function() buyEvent:FireServer(best.id) end)
-        task.wait(0.2)
-    end
-    pcall(function() equipEvent:FireServer(best.id) end)
-    task.wait(0.3)
-    refresh()
-    if STATE.cash < before or best.mult > currentMult then
-        note(label .. " " .. best.name .. "  x" .. tostring(best.mult))
-        return true
-    end
-    return false
-end
-
-local function buyPump()
-    if not CONFIG.pumps then return false end
-    if not rawget(_G, "__DRAINWATER_PUMPCFG") then
-        local cfg = configModule("PumpHelper")
-        local all = cfg and cfg.GetAllPumpConfig and select(2, pcall(cfg.GetAllPumpConfig))
-        if type(all) == "table" then _G.__DRAINWATER_PUMPCFG = all end
-    end
-    return ladderBuy("PumpHelper", "GetAllPumpConfig",
-        ev("Pump", "[C-S]BuyCashPump"), ev("Pump", "[C-S]EquipPump"),
-        fn("Pump", "[C-S]GetPumpData"), "pump")
-end
-
-local function buyAura()
-    if not CONFIG.auras then return false end
-    return ladderBuy("AuraHelper", "GetAllAuraConfig",
-        ev("Aura", "[C-S]BuyCashAura"), ev("Aura", "[C-S]EquipAura"),
-        fn("Aura", "[C-S]GetAuraData"), "aura")
-end
-
-local function pumpReserve()
-    local cfg = rawget(_G, "__DRAINWATER_PUMPCFG")
-    if type(cfg) ~= "table" then return 0 end
-    local cheapest
-    for id, entry in pairs(cfg) do
-        local price = num(entry.cashPrice)
-        local mult = num(entry.multiplier) or 0
-        if price and price > 0 and mult > (STATE.pumpMult or 0) then
-            if not cheapest or price < cheapest then cheapest = price end
-        end
-    end
-    if not cheapest then return 0 end
-    return (cheapest <= STATE.cash * CONFIG.pumpReach) and cheapest or 0
-end
-
-local function spendable()
-    local reserve = pumpReserve()
-    STATE.reserve = reserve
-    return math.max(0, STATE.cash - reserve)
-end
-
-local UPGRADE_ORDER = { "Backpack", "FishDisplay", "Speed" }
-
-local function buyUpgrades()
-    if not CONFIG.upgrades then return false end
-    local data = invoke(fn("Upgrade", "[C-S]GetUpgradeData"))
-    if type(data) ~= "table" then return false end
-    local remote = ev("Upgrade", "[C-S]BuyCashUpgrade")
-    if not remote then return false end
-    local bought = false
-    for _, name in ipairs(UPGRADE_ORDER) do
-        local row = data[name]
-        local price = num(row and (row.price or row.cost))
-        local blocked = price and price > spendable()
-        if type(row) == "table" and not blocked
-            and (num(row.level) or 0) < (num(row.maxLevel) or 0) then
-            local before = STATE.cash
-            pcall(function() remote:FireServer(name) end)
-            task.wait(0.3)
-            refresh()
-            if STATE.cash < before then
-                note("upgrade " .. name .. " -> " .. tostring((num(row.level) or 0) + 1))
-                bought = true
-            end
-        end
-    end
-    return bought
-end
-
-local function openEggs()
-    if not CONFIG.eggs then return false end
-    local cfg = configModule("EggHelper")
-    local all = cfg and cfg.GetAllEggConfig and select(2, pcall(cfg.GetAllEggConfig))
-    if type(all) ~= "table" then return false end
-    local best
-    for id, entry in pairs(all) do
-        local price = num(entry.cashPrice)
-        if price and price <= spendable() then
-            if not best or price > best.price then best = { id = id, price = price } end
-        end
-    end
-    if not best then return false end
-    local can = invoke(fn("Egg", "[C-S]CanOpenEgg"), best.id, 1)
-    if can == false then return false end
-    local before = STATE.cash
-    invoke(fn("Egg", "[C-S]OpenEgg"), best.id, 1)
-    task.wait(0.5)
-    refresh()
-    if STATE.cash < before then
-        note("egg " .. tostring(best.id) .. " opened")
-        if CONFIG.pets then
-            local equip = ev("Pet", "EquipBest")
-            if equip then pcall(function() equip:FireServer() end) end
-        end
-        return true
-    end
-    return false
-end
-
-local function mergePets()
-    if not CONFIG.merge then return false end
-    local getData = fn("Pet", "GetPlayerPetData")
-    local craft = ev("Pet", "CraftPet")
-    if not (getData and craft) then return false end
-
-    local merged = 0
-    for _ = 1, 10 do
-        local data = invoke(getData)
-        if type(data) ~= "table" then break end
-        local groups, total = {}, 0
-        for _, list in ipairs({ data.UnEquipPet or {}, data.EquipPet or {} }) do
-            for _, pet in pairs(list) do
-                if not pet.isLock then
-                    local key = tostring(pet.ID) .. "*" .. tostring(pet.Star)
-                    groups[key] = groups[key] or { id = pet.ID, count = 0, name = pet.Name }
-                    groups[key].count = groups[key].count + 1
-                end
-                total = total + 1
-            end
-        end
-        local pick
-        for _, group in pairs(groups) do
-            if group.count >= 3 and (not pick or group.count > pick.count) then pick = group end
-        end
-        if not pick then break end
-
-        pcall(function() craft:FireServer(pick.id) end)
-        task.wait(0.5)
-        local after = invoke(getData)
-        local newTotal = 0
-        if type(after) == "table" then
-            for _, list in ipairs({ after.UnEquipPet or {}, after.EquipPet or {} }) do
-                for _ in pairs(list) do newTotal = newTotal + 1 end
-            end
-        end
-        if newTotal >= total then break end
-        merged = merged + 1
-        note("merged 3x " .. tostring(pick.name))
-    end
-    if merged > 0 then
-        local equip = ev("Pet", "EquipBest")
-        if equip then pcall(function() equip:FireServer() end) end
-    end
-    return merged > 0
-end
-
-local function doRebirth()
-    if not CONFIG.rebirth then return false end
-    local remote = ev("Rebirth", "[C - S]TryRebirth")
-        or ev("Rebirth", "[C-S]TryRebirth")
-    if not remote then return false end
-    local before = STATE.rebirth
-    if CONFIG.rebirthUntil > 0 and before >= CONFIG.rebirthUntil then return false end
-    pcall(function() remote:FireServer() end)
-    task.wait(0.8)
-    refresh()
-    if STATE.rebirth > before then
-        note("rebirth " .. STATE.rebirth)
-        return true
-    end
-    return false
-end
-
--- ------------------------------------------------------------
--- ADVANCED INDEPENDENT LOOPS
--- ------------------------------------------------------------
-
-task.spawn(function()
-    while GEN == _G.__DRAINWATER do
-        pcall(autoUpgradeTrainingArea)
-        pcall(autoBuyShopItems)
-        pcall(autoClaimLimitedFish)
-        pcall(autoFishTraining)
-        pcall(autoClaimBestFishReward)
-        
-        if SpinHelper and CONFIG.autoSpin and STATE.spinCount % CONFIG.spinInterval == 0 then
-            pcall(autoSpin)
-        end
-        
-        task.wait(5)
-    end
-end)
-
-task.spawn(function()
-    while GEN == _G.__DRAINWATER do
-        if CONFIG.autoPetUpgrade then
-            pcall(autoUpgradePets)
-        end
-        task.wait(10)
-    end
-end)
-
--- ------------------------------------------------------------
--- MAIN FARM LOOP
--- ------------------------------------------------------------
-task.spawn(function()
-    while GEN == _G.__DRAINWATER do
-        if CONFIG.auto then
-            local lastSpend = 0
-            
-            while CONFIG.auto and GEN == _G.__DRAINWATER do
-                refresh()
-                
-                if CONFIG.offline then
-                    pcall(autoClaimOfflineCash)
-                end
-                
-                if CONFIG.pumps then pcall(buyPump) end
-                if CONFIG.upgrades then pcall(buyUpgrades) end
-                if CONFIG.auras then pcall(buyAura) end
-                if CONFIG.eggs then pcall(openEggs) end
-                if CONFIG.pets then
-                    if CONFIG.merge then pcall(mergePets) end
-                end
-                if CONFIG.display then pcall(function() invoke(fn("FishShow", "[C-S]BestFishUI")) end) end
-                if CONFIG.rebirth then pcall(doRebirth) end
-                
-                task.wait(1)
-            end
-        else
-            task.wait(0.5)
-        end
-    end
-end)
-
--- ------------------------------------------------------------
--- BACKGROUND LOOPS
--- ------------------------------------------------------------
-
-task.spawn(clickLoop)
-task.spawn(drainLoop)
-task.spawn(autoSellLoop) -- Auto sell loop independent
-
-task.spawn(function()
-    while GEN == _G.__DRAINWATER do
-        refresh()
-        task.wait(0.5)
-    end
-end)
-
--- Load pump config
-do
-    local cfg = configModule("PumpHelper")
-    local all = cfg and cfg.GetAllPumpConfig and select(2, pcall(cfg.GetAllPumpConfig))
-    if type(all) == "table" then _G.__DRAINWATER_PUMPCFG = all end
-end
-
-
-
--- ------------------------------------------------------------
--- MOVEMENT & PLAYER UTILITY HOOKS
--- ------------------------------------------------------------
-RunService.Stepped:Connect(function()
-    if CONFIG.noclip then
-        local c = LocalPlayer.Character
-        if c then
-            for _, part in ipairs(c:GetDescendants()) do
-                if part:IsA("BasePart") and part.CanCollide then
-                    part.CanCollide = false
-                end
-            end
-        end
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if CONFIG.infiniteJump then
-        local _, _, h = char()
-        if h then
-            h:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end
-end)
-
-
--- ------------------------------------------------------------
--- CREATE WINDOW (PINATHUB BRANDING - PinatHub MODERN STYLE)
--- ------------------------------------------------------------
-local Window = Library:NewWindow({
-    Title = "PinatHub | Drain Water",
-    Description = "Control Center",
-    Size = UDim2.fromOffset(630, 390)
-})
-
-Window:SetToggleKey(Enum.KeyCode.RightShift)
-
--- FULL SHUTDOWN HOOK ON CLOSE
-Window:OnClose(function()
-    _G.__DRAINWATER = (_G.__DRAINWATER or 0) + 1
-    for k, _ in pairs(CONFIG) do
-        if type(CONFIG[k]) == "boolean" then
-            CONFIG[k] = false
-        end
-    end
-    pcall(function()
-        local _, _, h = char()
-        if h then
-            h.WalkSpeed = 16
-            h.JumpPower = 50
-        end
-    end)
-    warn("[PinatHub] Full shutdown completed. All features and loops stopped.")
-end)
-
--- Welcome Toast Notification
-Library:Notify({
-    Title = "PinatHub | Drain Water",
-    Content = "Successfully initialized!\nPress RightShift or click floating logo to toggle.",
-    Type = "Success",
-    Duration = 4
-})
-
--- ------------------------------------------------------------
--- CREATE TABS (100% UNIQUE ICONS - NO DUPLICATES, NO BLANKS)
--- ------------------------------------------------------------
-local Tabs = {}
-
-Tabs.Farm = Window:T("Auto Farm", "rbxassetid://10723344432", "Drain Water Controls")
-Tabs.Upgrades = Window:T("Upgrades", "rbxassetid://10709768939", "Upgrade Settings")
-Tabs.Fish = Window:T("Fish & Pets", "rbxassetid://10709761530", "Fish and Pet Settings")
-Tabs.Sell = Window:T("Auto Sell", "rbxassetid://10723343958", "Auto Sell Fish Settings")
-Tabs.Advanced = Window:T("Advanced", "rbxassetid://10747383470", "Advanced & Utilities")
-Tabs.Stats = Window:T("Live Stats", "rbxassetid://10709770317", "Real-time Telemetry")
-Tabs.Community = Window:T("Community", "rbxassetid://10747373426", "Join PinatHub Community")
-
--- ------------------------------------------------------------
--- 1. AUTO FARM TAB
--- ------------------------------------------------------------
-local farmSection = Tabs.Farm:AddSection("Auto Farm")
-
-farmSection:AddToggle({
-    Title = "MASTER SWITCH",
-    Description = "Enable/Disable all auto farm components",
-    Default = CONFIG.auto,
-    Callback = function(v)
-        CONFIG.auto = v
-        note(v and "auto running" or "auto stopped")
-        Library:Notify({
-            Title = "Master Switch",
-            Content = v and "All Auto Features ENABLED!" or "All Auto Features DISABLED",
-            Type = v and "Success" or "Info",
-            Duration = 2
-        })
-    end
-})
-
-farmSection:AddSeperator()
-
-farmSection:AddToggle({
-    Title = "Drain pools",
-    Description = "Stand in the current stage pool - presence alone drains it",
-    Default = CONFIG.drain,
-    Callback = function(v)
-        CONFIG.drain = v
-        if v then Library:Notify({ Title = "Drain", Content = "Drain ACTIVE (Independent)", Type = "Success", Duration = 2 }) end
-    end
-})
-
-farmSection:AddToggle({
-    Title = "Click",
-    Description = "Only feeds the level bar; server credits about 15/s at most",
-    Default = CONFIG.click,
-    Callback = function(v)
-        CONFIG.click = v
-        if v then Library:Notify({ Title = "Click", Content = "Click ACTIVE (Independent)", Type = "Success", Duration = 2 }) end
-    end
-})
-
-farmSection:AddSlider({
-    Title = "Clicks/sec",
-    Min = 4,
-    Max = 50,
-    Default = CONFIG.clickRate,
-    Increment = 1,
-    Callback = function(v) CONFIG.clickRate = math.floor(v) end
-})
-
-farmSection:AddToggle({
-    Title = "Claim fish",
-    Description = "Only pools you have already drained hand their fish over",
-    Default = CONFIG.fish,
-    Callback = function(v)
-        CONFIG.fish = v
-        if v then Library:Notify({ Title = "Claim Fish", Content = "Fish Claim ACTIVE (Independent)", Type = "Success", Duration = 2 }) end
-    end
-})
-
-farmSection:AddToggle({
-    Title = "Display best fish",
-    Description = "A displayed fish pays 10% of its price every minute, forever",
-    Default = CONFIG.display,
-    Callback = function(v)
-        CONFIG.display = v
-        if v then Library:Notify({ Title = "Display", Content = "Display ACTIVE (Independent)", Type = "Success", Duration = 2 }) end
-    end
-})
-
-farmSection:AddSeperator()
-
-farmSection:AddToggle({
-    Title = "Auto rebirth",
-    Description = "Resets the stage run, multiplies water and cash",
-    Default = CONFIG.rebirth,
-    Callback = function(v)
-        CONFIG.rebirth = v
-        if v then Library:Notify({ Title = "Rebirth", Content = "Auto Rebirth ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-farmSection:AddSlider({
-    Title = "Dive seconds",
-    Min = 10,
-    Max = 120,
-    Default = CONFIG.diveSeconds,
-    Increment = 1,
-    Callback = function(v) CONFIG.diveSeconds = v end
-})
-
--- Extended Farm Tuning Section
-local farmSettingsSection = Tabs.Farm:AddSection("Farm Tuning & Radius")
-
-farmSettingsSection:AddSlider({
-    Title = "Claim Radius (studs)",
-    Min = 5,
-    Max = 50,
-    Default = CONFIG.claimRadius,
-    Increment = 1,
-    Callback = function(v) CONFIG.claimRadius = math.floor(v) end
-})
-
-farmSettingsSection:AddSlider({
-    Title = "Pump Reach Multiplier",
-    Min = 1,
-    Max = 10,
-    Default = math.floor(CONFIG.pumpReach),
-    Increment = 0.5,
-    Callback = function(v) CONFIG.pumpReach = v end
-})
-
-farmSettingsSection:AddSlider({
-    Title = "Rebirth Target Stage",
-    Min = 0,
-    Max = 100,
-    Default = CONFIG.rebirthUntil,
-    Increment = 1,
-    Callback = function(v) CONFIG.rebirthUntil = math.floor(v) end
-})
-
-farmSettingsSection:AddSlider({
-    Title = "Plot Settle Delay (s)",
-    Min = 0.1,
-    Max = 3,
-    Default = CONFIG.settle,
-    Increment = 0.1,
-    Callback = function(v) CONFIG.settle = v end
-})
-
-farmSettingsSection:AddButton({
-    Title = "Unstuck Character",
-    Description = "Stop auto and reset character busy state",
-    Callback = function()
-        CONFIG.auto = false
-        STATE.busy = false
-        note("unstuck, auto off")
-        Library:Notify({ Title = "Unstuck", Content = "Auto disabled and state reset", Type = "Warning", Duration = 2 })
-    end
-})
-
--- ------------------------------------------------------------
--- 2. UPGRADES TAB
--- ------------------------------------------------------------
-local upgradeSection = Tabs.Upgrades:AddSection("Upgrades")
-
-upgradeSection:AddToggle({
-    Title = "Buy pumps",
-    Description = "The pump multiplies the drain, bought first",
-    Default = CONFIG.pumps,
-    Callback = function(v)
-        CONFIG.pumps = v
-        if v then Library:Notify({ Title = "Pumps", Content = "Auto Pumps ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-upgradeSection:AddToggle({
-    Title = "Buy upgrades",
-    Description = "FishDisplay and Backpack first, widen the pipeline",
-    Default = CONFIG.upgrades,
-    Callback = function(v)
-        CONFIG.upgrades = v
-        if v then Library:Notify({ Title = "Upgrades", Content = "Auto Upgrades ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-upgradeSection:AddToggle({
-    Title = "Buy auras",
-    Description = "Buy aura upgrades",
-    Default = CONFIG.auras,
-    Callback = function(v)
-        CONFIG.auras = v
-        if v then Library:Notify({ Title = "Auras", Content = "Auto Auras ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-upgradeSection:AddToggle({
-    Title = "Open eggs",
-    Description = "Cash eggs only; Robux eggs have no cash price and are skipped",
-    Default = CONFIG.eggs,
-    Callback = function(v)
-        CONFIG.eggs = v
-        if v then Library:Notify({ Title = "Eggs", Content = "Auto Eggs ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-upgradeSection:AddToggle({
-    Title = "Free rewards",
-    Description = "Offline earnings and tank pending cash",
-    Default = CONFIG.offline,
-    Callback = function(v)
-        CONFIG.offline = v
-        if v then Library:Notify({ Title = "Free Rewards", Content = "Auto Claim Rewards ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-upgradeSection:AddToggle({
-    Title = "Merge pets",
-    Description = "Three of a kind into one better one, locked pets are left alone",
-    Default = CONFIG.merge,
-    Callback = function(v)
-        CONFIG.merge = v
-        if v then Library:Notify({ Title = "Merge Pets", Content = "Auto Merge Pets ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-upgradeSection:AddToggle({
-    Title = "Pets",
-    Description = "Equip best pet after every hatch",
-    Default = CONFIG.pets,
-    Callback = function(v)
-        CONFIG.pets = v
-        if v then Library:Notify({ Title = "Pets", Content = "Auto Pets ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-upgradeSection:AddSlider({
-    Title = "Spend every (seconds)",
-    Min = 3,
-    Max = 60,
-    Default = CONFIG.spendEvery,
-    Increment = 1,
-    Callback = function(v) CONFIG.spendEvery = v end
-})
-
--- ------------------------------------------------------------
--- 3. FISH & PETS TAB
--- ------------------------------------------------------------
-local fishSection = Tabs.Fish:AddSection("Fish & Pets Settings")
-
-fishSection:AddToggle({
-    Title = "Display best fish",
-    Description = "A displayed fish pays 10% of its price every minute, forever",
-    Default = CONFIG.display,
-    Callback = function(v) CONFIG.display = v end
-})
-
-fishSection:AddToggle({
-    Title = "Merge pets",
-    Description = "Three of a kind into one better one, locked pets are left alone",
-    Default = CONFIG.merge,
-    Callback = function(v) CONFIG.merge = v end
-})
-
-fishSection:AddToggle({
-    Title = "Pets",
-    Description = "Equip best pet after every hatch",
-    Default = CONFIG.pets,
-    Callback = function(v) CONFIG.pets = v end
-})
-
-fishSection:AddSlider({
-    Title = "Harvest after (seconds)",
-    Min = 5,
-    Max = 45,
-    Default = CONFIG.harvestAfter,
-    Increment = 1,
-    Callback = function(v) CONFIG.harvestAfter = v end
-})
-
-fishSection:AddSlider({
-    Title = "Stall seconds",
-    Min = 10,
-    Max = 90,
-    Default = CONFIG.stallSeconds,
-    Increment = 1,
-    Callback = function(v) CONFIG.stallSeconds = v end
-})
-
-fishSection:AddSlider({
-    Title = "Claim share (%)",
-    Min = 5,
-    Max = 90,
-    Default = math.floor(CONFIG.claimShare * 100),
-    Increment = 1,
-    Callback = function(v) CONFIG.claimShare = v / 100 end
-})
-
-fishSection:AddSlider({
-    Title = "Topup share (%)",
-    Min = 5,
-    Max = 90,
-    Default = math.floor(CONFIG.topupShare * 100),
-    Increment = 1,
-    Callback = function(v) CONFIG.topupShare = v / 100 end
-})
-
-fishSection:AddSlider({
-    Title = "Backpack Fill Ratio (%)",
-    Min = 50,
-    Max = 100,
-    Default = math.floor(CONFIG.fillRatio * 100),
-    Increment = 1,
-    Callback = function(v) CONFIG.fillRatio = v / 100 end
-})
-
--- ------------------------------------------------------------
--- 4. AUTO SELL TAB
--- ------------------------------------------------------------
-local sellSection = Tabs.Sell:AddSection("Auto Sell Fish")
-
-sellSection:AddToggle({
-    Title = "Auto Sell Fish",
-    Description = "Enable automatic fish selling when backpack is full",
-    Default = CONFIG.autoSellFish,
-    Callback = function(v)
-        CONFIG.autoSellFish = v
-        Library:Notify({
-            Title = "Auto Sell",
-            Content = v and "Auto Sell Fish ACTIVE" or "Auto Sell Fish DISABLED",
-            Type = v and "Success" or "Info",
-            Duration = 2
-        })
-    end
-})
-
-sellSection:AddToggle({
-    Title = "Sell Protected Fish",
-    Description = "⚠️ Sell fish even if protected (risky!)",
-    Default = CONFIG.sellProtected,
-    Callback = function(v)
-        CONFIG.sellProtected = v
-        if v then Library:Notify({ Title = "Warning", Content = "Sell Protected Fish ENABLED - Risky!", Type = "Warning", Duration = 3 }) end
-    end
-})
-
-sellSection:AddSlider({
-    Title = "Sell Threshold (%)",
-    Min = 50,
-    Max = 100,
-    Default = math.floor(CONFIG.sellThreshold * 100),
-    Increment = 1,
-    Callback = function(v) CONFIG.sellThreshold = v / 100 end
-})
-
-sellSection:AddSlider({
-    Title = "Sell Interval (seconds)",
-    Min = 5,
-    Max = 120,
-    Default = CONFIG.sellInterval,
-    Increment = 1,
-    Callback = function(v) CONFIG.sellInterval = v end
-})
-
-sellSection:AddSeperator()
-
-sellSection:AddButton({
-    Title = "Sell All Fish Now",
-    Description = "Force sell all fish immediately",
-    Callback = function()
-        task.spawn(function()
-            withLock("manual_sell", function()
-                local result = sellAllFish(true)
-                if result then
-                    Library:Notify({ Title = "Sell", Content = "Fish sold successfully!", Type = "Success", Duration = 2 })
-                else
-                    Library:Notify({ Title = "Sell", Content = "No fish to sell or failed", Type = "Warning", Duration = 2 })
-                end
-            end)
-        end)
-    end
-})
-
--- ------------------------------------------------------------
--- 5. ADVANCED TAB & UTILITIES
--- ------------------------------------------------------------
-local advancedSection = Tabs.Advanced:AddSection("Advanced Automation")
-
-advancedSection:AddToggle({
-    Title = "Auto Training Area",
-    Description = "Upgrade training area for pump multiplier (x1.5 to x100)",
-    Default = CONFIG.autoTrainingArea,
-    Callback = function(v)
-        CONFIG.autoTrainingArea = v
-        if v then Library:Notify({ Title = "Training Area", Content = "Auto Training Area ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-advancedSection:AddToggle({
-    Title = "Auto Spin",
-    Description = "Auto use available spins",
-    Default = CONFIG.autoSpin,
-    Callback = function(v)
-        CONFIG.autoSpin = v
-        if v then Library:Notify({ Title = "Spin", Content = "Auto Spin ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-advancedSection:AddToggle({
-    Title = "Auto Shop Items",
-    Description = "Buy Stamina, Trophy and other shop items",
-    Default = CONFIG.autoShopItems,
-    Callback = function(v)
-        CONFIG.autoShopItems = v
-        if v then Library:Notify({ Title = "Shop Items", Content = "Auto Shop Items ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-advancedSection:AddToggle({
-    Title = "Auto Pet Upgrade",
-    Description = "Auto upgrade best pet stars to max",
-    Default = CONFIG.autoPetUpgrade,
-    Callback = function(v)
-        CONFIG.autoPetUpgrade = v
-        if v then Library:Notify({ Title = "Pet Upgrade", Content = "Auto Pet Upgrade ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-advancedSection:AddToggle({
-    Title = "Auto Fish Training",
-    Description = "Train fish in training area",
-    Default = CONFIG.autoFishTraining,
-    Callback = function(v)
-        CONFIG.autoFishTraining = v
-        if v then Library:Notify({ Title = "Fish Training", Content = "Auto Fish Training ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-advancedSection:AddToggle({
-    Title = "Auto Claim Limited Fish",
-    Description = "Auto claim Mecha Kunka limited fish",
-    Default = CONFIG.autoClaimLimitedFish,
-    Callback = function(v)
-        CONFIG.autoClaimLimitedFish = v
-        if v then Library:Notify({ Title = "Limited Fish", Content = "Auto Claim Limited Fish ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-advancedSection:AddToggle({
-    Title = "Auto Buy Stamina",
-    Description = "Auto buy 2x Cash multiplier",
-    Default = CONFIG.autoBuyStamina,
-    Callback = function(v)
-        CONFIG.autoBuyStamina = v
-        if v then Library:Notify({ Title = "Stamina", Content = "Auto Buy Stamina ACTIVE", Type = "Success", Duration = 2 }) end
-    end
-})
-
-advancedSection:AddSlider({
-    Title = "Max Training Area",
-    Min = 1,
-    Max = 9,
-    Default = CONFIG.maxTrainingArea,
-    Increment = 1,
-    Callback = function(v) CONFIG.maxTrainingArea = math.floor(v) end
-})
-
-advancedSection:AddSlider({
-    Title = "Spin Interval (spins)",
-    Min = 1,
-    Max = 20,
-    Default = CONFIG.spinInterval,
-    Increment = 1,
-    Callback = function(v) CONFIG.spinInterval = math.floor(v) end
-})
-
--- Section: Player & World Utilities
-local utilSection = Tabs.Advanced:AddSection("Player & World Utilities")
-
-utilSection:AddToggle({
-    Title = "Anti-AFK Protection",
-    Description = "Prevents Roblox 20-minute idle disconnect",
-    Default = true,
-    Callback = function(v)
-        Library:Notify({
-            Title = "Anti-AFK",
-            Content = v and "Anti-AFK is ACTIVE" or "Anti-AFK disabled",
-            Type = v and "Success" or "Info",
-            Duration = 2
-        })
-    end
-})
-
-utilSection:AddToggle({
-    Title = "Disable Shadows",
-    Description = "Improves FPS and makes visibility clearer",
-    Default = true,
-    Callback = function(v)
-        pcall(function() Lighting.GlobalShadows = not v end)
-    end
-})
-
-utilSection:AddToggle({
-    Title = "Fullbright Mode",
-    Description = "Maximizes ambient lighting for clear vision",
-    Default = false,
-    Callback = function(v)
-        pcall(function()
-            if v then
-                Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-                Lighting.Brightness = 2
-            else
-                Lighting.Ambient = Color3.fromRGB(128, 128, 128)
-                Lighting.Brightness = 1
-            end
-        end)
-    end
-})
-
-utilSection:AddToggle({
-    Title = "Infinite Jump",
-    Description = "Jump continuously even while in mid-air",
-    Default = false,
-    Callback = function(v) CONFIG.infiniteJump = v end
-})
-
-utilSection:AddToggle({
-    Title = "Noclip",
-    Description = "Walk through walls and barriers smoothly",
-    Default = false,
-    Callback = function(v) CONFIG.noclip = v end
-})
-
-utilSection:AddSlider({
-    Title = "WalkSpeed",
-    Min = 16,
-    Max = 120,
-    Default = 16,
-    Increment = 1,
-    Callback = function(v)
-        local _, _, h = char()
-        if h then h.WalkSpeed = v end
-    end
-})
-
-utilSection:AddSlider({
-    Title = "JumpPower",
-    Min = 50,
-    Max = 200,
-    Default = 50,
-    Increment = 1,
-    Callback = function(v)
-        local _, _, h = char()
-        if h then h.JumpPower = v end
-    end
-})
-
-utilSection:AddButton({
-    Title = "Rejoin Server",
-    Description = "Reconnect to the same server instance",
-    Callback = function()
-        pcall(function()
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
-        end)
-    end
-})
-
--- ------------------------------------------------------------
--- 6. LIVE STATS TAB (MODERN REAL-TIME WEBSITE STATS DASHBOARD)
--- ------------------------------------------------------------
-local statsHeaderSec = Tabs.Stats:AddSection("Telemetry Control Center")
-
--- Status Header Pill
-local statusPill = statsHeaderSec:AddParagraph({
-    Title = "● LIVE TELEMETRY ENGINE",
-    Content = "Streaming real-time water throughput, stage pipeline, and currency metrics..."
-})
-
--- MODERN REAL-TIME DATA GRAPH SECTION
-local graphSection = Tabs.Stats:AddSection("Live Water Drain Rate Graph (L/s)")
-
--- Built-in Real-Time Graph Component
-local drainGraph = graphSection:AddGraph({
-    Title = "DRAIN RATE THROUGHPUT",
-    BarCount = 14,
-    MaxValue = 100,
-    Height = 110,
-    BarColor = Library.Theme.Accent,
-    BarGlow = Library.Theme.AccentGlow,
-    Unit = "/s"
-})
-
--- KPI METRICS CARDS
-local metricsSec = Tabs.Stats:AddSection("Key Performance Metrics")
-
-local ecoCard = metricsSec:AddParagraph({
-    Title = "💰 Treasury & Resources",
-    Content = "Cash: $0  |  Water: 0 L  |  Rate: 0/s"
-})
-
-local stageCard = metricsSec:AddParagraph({
-    Title = "⚡ Stage Pipeline & Drain Power",
-    Content = "Stage: 1 (Deepest: 1)  |  Remaining: 0\nPump: #1 (Multiplier: x1.00)"
-})
-
-local storageCard = metricsSec:AddParagraph({
-    Title = "🎒 Aquarium & Backpack Storage",
-    Content = "Displayed Fish: 0/0  |  Backpack: 0/0\nTotal Claimed: 0  |  Total Sold: 0"
-})
-
-local autoCard = metricsSec:AddParagraph({
-    Title = "🏆 Automation & Progress",
-    Content = "Level: 0  |  Rebirth: 0\nTraining Area: 1  |  Spins Used: 0"
-})
-
-local diagnosticCard = metricsSec:AddParagraph({
-    Title = "⚙️ Diagnostics & Activity State",
-    Content = "Phase: idle\nNote: Initialized"
-})
-
--- REAL-TIME ANIMATED TELEMETRY WORKER
-task.spawn(function()
-    local graphHistory = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
-    while alive() do
-        local rate = tonumber(STATE.rate) or 0
-        table.remove(graphHistory, 1)
-        table.insert(graphHistory, rate)
-
-        -- Find peak rate in history for dynamic scaling
-        local maxVal = 1
-        for _, val in ipairs(graphHistory) do
-            if val > maxVal then maxVal = val end
-        end
-
-        if drainGraph then
-            drainGraph:SetMax(maxVal)
-            drainGraph:Push(rate)
-        end
-
-        -- Update KPI Cards
-        ecoCard:Set("💰 Treasury & Resources", string.format(
-            "Total Cash: <font color='#4ade80'>$%s</font>\nTotal Water: <font color='#93c5fd'>%s L</font>\nReal-time Drain Flow: <font color='#c084fc'>%s/s</font>",
-            short(STATE.cash), short(STATE.water), short(STATE.rate)
-        ))
-
-        stageCard:Set("⚡ Stage Pipeline & Drain Power", string.format(
-            "Current Stage: Stage %d  (Deepest Record: Stage %d)\nRemaining Pool Water: %s\nEquipped Pump: #%d  |  Pump Multiplier: <font color='#fbbf24'>x%s</font>",
-            STATE.stage, STATE.deepest, short(STATE.remaining), STATE.pump, short(STATE.pumpMult)
-        ))
-
-        local tankPct = (STATE.slots > 0) and math.floor((STATE.displayed / STATE.slots) * 100) or 0
-        local bagPct = (STATE.capacity > 0) and math.floor((STATE.backpack / STATE.capacity) * 100) or 0
-        storageCard:Set("🎒 Aquarium & Backpack Storage", string.format(
-            "Tank Displayed: %d/%d (%d%% Filled)\nBackpack Storage: %d/%d (%d%% Filled)\nLifetime Fish Claimed: %d  |  Lifetime Fish Sold: %d",
-            STATE.displayed, STATE.slots, tankPct,
-            STATE.backpack, STATE.capacity, bagPct,
-            STATE.claimed, STATE.sold
-        ))
-
-        autoCard:Set("🏆 Automation & Progress", string.format(
-            "Player Level: %d  |  Rebirth Level: %d\nTraining Area: Area %d\nLucky Wheel Spins: %d  |  Limited Fish Caught: %d",
-            STATE.level, STATE.rebirth,
-            STATE.trainingArea or 1, STATE.spinCount or 0, STATE.limitedFishClaimed or 0
-        ))
-
-        local phaseColor = (STATE.phase == "idle") and "#94a3b8" or "#4ade80"
-        diagnosticCard:Set("⚙️ Diagnostics & Activity State", string.format(
-            "Active State: <font color='%s'><b>%s</b></font>\nLive Stream: %s",
-            phaseColor, string.upper(tostring(STATE.phase)), tostring(STATE.note or "Standing by")
-        ))
-
-        task.wait(0.6)
-    end
-end)
-
--- ------------------------------------------------------------
--- 7. COMMUNITY TAB (ORIGINAL PINATHUB SOCIALS)
--- ------------------------------------------------------------
-local communitySection = Tabs.Community:AddSection("Join PinatHub Community")
-
-communitySection:AddParagraph({
-    Title = "PinatHub Community",
-    Content = "Join our community for updates, support, and the latest scripts!\nCreated with passion by @viunze on TikTok."
-})
-
-communitySection:AddDiscordCard({
-    Title = "PinatHub | Community Hub",
-    Members = "10.000+",
-    Online = "500+",
-    Invite = "https://discord.gg/ysHZCYFaX7"
-})
-
-communitySection:AddSeperator()
-
-communitySection:AddButton({
-    Title = "WhatsApp XploitForce (Komunitas Utama)",
-    Description = "Komunitas Utama XploitForce WhatsApp",
-    Callback = function()
-        if set_clipboard then
-            set_clipboard("https://chat.whatsapp.com/CjbAhfWTAKx1mU3O6KEJgp")
-        end
-        Library:Notify({
-            Title = "Copied!",
-            Content = "WhatsApp link copied to clipboard!",
-            Type = "Success",
-            Duration = 3
-        })
-    end
-})
-
-communitySection:AddButton({
-    Title = "Discord Server",
-    Description = "https://discord.gg/ysHZCYFaX7",
-    Callback = function()
-        if set_clipboard then
-            set_clipboard("https://discord.gg/ysHZCYFaX7")
-        end
-        Library:Notify({
-            Title = "Copied!",
-            Content = "Discord invite copied to clipboard!",
-            Type = "Success",
-            Duration = 3
-        })
-    end
-})
-
-communitySection:AddButton({
-    Title = "TikTok @viunze",
-    Description = "Follow on TikTok for script updates & tutorials",
-    Callback = function()
-        if set_clipboard then
-            set_clipboard("https://tiktok.com/@viunze")
-        end
-        Library:Notify({
-            Title = "Copied!",
-            Content = "TikTok profile link copied!",
-            Type = "Success",
-            Duration = 3
-        })
-    end
-})
-
-communitySection:AddButton({
-    Title = "YouTube Channel",
-    Description = "Subscribe for video showcases & tutorials",
-    Callback = function()
-        if set_clipboard then
-            set_clipboard("https://www.youtube.com/@viunzee1")
-        end
-        Library:Notify({
-            Title = "Copied!",
-            Content = "YouTube link copied!",
-            Type = "Success",
-            Duration = 3
-        })
-    end
-})
-
-communitySection:AddSeperator()
-
-communitySection:AddParagraph({
-    Title = "Support PinatHub",
-    Content = "Kalau script ini membantu, like & share ke teman-teman! ❤️\nDukung developer dengan follow @viunze di TikTok & YouTube!"
-})
+return Library

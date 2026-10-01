@@ -4852,6 +4852,9 @@ end
 		-- -----------------------------------------------------------------------------
 		function TabObj:AddSubNav(navConfig)
 			navConfig = navConfig or {}
+			if self ~= TabObj and type(self) == "table" and (self.Categories or self.Tabs or self.IncludeAll ~= nil or self.Default) then
+				navConfig = self
+			end
 			local categories = navConfig.Categories or navConfig.Tabs or {}
 			local includeAll = (navConfig.IncludeAll ~= false)
 			local defaultCat = navConfig.Default or (includeAll and "All") or (categories[1] and (type(categories[1]) == "table" and (categories[1].Name or categories[1].Title or categories[1].Key) or categories[1])) or "All"
@@ -4862,10 +4865,11 @@ end
 			SubNavContainer.Parent = Page
 			SubNavContainer.BackgroundTransparency = 1
 			SubNavContainer.BorderSizePixel = 0
-			SubNavContainer.Size = UDim2.new(1, 0, 0, 32)
+			SubNavContainer.Size = UDim2.new(1, 0, 0, 34)
 			SubNavContainer.LayoutOrder = -100
 			SubNavContainer.Visible = false
 			SubNavContainer.ZIndex = 5
+			SubNavContainer.ClipsDescendants = false
 
 			local nonAllCount = 0
 			local function checkNavVisibility()
@@ -4884,11 +4888,21 @@ end
 			SubNavScroll.Parent = SubNavContainer
 			SubNavScroll.BackgroundTransparency = 1
 			SubNavScroll.BorderSizePixel = 0
+			SubNavScroll.Position = UDim2.new(0, 0, 0, 0)
 			SubNavScroll.Size = UDim2.new(1, 0, 1, 0)
-			SubNavScroll.ScrollBarThickness = 0
-			SubNavScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-			SubNavScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+			SubNavScroll.ScrollBarThickness = 2
+			SubNavScroll.ScrollBarImageColor3 = Theme.Accent
+			SubNavScroll.ScrollBarImageTransparency = 0.5
+			SubNavScroll.BottomImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+			SubNavScroll.MidImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+			SubNavScroll.TopImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+			SubNavScroll.ClipsDescendants = true
+			SubNavScroll.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
 			SubNavScroll.ScrollingDirection = Enum.ScrollingDirection.X
+			SubNavScroll.AutomaticCanvasSize = Enum.AutomaticSize.None
+			SubNavScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+			SubNavScroll.CanvasPosition = Vector2.new(0, 0)
+			SubNavScroll.HorizontalScrollBarInset = Enum.ScrollBarInset.None
 
 			local SubNavLayout = Instance.new("UIListLayout")
 			SubNavLayout.Parent = SubNavScroll
@@ -4897,16 +4911,122 @@ end
 			SubNavLayout.Padding = UDim.new(0, 6)
 			SubNavLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
-			SubNavLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-				SubNavScroll.CanvasSize = UDim2.new(0, SubNavLayout.AbsoluteContentSize.X + 24, 0, 0)
-			end)
-
 			local SubNavPadding = Instance.new("UIPadding")
 			SubNavPadding.Parent = SubNavScroll
-			SubNavPadding.PaddingLeft = UDim.new(0, 2)
-			SubNavPadding.PaddingRight = UDim.new(0, 10)
+			SubNavPadding.PaddingLeft = UDim.new(0, 4)
+			SubNavPadding.PaddingRight = UDim.new(0, 24)
 			SubNavPadding.PaddingTop = UDim.new(0, 2)
 			SubNavPadding.PaddingBottom = UDim.new(0, 4)
+
+			local LeftScrollBtn = Instance.new("TextButton")
+			LeftScrollBtn.Name = "LeftScrollBtn"
+			LeftScrollBtn.Parent = SubNavContainer
+			LeftScrollBtn.AnchorPoint = Vector2.new(0, 0.5)
+			LeftScrollBtn.Position = UDim2.new(0, 0, 0.5, -1)
+			LeftScrollBtn.Size = UDim2.new(0, 18, 0, 24)
+			LeftScrollBtn.BackgroundColor3 = Theme.Surface
+			LeftScrollBtn.BackgroundTransparency = 0.15
+			LeftScrollBtn.BorderSizePixel = 0
+			LeftScrollBtn.Text = "‹"
+			LeftScrollBtn.Font = Enum.Font.GothamBold
+			LeftScrollBtn.TextSize = 16
+			LeftScrollBtn.TextColor3 = Theme.NeonWhite
+			LeftScrollBtn.ZIndex = 10
+			LeftScrollBtn.Visible = false
+
+			local LeftBtnCorner = Instance.new("UICorner")
+			LeftBtnCorner.CornerRadius = UDim.new(0, 6)
+			LeftBtnCorner.Parent = LeftScrollBtn
+
+			local LeftBtnStroke = Instance.new("UIStroke")
+			LeftBtnStroke.Color = Theme.BorderSoft
+			LeftBtnStroke.Thickness = 1
+			LeftBtnStroke.Transparency = 0.4
+			LeftBtnStroke.Parent = LeftScrollBtn
+
+			local RightScrollBtn = Instance.new("TextButton")
+			RightScrollBtn.Name = "RightScrollBtn"
+			RightScrollBtn.Parent = SubNavContainer
+			RightScrollBtn.AnchorPoint = Vector2.new(1, 0.5)
+			RightScrollBtn.Position = UDim2.new(1, 0, 0.5, -1)
+			RightScrollBtn.Size = UDim2.new(0, 18, 0, 24)
+			RightScrollBtn.BackgroundColor3 = Theme.Surface
+			RightScrollBtn.BackgroundTransparency = 0.15
+			RightScrollBtn.BorderSizePixel = 0
+			RightScrollBtn.Text = "›"
+			RightScrollBtn.Font = Enum.Font.GothamBold
+			RightScrollBtn.TextSize = 16
+			RightScrollBtn.TextColor3 = Theme.NeonWhite
+			RightScrollBtn.ZIndex = 10
+			RightScrollBtn.Visible = false
+
+			local RightBtnCorner = Instance.new("UICorner")
+			RightBtnCorner.CornerRadius = UDim.new(0, 6)
+			RightBtnCorner.Parent = RightScrollBtn
+
+			local RightBtnStroke = Instance.new("UIStroke")
+			RightBtnStroke.Color = Theme.BorderSoft
+			RightBtnStroke.Thickness = 1
+			RightBtnStroke.Transparency = 0.4
+			RightBtnStroke.Parent = RightScrollBtn
+
+			local function updateScrollArrows()
+				local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+				if maxX <= 4 then
+					LeftScrollBtn.Visible = false
+					RightScrollBtn.Visible = false
+				else
+					local curX = SubNavScroll.CanvasPosition.X
+					LeftScrollBtn.Visible = (curX > 4)
+					RightScrollBtn.Visible = (curX < maxX - 4)
+				end
+			end
+
+			local function updateCanvas()
+				local contentWidth = SubNavLayout.AbsoluteContentSize.X
+				local padLeft = SubNavPadding.PaddingLeft.Offset
+				local padRight = SubNavPadding.PaddingRight.Offset
+				local totalNeeded = contentWidth + padLeft + padRight + 12
+				SubNavScroll.CanvasSize = UDim2.new(0, totalNeeded, 0, 0)
+				updateScrollArrows()
+			end
+
+			SubNavLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+			SubNavScroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateCanvas)
+			SubNavScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(updateScrollArrows)
+			SubNavScroll:GetPropertyChangedSignal("CanvasSize"):Connect(updateScrollArrows)
+			task.defer(updateCanvas)
+
+			local function handleMouseWheel(input)
+				if input.UserInputType == Enum.UserInputType.MouseWheel then
+					local scrollDelta = input.Position.Z
+					local scrollSpeed = 55
+					local currentX = SubNavScroll.CanvasPosition.X
+					local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+					if maxX > 0 then
+						local targetX = math.clamp(currentX - (scrollDelta * scrollSpeed), 0, maxX)
+						TweenService:Create(SubNavScroll, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							CanvasPosition = Vector2.new(targetX, 0)
+						}):Play()
+					end
+				end
+			end
+
+			SubNavScroll.InputChanged:Connect(handleMouseWheel)
+			SubNavContainer.InputChanged:Connect(handleMouseWheel)
+
+			LeftScrollBtn.MouseButton1Click:Connect(function()
+				local curX = SubNavScroll.CanvasPosition.X
+				local targetX = math.max(0, curX - 110)
+				TweenService:Create(SubNavScroll, TweenInfoFast, { CanvasPosition = Vector2.new(targetX, 0) }):Play()
+			end)
+
+			RightScrollBtn.MouseButton1Click:Connect(function()
+				local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+				local curX = SubNavScroll.CanvasPosition.X
+				local targetX = math.min(maxX, curX + 110)
+				TweenService:Create(SubNavScroll, TweenInfoFast, { CanvasPosition = Vector2.new(targetX, 0) }):Play()
+			end)
 
 			local SubNavObj = {
 				Container = SubNavContainer,
@@ -4916,6 +5036,36 @@ end
 				RegisteredSections = {},
 				Categories = {}
 			}
+
+			local function ensurePillVisible(btn)
+				if not btn or not SubNavScroll then return end
+				task.defer(function()
+					pcall(function()
+						local scrollMin = SubNavScroll.CanvasPosition.X
+						local scrollWidth = SubNavScroll.AbsoluteWindowSize.X
+						if scrollWidth <= 0 then return end
+						local scrollMax = scrollMin + scrollWidth
+
+						local btnMin = btn.AbsolutePosition.X - SubNavScroll.AbsolutePosition.X + scrollMin
+						local btnWidth = btn.AbsoluteSize.X
+						local btnMax = btnMin + btnWidth
+
+						local targetX = nil
+						if btnMin < scrollMin + 8 then
+							targetX = math.max(0, btnMin - 14)
+						elseif btnMax > scrollMax - 8 then
+							local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - scrollWidth)
+							targetX = math.min(maxX, btnMax - scrollWidth + 14)
+						end
+
+						if targetX and math.abs(targetX - scrollMin) > 2 then
+							TweenService:Create(SubNavScroll, TweenInfoFast, {
+								CanvasPosition = Vector2.new(targetX, 0)
+							}):Play()
+						end
+					end)
+				end)
+			end
 
 			local function updatePillStyles()
 				for catName, pillData in pairs(SubNavObj.Pills) do
@@ -4947,6 +5097,7 @@ end
 								ImageColor3 = Theme.NeonWhite
 							}):Play()
 						end
+						ensurePillVisible(btn)
 					else
 						TweenService:Create(btn, TweenInfoFast, {
 							BackgroundColor3 = Theme.Surface,
@@ -5021,21 +5172,39 @@ end
 				return self:AddCategory(...)
 			end
 
-			function SubNavObj:AddCategory(catConfig)
+			function SubNavObj:AddCategory(catConfig, optionalIcon)
 				local name = ""
 				local icon = nil
+				if self ~= SubNavObj and (type(self) == "string" or (type(self) == "table" and (self.Name or self.Title or self.Key))) then
+					optionalIcon = catConfig
+					catConfig = self
+				end
+
 				if type(catConfig) == "table" then
 					name = catConfig.Name or catConfig.Title or catConfig.Key or ""
-					icon = catConfig.Icon
+					icon = catConfig.Icon or optionalIcon
 				else
 					name = tostring(catConfig or "")
+					icon = optionalIcon
 				end
 				if name == "" or SubNavObj.Pills[name] then return end
 
-				pillOrder += 1
+				pillOrder = pillOrder + 1
 
-				local textBounds = TextService:GetTextSize(name, 11, Enum.Font.Gotham, Vector2.new(1000, 26))
-				local pillWidth = math.max(40, math.ceil(textBounds.X) + (icon and 32 or 24))
+				local resolvedIcon = nil
+				if icon then
+					resolvedIcon = ResolveIcon(icon, name)
+				end
+				local hasIcon = (resolvedIcon ~= nil)
+
+				local textBounds = TextService:GetTextSize(name, 11, Enum.Font.GothamBold, Vector2.new(2000, 26))
+				local textWidth = math.max(12, math.ceil(textBounds.X))
+
+				local padLeft = hasIcon and 10 or 12
+				local padRight = 12
+				local iconWidth = hasIcon and 14 or 0
+				local gap = hasIcon and 6 or 0
+				local totalPillWidth = padLeft + iconWidth + gap + textWidth + padRight
 
 				local PillBtn = Instance.new("TextButton")
 				PillBtn.Name = "Pill_" .. name
@@ -5043,10 +5212,12 @@ end
 				PillBtn.AutoButtonColor = false
 				PillBtn.Text = ""
 				PillBtn.LayoutOrder = (name == "All") and 0 or pillOrder
-				PillBtn.Size = UDim2.new(0, pillWidth, 0, 26)
+				PillBtn.Size = UDim2.new(0, math.max(44, totalPillWidth), 0, 26)
+				PillBtn.AutomaticSize = Enum.AutomaticSize.X
 				PillBtn.BackgroundColor3 = (name == SubNavObj.ActiveCategory) and Theme.Accent or Theme.Surface
 				PillBtn.BackgroundTransparency = (name == SubNavObj.ActiveCategory) and 0.2 or 0.45
 				PillBtn.BorderSizePixel = 0
+				PillBtn.ClipsDescendants = false
 
 				local PillCorner = Instance.new("UICorner")
 				PillCorner.CornerRadius = UDim.new(1, 0)
@@ -5060,8 +5231,8 @@ end
 
 				local PillPadding = Instance.new("UIPadding")
 				PillPadding.Parent = PillBtn
-				PillPadding.PaddingLeft = UDim.new(0, icon and 8 or 12)
-				PillPadding.PaddingRight = UDim.new(0, 12)
+				PillPadding.PaddingLeft = UDim.new(0, padLeft)
+				PillPadding.PaddingRight = UDim.new(0, padRight)
 				PillPadding.PaddingTop = UDim.new(0, 0)
 				PillPadding.PaddingBottom = UDim.new(0, 0)
 
@@ -5069,34 +5240,37 @@ end
 				ContentLayout.Parent = PillBtn
 				ContentLayout.FillDirection = Enum.FillDirection.Horizontal
 				ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-				ContentLayout.Padding = UDim.new(0, 5)
+				ContentLayout.Padding = UDim.new(0, 6)
 				ContentLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
 				local IconImg
-				if icon then
-					local resolved = ResolveIcon(icon, name)
-					if resolved then
-						IconImg = Instance.new("ImageLabel")
-						IconImg.Name = "Icon"
-						IconImg.Parent = PillBtn
-						IconImg.BackgroundTransparency = 1
-						IconImg.Size = UDim2.new(0, 13, 0, 13)
-						IconImg.Image = resolved
-						IconImg.ImageColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextMuted
-						IconImg.ScaleType = Enum.ScaleType.Fit
-					end
+				if hasIcon then
+					IconImg = Instance.new("ImageLabel")
+					IconImg.Name = "Icon"
+					IconImg.Parent = PillBtn
+					IconImg.LayoutOrder = 1
+					IconImg.BackgroundTransparency = 1
+					IconImg.Size = UDim2.new(0, 14, 0, 14)
+					IconImg.Image = resolvedIcon
+					IconImg.ImageColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextMuted
+					IconImg.ScaleType = Enum.ScaleType.Fit
 				end
 
 				local Label = Instance.new("TextLabel")
 				Label.Name = "Label"
 				Label.Parent = PillBtn
+				Label.LayoutOrder = 2
 				Label.BackgroundTransparency = 1
 				Label.Text = name
 				Label.Font = (name == SubNavObj.ActiveCategory) and Enum.Font.GothamBold or Enum.Font.Gotham
 				Label.TextSize = 11
 				Label.TextColor3 = (name == SubNavObj.ActiveCategory) and Theme.NeonWhite or Theme.TextSecondary
-				Label.Size = UDim2.new(1, icon and -20 or 0, 1, 0)
+				Label.Size = UDim2.new(0, textWidth, 1, 0)
+				Label.AutomaticSize = Enum.AutomaticSize.X
+				Label.TextXAlignment = Enum.TextXAlignment.Left
 				Label.TextYAlignment = Enum.TextYAlignment.Center
+				Label.TextTruncate = Enum.TextTruncate.None
+				Label.ClipsDescendants = false
 
 				PillBtn.MouseEnter:Connect(function()
 					if SubNavObj.ActiveCategory ~= name then
@@ -5118,8 +5292,67 @@ end
 					end
 				end)
 
-				PillBtn.MouseButton1Click:Connect(function()
-					SubNavObj:SelectCategory(name)
+				-- Gesture & Drag-to-scroll support for touch / mouse swipe
+				local isDragging = false
+				local dragStartPos = nil
+				local dragStartCanvasX = 0
+				local dragThreshold = 6
+
+				PillBtn.InputBegan:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+						isDragging = false
+						dragStartPos = input.Position
+						dragStartCanvasX = SubNavScroll.CanvasPosition.X
+					end
+				end)
+
+				PillBtn.InputChanged:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseWheel then
+						handleMouseWheel(input)
+						return
+					end
+
+					if dragStartPos and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+						local delta = input.Position - dragStartPos
+						if math.abs(delta.X) > dragThreshold or math.abs(delta.Y) > dragThreshold then
+							isDragging = true
+						end
+						if isDragging then
+							local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+							if maxX > 0 then
+								local targetX = math.clamp(dragStartCanvasX - delta.X, 0, maxX)
+								SubNavScroll.CanvasPosition = Vector2.new(targetX, 0)
+							end
+						end
+					end
+				end)
+
+				PillBtn.InputEnded:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+						local wasDragging = isDragging
+						dragStartPos = nil
+						isDragging = false
+						if not wasDragging then
+							SubNavObj:SelectCategory(name)
+						end
+					end
+				end)
+
+				PillBtn.TouchSwipe:Connect(function(swipeDir)
+					local scrollSpeed = 80
+					local currentX = SubNavScroll.CanvasPosition.X
+					local maxX = math.max(0, SubNavScroll.CanvasSize.X.Offset - SubNavScroll.AbsoluteWindowSize.X)
+					if maxX > 0 then
+						local targetX = currentX
+						if swipeDir == Enum.SwipeDirection.Left then
+							targetX = math.min(maxX, currentX + scrollSpeed)
+						elseif swipeDir == Enum.SwipeDirection.Right then
+							targetX = math.max(0, currentX - scrollSpeed)
+						end
+						TweenService:Create(SubNavScroll, TweenInfoFast, {
+							CanvasPosition = Vector2.new(targetX, 0)
+						}):Play()
+					end
 				end)
 
 				SubNavObj.Pills[name] = {
@@ -5130,9 +5363,10 @@ end
 				}
 				table.insert(SubNavObj.Categories, name)
 				if name ~= "All" then
-					nonAllCount += 1
+					nonAllCount = nonAllCount + 1
 				end
 				checkNavVisibility()
+				updateCanvas()
 			end
 
 			function SubNavObj:GetSubTab(catName)
