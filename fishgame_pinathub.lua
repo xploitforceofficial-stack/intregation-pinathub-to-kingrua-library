@@ -169,6 +169,7 @@ local GameState = {
     Upgrades = {},
     UpgradeCosts = {},
     Research = {},
+    StoredFish = 0,
     -- Player's Personal Weapon State
     EquippedGun = "Mosin",
     OwnedGuns = { Mosin = true },
@@ -185,6 +186,7 @@ if StateUpdateRemote and StateUpdateRemote:IsA("RemoteEvent") then
         if type(s1) == "table" then
             if s1.Day then GameState.Day = math.floor(tonumber(s1.Day) or GameState.Day) end
             if s1.TeamCash then GameState.TeamCash = math.floor(tonumber(s1.TeamCash) or GameState.TeamCash) end
+            if s1.StoredFish ~= nil then GameState.StoredFish = math.max(0, math.floor(tonumber(s1.StoredFish) or 0)) end
             if s1.Phase then GameState.Phase = tostring(s1.Phase) end
             if s1.DayEndsAt then GameState.DayEndsAt = tonumber(s1.DayEndsAt) or 0 end
             if s1.SkipDayAvailableAt then GameState.SkipDayAvailableAt = tonumber(s1.SkipDayAvailableAt) or 0 end
@@ -493,6 +495,7 @@ end
 local ConfigFolderName = "PinatHub_FishGame"
 if makefolder and isfolder and not isfolder(ConfigFolderName) then makefolder(ConfigFolderName) end
 getgenv().FG_CurrentConfig = "Default"
+local UI_Controls = {}
 
 local function GetConfigList()
     local list = {}
@@ -511,39 +514,68 @@ end
 local function SaveConfig(name)
     name = (name and name ~= "") and name or getgenv().FG_CurrentConfig
     if not name or name == "" then name = "Default" end
+    local ok = false
     pcall(function()
         if writefile then
+            if makefolder and isfolder and not isfolder(ConfigFolderName) then
+                makefolder(ConfigFolderName)
+            end
             writefile(ConfigFolderName .. "/" .. name .. ".json", HttpService:JSONEncode(FG))
+            ok = true
         end
     end)
+    return ok
 end
 
 local function LoadConfig(name)
     name = (name and name ~= "") and name or getgenv().FG_CurrentConfig
     if not name or name == "" then name = "Default" end
     local path = ConfigFolderName .. "/" .. name .. ".json"
+    local ok = false
     pcall(function()
         if readfile and isfile and isfile(path) then
             local data = HttpService:JSONDecode(readfile(path))
-            for k, v in pairs(data) do FG[k] = v end
-            if PinatHubAdapter and PinatHubAdapter._ControlSetters then
+            if type(data) == "table" then
                 for k, v in pairs(data) do
-                    local setter = PinatHubAdapter._ControlSetters[k]
-                    if setter then pcall(setter, v) end
+                    FG[k] = v
                 end
+                for fgKey, ctrl in pairs(UI_Controls) do
+                    if ctrl and type(ctrl.Set) == "function" then
+                        if fgKey:sub(1, 3) == "Up_" then
+                            local upKey = fgKey:sub(4)
+                            if type(FG.UpgradesSelected) == "table" and FG.UpgradesSelected[upKey] ~= nil then
+                                pcall(function() ctrl:Set(FG.UpgradesSelected[upKey]) end)
+                            end
+                        elseif FG[fgKey] ~= nil then
+                            pcall(function() ctrl:Set(FG[fgKey]) end)
+                        end
+                    end
+                end
+                if PinatHubAdapter and PinatHubAdapter._ControlSetters then
+                    for k, v in pairs(data) do
+                        local setter = PinatHubAdapter._ControlSetters[k]
+                        if setter then pcall(setter, v) end
+                    end
+                end
+                ok = true
             end
         end
     end)
+    return ok
 end
 
 local function DeleteConfig(name)
     name = (name and name ~= "") and name or getgenv().FG_CurrentConfig
-    if not name or name == "" or name == "Default" then return end
+    if not name or name == "" or name == "Default" then return false end
+    local path = ConfigFolderName .. "/" .. name .. ".json"
+    local ok = false
     pcall(function()
-        if isfile and isfile(ConfigFolderName .. "/" .. name .. ".json") and delfile then
-            delfile(ConfigFolderName .. "/" .. name .. ".json")
+        if isfile and isfile(path) and delfile then
+            delfile(path)
+            ok = true
         end
     end)
+    return ok
 end
 
 -- ── Weapon Equip Helper (Instant Server Fire) ───────────────────────────────────────
@@ -623,13 +655,13 @@ do
 
     -- 1. Aim & Targeting Section
     local shootSec = subAim:AddSection({ Title = "Auto Shoot & Target System" })
-    shootSec:AddToggle({ Title = "Auto Shoot", Flag = "Auto Shoot", Default = false, Description = "Fires using game aim raycast and server payload", Callback = function(v) FG.AutoShoot = v end })
-    shootSec:AddToggle({ Title = "Prioritize Spawned Bosses", Flag = "Prioritize Bosses", Default = true, Description = "Instantly locks onto Boss (Shark/Gator) as soon as it spawns in Workspace", Callback = function(v) FG.PrioritizeBosses = v end })
-    shootSec:AddToggle({ Title = "Use Module Fire Rate", Flag = "Module Fire Rate", Default = true, Description = "Calculates fire rate via GameConfig.GunFireInterval()", Callback = function(v) FG.UseModuleFireRate = v end })
-    shootSec:AddSlider({ Title = "Custom Fire Delay (ms)", Flag = "Shoot Delay", Min = 1, Max = 50, Default = 8, Description = "Used when Module Fire Rate is disabled", Callback = function(v) FG.AutoShootDelay = v / 100 end })
-    shootSec:AddToggle({ Title = "Silent Aim", Flag = "Silent Aim", Default = false, Description = "Snaps raycast bullets directly to target pivot vector", Callback = function(v) FG.SilentAim = v end })
-    shootSec:AddToggle({ Title = "Multi-Target / Chain Hit", Flag = "MultiTarget", Default = false, Description = "Packages up to 16 fish in candidateFish array", Callback = function(v) FG.MultiTarget = v end })
-    shootSec:AddToggle({ Title = "Instant Kill Burst", Flag = "Instant Kill", Default = false, Description = "Prioritizes low HP fish to clear waves instantly", Callback = function(v) FG.InstantKill = v end })
+    UI_Controls.AutoShoot = shootSec:AddToggle({ Title = "Auto Shoot", Flag = "Auto Shoot", Default = false, Description = "Fires using game aim raycast and server payload", Callback = function(v) FG.AutoShoot = v end })
+    UI_Controls.PrioritizeBosses = shootSec:AddToggle({ Title = "Prioritize Spawned Bosses", Flag = "Prioritize Bosses", Default = true, Description = "Instantly locks onto Boss (Shark/Gator) as soon as it spawns in Workspace", Callback = function(v) FG.PrioritizeBosses = v end })
+    UI_Controls.UseModuleFireRate = shootSec:AddToggle({ Title = "Use Module Fire Rate", Flag = "Module Fire Rate", Default = true, Description = "Calculates fire rate via GameConfig.GunFireInterval()", Callback = function(v) FG.UseModuleFireRate = v end })
+    UI_Controls.AutoShootDelay = shootSec:AddSlider({ Title = "Custom Fire Delay (ms)", Flag = "Shoot Delay", Min = 1, Max = 50, Default = 8, Description = "Used when Module Fire Rate is disabled", Callback = function(v) FG.AutoShootDelay = v / 100 end })
+    UI_Controls.SilentAim = shootSec:AddToggle({ Title = "Silent Aim", Flag = "Silent Aim", Default = false, Description = "Snaps raycast bullets directly to target pivot vector", Callback = function(v) FG.SilentAim = v end })
+    UI_Controls.MultiTarget = shootSec:AddToggle({ Title = "Multi-Target / Chain Hit", Flag = "MultiTarget", Default = false, Description = "Packages up to 16 fish in candidateFish array", Callback = function(v) FG.MultiTarget = v end })
+    UI_Controls.InstantKill = shootSec:AddToggle({ Title = "Instant Kill Burst", Flag = "Instant Kill", Default = false, Description = "Prioritizes low HP fish to clear waves instantly", Callback = function(v) FG.InstantKill = v end })
 
     shootSec:AddDropdown({
         Title = "Target Priority", Flag = "Target Priority",
@@ -646,7 +678,7 @@ do
     })
 
     local defaultRange = (GameConfig and GameConfig.MaxRange) or 1200
-    shootSec:AddSlider({
+    UI_Controls.MaxTargetDistance = shootSec:AddSlider({
         Title = "Max Target Range (Studs)", Flag = "Max Range",
         Min = 200, Max = 2500, Default = defaultRange,
         Callback = function(v) FG.MaxTargetDistance = v end
@@ -654,10 +686,10 @@ do
 
     -- 2. Weapons & Ammo Section
     local gunSec = subWeapons:AddSection({ Title = "Weapons & Ammo (Config Module)" })
-    gunSec:AddToggle({ Title = "Infinite Ammo Mode", Flag = "Infinite Ammo", Default = false, Description = "Bypasses ammo check and keeps magazine full", Callback = function(v) FG.InfiniteAmmo = v end })
-    gunSec:AddToggle({ Title = "Auto Fast Reload", Flag = "Auto Fast Reload", Default = true, Description = "Sends reload packet as soon as magazine empties", Callback = function(v) FG.AutoReload = v end })
-    gunSec:AddToggle({ Title = "No Reload Animation", Flag = "No Reload", Default = false, Description = "Skips weapon recoil delays", Callback = function(v) FG.NoReload = v end })
-    gunSec:AddToggle({ Title = "Auto Re-Equip on Respawn", Flag = "Auto Re-Equip", Default = true, Description = "Automatically re-equips your selected weapon when respawning or round changes", Callback = function(v) FG.AutoEquipOnRespawn = v end })
+    UI_Controls.InfiniteAmmo = gunSec:AddToggle({ Title = "Infinite Ammo Mode", Flag = "Infinite Ammo", Default = false, Description = "Bypasses ammo check and keeps magazine full", Callback = function(v) FG.InfiniteAmmo = v end })
+    UI_Controls.AutoReload = gunSec:AddToggle({ Title = "Auto Fast Reload", Flag = "Auto Fast Reload", Default = true, Description = "Sends reload packet as soon as magazine empties", Callback = function(v) FG.AutoReload = v end })
+    UI_Controls.NoReload = gunSec:AddToggle({ Title = "No Reload Animation", Flag = "No Reload", Default = false, Description = "Skips weapon recoil delays", Callback = function(v) FG.NoReload = v end })
+    UI_Controls.AutoEquipOnRespawn = gunSec:AddToggle({ Title = "Auto Re-Equip on Respawn", Flag = "Auto Re-Equip", Default = true, Description = "Automatically re-equips your selected weapon when respawning or round changes", Callback = function(v) FG.AutoEquipOnRespawn = v end })
 
     gunSec:AddDropdown({
         Title = "Select Gun to Equip (Instant Server Equip)", Flag = "Selected Weapon",
@@ -678,7 +710,7 @@ do
 
     -- 3. Heavy Artillery Section
     local ordSec = subOrd:AddSection({ Title = "Heavy Artillery (Config.Ordnance)" })
-    ordSec:AddToggle({ Title = "Auto Ordnance", Flag = "Auto Ordnance", Default = false, Description = "Drops heavy ordnance on active fish/bosses", Callback = function(v) FG.AutoOrdnance = v end })
+    UI_Controls.AutoOrdnance = ordSec:AddToggle({ Title = "Auto Ordnance", Flag = "Auto Ordnance", Default = false, Description = "Drops heavy ordnance on active fish/bosses", Callback = function(v) FG.AutoOrdnance = v end })
 
     local ordList = (GameConfig and GameConfig.OrdnanceOrder) or {"Grenade", "Dynamite", "Carpet", "Orbital", "Nuke"}
     ordSec:AddDropdown({
@@ -717,7 +749,7 @@ do
         Title = "MonetizationConfig Exclusive Guns",
         Content = "[Exclusive] Ice Bizon (Frost): Freezes and slows fish | Lava PKM (Inferno): Incinerates targets with elemental fire",
     })
-    fxSec:AddToggle({
+    UI_Controls.WeaponAuraEffect = fxSec:AddToggle({
         Title = "Exclusive Weapon Elemental Aura", Flag = "Weapon Aura", Default = false,
         Description = "Applies Fire/Ice elemental tints and particles via ExclusiveWeaponEffects",
         Callback = function(v) FG.WeaponAuraEffect = v end
@@ -745,19 +777,19 @@ do
 
     -- 1. River Harvest Section
     local pushSec = subRiver:AddSection({ Title = "Fish Conveyor & Harvester (FishPush Remote)" })
-    pushSec:AddToggle({
+    UI_Controls.AutoPushFish = pushSec:AddToggle({
         Title = "Auto Push Fish to Dock", Flag = "Auto Push Fish", Default = false,
         Description = "Invokes FishPush remote to drag fish directly into the team dock",
         Callback = function(v) FG.AutoPushFish = v end
     })
-    pushSec:AddSlider({
+    UI_Controls.PushRadius = pushSec:AddSlider({
         Title = "Push Search Radius (Studs)", Flag = "Push Radius",
         Min = 10, Max = 150, Default = 40,
         Callback = function(v) FG.PushRadius = v end
     })
 
     local farmSec = subRiver:AddSection({ Title = "Downed Fish Catching (FishCooler Collection)" })
-    farmSec:AddToggle({
+    UI_Controls.AutoCatchDowned = farmSec:AddToggle({
         Title = "Auto Down Fish Catch", Flag = "Auto Down Fish", Default = false,
         Description = "Teleports downed fish into FishCooler so team can collect cash immediately",
         Callback = function(v) FG.AutoCatchDowned = v end
@@ -779,7 +811,7 @@ do
 
     -- 2. Pet Automation Section
     local petSec = subPets:AddSection({ Title = "Dog & Pet Automation (PetAbilities)" })
-    petSec:AddToggle({
+    UI_Controls.AutoCollectScales = petSec:AddToggle({
         Title = "Auto Collect Dropped Scales", Flag = "Auto Collect Scales", Default = true,
         Description = "Auto claims boss scales and bonus tokens dropped by pets",
         Callback = function(v) FG.AutoCollectScales = v end
@@ -791,20 +823,38 @@ do
 
     -- 3. Economy & Sales Section
     local econSec = subEcon:AddSection({ Title = "Fish Sales & Team Bank" })
-    econSec:AddToggle({
+    UI_Controls.AutoSellCatch = econSec:AddToggle({
         Title = "Auto Sell Catch", Flag = "Auto Sell", Default = false,
         Description = "Sells catch when cooler reaches minimum threshold",
         Callback = function(v) FG.AutoSellCatch = v end
     })
-    econSec:AddSlider({
+    UI_Controls.SellThreshold = econSec:AddSlider({
         Title = "Auto Sell Threshold (Count)", Flag = "Sell Threshold",
-        Min = 1, Max = 50, Default = 10,
+        Min = 1, Max = 50, Default = 5,
         Callback = function(v) FG.SellThreshold = v end
+    })
+    econSec:AddButton({
+        Title = "Sell All Fish Now",
+        Description = "Fires SellFish via UpgradeAction remote to cash in stored fish",
+        Callback = function()
+            if UpgradeActionRemote then
+                pcall(function() UpgradeActionRemote:FireServer("SellFish") end)
+            end
+            if PinatHubAdapter and PinatHubAdapter.Notify then
+                pcall(function()
+                    PinatHubAdapter:Notify({
+                        Title = "Sell Fish Triggered",
+                        Content = "Triggered SellFish. Stored Fish: " .. tostring(GameState.StoredFish or 0),
+                        Duration = 2,
+                    })
+                end)
+            end
+        end
     })
 
     -- 4. Merchant & Crates Section
     local crateSec = subMerchant:AddSection({ Title = "Weapon Crates & Medals (CratePresentationClient)" })
-    crateSec:AddToggle({
+    UI_Controls.AutoOpenFreeCrates = crateSec:AddToggle({
         Title = "Auto Open Free Weapon Crates", Flag = "Auto Crates", Default = false,
         Description = "Interacts with WeaponCrate model to unbox guns for free",
         Callback = function(v) FG.AutoOpenFreeCrates = v end
@@ -820,14 +870,14 @@ do
         end
     })
 
-    crateSec:AddToggle({
+    UI_Controls.AutoClaimMedals = crateSec:AddToggle({
         Title = "Auto Claim Medals (MedalClient)", Flag = "Auto Medals", Default = false,
         Description = "Interacts with NPC[MEDAL] and requests unlocked milestones",
         Callback = function(v) FG.AutoClaimMedals = v end
     })
 
     local merchSec = subMerchant:AddSection({ Title = "Traveling Merchant Automation (TravelingMerchantClient)" })
-    merchSec:AddToggle({
+    UI_Controls.AutoMerchantBuy = merchSec:AddToggle({
         Title = "Auto Buy Merchant Health & Dodge", Flag = "Auto Merchant Buy", Default = false,
         Description = "Automatically purchases Health and Dodge upgrades when Traveling Merchant is active",
         Callback = function(v) FG.AutoMerchantBuy = v end
@@ -873,7 +923,7 @@ do
 
     -- 1. Gun Mastery Upgrades
     local masterSec = subGun:AddSection({ Title = "Master Upgrade Controller" })
-    masterSec:AddToggle({
+    UI_Controls.AutoUpgradeAll = masterSec:AddToggle({
         Title = "Auto Upgrade Everything", Flag = "Auto Upgrade All", Default = false,
         Description = "Automatically buys all unlocked upgrades whenever Team Cash is sufficient",
         Callback = function(v) FG.AutoUpgradeAll = v end
@@ -891,30 +941,30 @@ do
                 "BetterDock", "AdditionalDogs", "Airstrike", "AirstrikeCooldown"
             }
             for _, k in ipairs(allKeys) do
-                pcall(function() UpgradeActionRemote:FireServer(k) end)
+                pcall(function() UpgradeActionRemote:FireServer("Upgrade", k) end)
             end
         end
     })
 
     local gunUpSec = subGun:AddSection({ Title = "Gun Upgrades (Config.UpgradeOrder)" })
-    gunUpSec:AddToggle({ Title = "Bigger Bullets (Damage)", Flag = "Up_Damage", Default = false, Callback = function(v) FG.UpgradesSelected.Damage = v end })
-    gunUpSec:AddToggle({ Title = "Too Much Ammo (Magazine)", Flag = "Up_Magazine", Default = false, Callback = function(v) FG.UpgradesSelected.Magazine = v end })
-    gunUpSec:AddToggle({ Title = "More Reloading (Reload)", Flag = "Up_Reload", Default = false, Callback = function(v) FG.UpgradesSelected.Reload = v end })
+    UI_Controls.Up_Damage = gunUpSec:AddToggle({ Title = "Bigger Bullets (Damage)", Flag = "Up_Damage", Default = false, Callback = function(v) FG.UpgradesSelected.Damage = v end })
+    UI_Controls.Up_Magazine = gunUpSec:AddToggle({ Title = "Too Much Ammo (Magazine)", Flag = "Up_Magazine", Default = false, Callback = function(v) FG.UpgradesSelected.Magazine = v end })
+    UI_Controls.Up_Reload = gunUpSec:AddToggle({ Title = "More Reloading (Reload)", Flag = "Up_Reload", Default = false, Callback = function(v) FG.UpgradesSelected.Reload = v end })
 
     -- 2. World & Turrets Upgrades
     local turretUpSec = subWorld:AddSection({ Title = "Turrets & Base Fortification (TurretAnimationClient)" })
-    turretUpSec:AddToggle({ Title = "Buy Turret (TurretCount)", Flag = "Up_TurretCount", Default = false, Callback = function(v) FG.UpgradesSelected.TurretCount = v end })
-    turretUpSec:AddToggle({ Title = "Turret Damage (TurretDamage)", Flag = "Up_TurretDamage", Default = false, Callback = function(v) FG.UpgradesSelected.TurretDamage = v end })
-    turretUpSec:AddToggle({ Title = "Turret Fire Speed (TurretFireSpeed)", Flag = "Up_TurretFireSpeed", Default = false, Callback = function(v) FG.UpgradesSelected.TurretFireSpeed = v end })
-    turretUpSec:AddToggle({ Title = "Red Turret (RedTurretCount)", Flag = "Up_RedTurretCount", Default = false, Callback = function(v) FG.UpgradesSelected.RedTurretCount = v end })
-    turretUpSec:AddToggle({ Title = "Build Better Dock (BetterDock)", Flag = "Up_BetterDock", Default = false, Callback = function(v) FG.UpgradesSelected.BetterDock = v end })
-    turretUpSec:AddToggle({ Title = "More Dogs (AdditionalDogs)", Flag = "Up_AdditionalDogs", Default = false, Callback = function(v) FG.UpgradesSelected.AdditionalDogs = v end })
-    turretUpSec:AddToggle({ Title = "Unlock Airstrike (Airstrike)", Flag = "Up_Airstrike", Default = false, Callback = function(v) FG.UpgradesSelected.Airstrike = v end })
-    turretUpSec:AddToggle({ Title = "Airstrike Cooldown", Flag = "Up_AirstrikeCooldown", Default = false, Callback = function(v) FG.UpgradesSelected.AirstrikeCooldown = v end })
+    UI_Controls.Up_TurretCount = turretUpSec:AddToggle({ Title = "Buy Turret (TurretCount)", Flag = "Up_TurretCount", Default = false, Callback = function(v) FG.UpgradesSelected.TurretCount = v end })
+    UI_Controls.Up_TurretDamage = turretUpSec:AddToggle({ Title = "Turret Damage (TurretDamage)", Flag = "Up_TurretDamage", Default = false, Callback = function(v) FG.UpgradesSelected.TurretDamage = v end })
+    UI_Controls.Up_TurretFireSpeed = turretUpSec:AddToggle({ Title = "Turret Fire Speed (TurretFireSpeed)", Flag = "Up_TurretFireSpeed", Default = false, Callback = function(v) FG.UpgradesSelected.TurretFireSpeed = v end })
+    UI_Controls.Up_RedTurretCount = turretUpSec:AddToggle({ Title = "Red Turret (RedTurretCount)", Flag = "Up_RedTurretCount", Default = false, Callback = function(v) FG.UpgradesSelected.RedTurretCount = v end })
+    UI_Controls.Up_BetterDock = turretUpSec:AddToggle({ Title = "Build Better Dock (BetterDock)", Flag = "Up_BetterDock", Default = false, Callback = function(v) FG.UpgradesSelected.BetterDock = v end })
+    UI_Controls.Up_AdditionalDogs = turretUpSec:AddToggle({ Title = "More Dogs (AdditionalDogs)", Flag = "Up_AdditionalDogs", Default = false, Callback = function(v) FG.UpgradesSelected.AdditionalDogs = v end })
+    UI_Controls.Up_Airstrike = turretUpSec:AddToggle({ Title = "Unlock Airstrike (Airstrike)", Flag = "Up_Airstrike", Default = false, Callback = function(v) FG.UpgradesSelected.Airstrike = v end })
+    UI_Controls.Up_AirstrikeCooldown = turretUpSec:AddToggle({ Title = "Airstrike Cooldown", Flag = "Up_AirstrikeCooldown", Default = false, Callback = function(v) FG.UpgradesSelected.AirstrikeCooldown = v end })
 
     -- 3. Research Lab Upgrades
     local rschSec = subResearch:AddSection({ Title = "Research Lab Upgrades (ResearchConfig)" })
-    rschSec:AddToggle({
+    UI_Controls.AutoResearchUnlock = rschSec:AddToggle({
         Title = "Auto Unlock Research Nodes", Flag = "Auto Research", Default = false,
         Description = "Automatically unlocks research tech tree nodes via ResearchAction",
         Callback = function(v) FG.AutoResearchUnlock = v end
@@ -922,9 +972,9 @@ do
 
     -- 4. Pass & Medals Section
     local passSec = subMedals:AddSection({ Title = "Fish Value & Catch Multipliers" })
-    passSec:AddToggle({ Title = "Valuable Fish (FishValue)", Flag = "Up_FishValue", Default = false, Callback = function(v) FG.UpgradesSelected.FishValue = v end })
-    passSec:AddToggle({ Title = "Rare Fish (FishRarity)", Flag = "Up_FishRarity", Default = false, Callback = function(v) FG.UpgradesSelected.FishRarity = v end })
-    passSec:AddToggle({ Title = "They Found Us Bro (FishChain)", Flag = "Up_FishChain", Default = false, Callback = function(v) FG.UpgradesSelected.FishChain = v end })
+    UI_Controls.Up_FishValue = passSec:AddToggle({ Title = "Valuable Fish (FishValue)", Flag = "Up_FishValue", Default = false, Callback = function(v) FG.UpgradesSelected.FishValue = v end })
+    UI_Controls.Up_FishRarity = passSec:AddToggle({ Title = "Rare Fish (FishRarity)", Flag = "Up_FishRarity", Default = false, Callback = function(v) FG.UpgradesSelected.FishRarity = v end })
+    UI_Controls.Up_FishChain = passSec:AddToggle({ Title = "They Found Us Bro (FishChain)", Flag = "Up_FishChain", Default = false, Callback = function(v) FG.UpgradesSelected.FishChain = v end })
 end
 
 -- ══════════════════════════════════════════════════════════════════════════════════
@@ -946,33 +996,33 @@ do
 
     -- 1. Health & Immortality Section
     local godSec = subHealth:AddSection({ Title = "Player Immortality & Health Locks" })
-    godSec:AddToggle({
+    UI_Controls.GodMode = godSec:AddToggle({
         Title = "GodMode (Infinite Health & Death Canceler)", Flag = "GodMode", Default = false,
         Description = "Cancels DeathState remote calls and forces Health to MaxHealth every frame",
         Callback = function(v) FG.GodMode = v end
     })
-    godSec:AddToggle({ Title = "Anti Knockback / Anti Fling", Flag = "Anti Knockback", Default = false, Callback = function(v) FG.AntiKnockback = v end })
-    godSec:AddToggle({ Title = "Instant Auto Respawn", Flag = "Auto Respawn", Default = false, Callback = function(v) FG.AutoRespawn = v end })
+    UI_Controls.AntiKnockback = godSec:AddToggle({ Title = "Anti Knockback / Anti Fling", Flag = "Anti Knockback", Default = false, Callback = function(v) FG.AntiKnockback = v end })
+    UI_Controls.AutoRespawn = godSec:AddToggle({ Title = "Instant Auto Respawn", Flag = "Auto Respawn", Default = false, Callback = function(v) FG.AutoRespawn = v end })
 
     -- 2. Bite & Hazard Protection Section
     local hazSec = subHaz:AddSection({ Title = "Hazard Immunity (Tsunami, Ink, Bites)" })
-    hazSec:AddToggle({
+    UI_Controls.CancelBiteDamage = hazSec:AddToggle({
         Title = "Shark & Gator Bite Canceler", Flag = "Cancel Bite Damage", Default = true,
         Description = "Stops boss bite damage and cancels bite camera shake",
         Callback = function(v) FG.CancelBiteDamage = v end
     })
-    hazSec:AddToggle({ Title = "Anti Tsunami Protection", Flag = "Anti Tsunami", Default = false, Description = "Anchors player or elevates above wave level during tsunami event", Callback = function(v) FG.AntiTsunami = v end })
-    hazSec:AddToggle({ Title = "Anti Flashbang Fish", Flag = "Anti Flashbang", Default = false, Description = "Removes white screen flashbang GUI instantly", Callback = function(v) FG.AntiFlashbang = v end })
-    hazSec:AddToggle({ Title = "Anti Octopus Ink", Flag = "Anti Ink", Default = false, Description = "Clears ink overlay GUI", Callback = function(v) FG.AntiInk = v end })
+    UI_Controls.AntiTsunami = hazSec:AddToggle({ Title = "Anti Tsunami Protection", Flag = "Anti Tsunami", Default = false, Description = "Anchors player or elevates above wave level during tsunami event", Callback = function(v) FG.AntiTsunami = v end })
+    UI_Controls.AntiFlashbang = hazSec:AddToggle({ Title = "Anti Flashbang Fish", Flag = "Anti Flashbang", Default = false, Description = "Removes white screen flashbang GUI instantly", Callback = function(v) FG.AntiFlashbang = v end })
+    UI_Controls.AntiInk = hazSec:AddToggle({ Title = "Anti Octopus Ink", Flag = "Anti Ink", Default = false, Description = "Clears ink overlay GUI", Callback = function(v) FG.AntiInk = v end })
 
     -- 3. Water Mechanics Section
     local waterSec = subWater:AddSection({ Title = "Water Physics & Surface Walk" })
-    waterSec:AddToggle({
+    UI_Controls.InfiniteOxygen = waterSec:AddToggle({
         Title = "Infinite Oxygen / No Drowning", Flag = "Infinite Oxygen", Default = false,
         Description = "Prevents oxygen depletion while underwater",
         Callback = function(v) FG.InfiniteOxygen = v end
     })
-    waterSec:AddToggle({
+    UI_Controls.WaterSurfaceWalk = waterSec:AddToggle({
         Title = "Water Surface Walk", Flag = "Water Walk", Default = false,
         Description = "Creates an invisible solid surface over water to walk without swimming",
         Callback = function(v) FG.WaterSurfaceWalk = v end
@@ -998,15 +1048,15 @@ do
 
     -- 1. Speed & Jump Section
     local speedSec = subSpeed:AddSection({ Title = "Player WalkSpeed & Jump Mods" })
-    speedSec:AddToggle({ Title = "SpeedHack", Flag = "SpeedHack", Default = false, Callback = function(v) FG.SpeedHack = v end })
-    speedSec:AddSlider({ Title = "WalkSpeed Multiplier", Flag = "WalkSpeed Multi", Min = 16, Max = 150, Default = 32, Callback = function(v) FG.SpeedMultiplier = v end })
-    speedSec:AddToggle({ Title = "Infinite Jump", Flag = "Infinite Jump", Default = false, Callback = function(v) FG.InfiniteJump = v end })
+    UI_Controls.SpeedHack = speedSec:AddToggle({ Title = "SpeedHack", Flag = "SpeedHack", Default = false, Callback = function(v) FG.SpeedHack = v end })
+    UI_Controls.SpeedMultiplier = speedSec:AddSlider({ Title = "WalkSpeed Multiplier", Flag = "WalkSpeed Multi", Min = 16, Max = 150, Default = 32, Callback = function(v) FG.SpeedMultiplier = v end })
+    UI_Controls.InfiniteJump = speedSec:AddToggle({ Title = "Infinite Jump", Flag = "Infinite Jump", Default = false, Callback = function(v) FG.InfiniteJump = v end })
 
     -- 2. Flight & Noclip Section
     local flySec = subFly:AddSection({ Title = "Flight & Noclip Suite" })
-    flySec:AddToggle({ Title = "Fly (WASD + Space/Ctrl)", Flag = "Fly", Default = false, Callback = function(v) FG.Fly = v end })
-    flySec:AddSlider({ Title = "Fly Speed", Flag = "Fly Speed", Min = 10, Max = 150, Default = 50, Callback = function(v) FG.FlySpeed = v end })
-    flySec:AddToggle({ Title = "Noclip", Flag = "Noclip", Default = false, Callback = function(v) FG.Noclip = v end })
+    UI_Controls.Fly = flySec:AddToggle({ Title = "Fly (WASD + Space/Ctrl)", Flag = "Fly", Default = false, Callback = function(v) FG.Fly = v end })
+    UI_Controls.FlySpeed = flySec:AddSlider({ Title = "Fly Speed", Flag = "Fly Speed", Min = 10, Max = 150, Default = 50, Callback = function(v) FG.FlySpeed = v end })
+    UI_Controls.Noclip = flySec:AddToggle({ Title = "Noclip", Flag = "Noclip", Default = false, Callback = function(v) FG.Noclip = v end })
 
     -- 3. Teleports Section
     local tpSec = subTP:AddSection({ Title = "Important World Locations" })
@@ -1147,22 +1197,22 @@ do
     local subBoss  = espNav:GetSubTab("Boss & Threat ESP")
     local subWorld = espNav:GetSubTab("World Entities")
     local fSec = subFish:AddSection({ Title = "Fish ESP (Rarity Color Coding)" })
-    fSec:AddToggle({
+    UI_Controls.FishESP = fSec:AddToggle({
         Title = "Fish ESP", Flag = "Fish ESP", Default = false,
         Callback = function(v)
             FG.FishESP = v
             if not v then clearESP() end
         end
     })
-    fSec:AddToggle({ Title = "Show Fish Name Tags", Flag = "Show Fish Name", Default = true, Callback = function(v) FG.FishESPShowNames = v end })
-    fSec:AddToggle({ Title = "Show Distance In Meters", Flag = "Show Distance", Default = true, Callback = function(v) FG.FishESPShowDist = v end })
+    UI_Controls.FishESPShowNames = fSec:AddToggle({ Title = "Show Fish Name Tags", Flag = "Show Fish Name", Default = true, Callback = function(v) FG.FishESPShowNames = v end })
+    UI_Controls.FishESPShowDist = fSec:AddToggle({ Title = "Show Distance In Meters", Flag = "Show Distance", Default = true, Callback = function(v) FG.FishESPShowDist = v end })
 
     local bSec = subBoss:AddSection({ Title = "Boss Shark & Gator ESP" })
-    bSec:AddToggle({ Title = "Boss (Shark/Gator) ESP", Flag = "Boss ESP", Default = true, Description = "Renders persistent billboard and warnings over spawned Boss", Callback = function(v) FG.BossESP = v end })
+    UI_Controls.BossESP = bSec:AddToggle({ Title = "Boss (Shark/Gator) ESP", Flag = "Boss ESP", Default = true, Description = "Renders persistent billboard and warnings over spawned Boss", Callback = function(v) FG.BossESP = v end })
 
     local eSec = subWorld:AddSection({ Title = "World Entities ESP" })
-    eSec:AddToggle({ Title = "Dog ESP (Waffles, Biscuit)", Flag = "Dog ESP", Default = false, Callback = function(v) FG.DogESP = v end })
-    eSec:AddToggle({ Title = "Weapon Crate & Medal NPC ESP", Flag = "Crate ESP", Default = false, Callback = function(v) FG.CrateESP = v end })
+    UI_Controls.DogESP = eSec:AddToggle({ Title = "Dog ESP (Waffles, Biscuit)", Flag = "Dog ESP", Default = false, Callback = function(v) FG.DogESP = v end })
+    UI_Controls.CrateESP = eSec:AddToggle({ Title = "Weapon Crate & Medal NPC ESP", Flag = "Crate ESP", Default = false, Callback = function(v) FG.CrateESP = v end })
     eSec:AddButton({ Title = "Force Refresh All ESP", Callback = refreshAllESP })
 end
 
@@ -1220,7 +1270,7 @@ do
 
     -- 2. Visual Tweaks Section
     local visSec = subVisuals:AddSection({ Title = "Camera & Viewport Customization" })
-    visSec:AddToggle({
+    UI_Controls.CustomFOVEnabled = visSec:AddToggle({
         Title = "Enable Custom Field of View", Flag = "Custom FOV Enabled", Default = false,
         Description = "Overrides camera FOV with custom value",
         Callback = function(v)
@@ -1228,7 +1278,7 @@ do
             if not v and Camera then Camera.FieldOfView = 70 end
         end
     })
-    visSec:AddSlider({
+    UI_Controls.FieldOfView = visSec:AddSlider({
         Title = "Field Of View (FOV)", Flag = "Camera FOV",
         Min = 40, Max = 120, Default = 70,
         Callback = function(v)
@@ -1238,7 +1288,7 @@ do
             end
         end
     })
-    visSec:AddToggle({
+    UI_Controls.ClearWater = visSec:AddToggle({
         Title = "Clear Transparent Water", Flag = "Clear Water", Default = false,
         Description = "Removes water murkiness, waves, and reflections for crystal clear visibility",
         Callback = function(v)
@@ -1262,7 +1312,7 @@ do
             end)
         end
     })
-    visSec:AddToggle({
+    UI_Controls.NoFog = visSec:AddToggle({
         Title = "Remove Fog", Flag = "No Fog", Default = false,
         Description = "Pushes fog distance to infinite for maximum visibility",
         Callback = function(v)
@@ -1276,7 +1326,7 @@ do
 
     -- 3. Performance Boost Section
     local perfSec = subPerf:AddSection({ Title = "Potato Mode & FPS Optimizer" })
-    perfSec:AddToggle({
+    UI_Controls.PotatoMode = perfSec:AddToggle({
         Title = "Potato Mode (Extreme FPS Boost)", Flag = "Potato Mode", Default = false,
         Description = "Disables heavy particle emitters, smoke, trails, decals and sets plastic textures",
         Callback = function(v)
@@ -1301,7 +1351,7 @@ do
             end)
         end
     })
-    perfSec:AddToggle({
+    UI_Controls.NoShadows = perfSec:AddToggle({
         Title = "Disable All Shadows", Flag = "No Shadows", Default = false,
         Description = "Turns off GlobalShadows in Lighting service",
         Callback = function(v)
@@ -1325,7 +1375,7 @@ do
 
     -- 4. Lighting & World Atmosphere Section
     local lightSec = subLighting:AddSection({ Title = "World Lighting & Day Time Control" })
-    lightSec:AddToggle({
+    UI_Controls.Fullbright = lightSec:AddToggle({
         Title = "Fullbright (Night Vision Mode)", Flag = "Fullbright", Default = false,
         Description = "Forces maximum ambient lighting so dark caves and nights are fully illuminated",
         Callback = function(v)
@@ -1338,12 +1388,12 @@ do
             end
         end
     })
-    lightSec:AddToggle({
+    UI_Controls.LockTime = lightSec:AddToggle({
         Title = "Lock Time Of Day", Flag = "Lock Time", Default = false,
         Description = "Locks clock time to your preferred hour",
         Callback = function(v) FG.LockTime = v end
     })
-    lightSec:AddSlider({
+    UI_Controls.CustomTime = lightSec:AddSlider({
         Title = "Clock Time (Hours)", Flag = "Clock Time",
         Min = 0, Max = 24, Default = 14,
         Callback = function(v)
@@ -1351,7 +1401,7 @@ do
             if FG.LockTime then Lighting.ClockTime = v end
         end
     })
-    lightSec:AddToggle({
+    UI_Controls.ColorBoost = lightSec:AddToggle({
         Title = "Vibrant Color Boost", Flag = "Color Boost", Default = false,
         Description = "Applies high saturation color correction effect",
         Callback = function(v)
@@ -1374,33 +1424,147 @@ end
 -- ══════════════════════════════════════════════════════════════════════════════════
 do
     local setSec = TabSettings:AddSection({ Title = "Profile & Config Manager" })
+
+    local profileNameInput = setSec:AddInput({
+        Title = "Config Profile Name",
+        PlaceHolder = "Enter config name...",
+        Default = getgenv().FG_CurrentConfig or "Default",
+        Callback = function(val)
+            val = tostring(val or ""):gsub("^%s+", ""):gsub("%s+$", "")
+            if val ~= "" then
+                getgenv().FG_CurrentConfig = val
+            end
+        end,
+    })
+
+    local function getActiveProfile()
+        local name = ""
+        if profileNameInput and typeof(profileNameInput) == "Instance" and profileNameInput:IsA("TextBox") then
+            name = profileNameInput.Text or ""
+        elseif type(profileNameInput) == "table" and profileNameInput.Text then
+            name = tostring(profileNameInput.Text)
+        end
+        name = tostring(name):gsub("^%s+", ""):gsub("%s+$", "")
+        if name == "" then
+            name = tostring(getgenv().FG_CurrentConfig or "Default"):gsub("^%s+", ""):gsub("%s+$", "")
+        end
+        if name == "" then name = "Default" end
+        getgenv().FG_CurrentConfig = name
+        return name
+    end
+
     local configDropdown = setSec:AddDropdown({
         Title = "Saved Configs", Flag = "Config List",
-        Values = GetConfigList(), Default = "Default", Multi = false,
-        Callback = function(v) getgenv().FG_CurrentConfig = type(v) == "table" and v[1] or v or "Default" end
+        Values = GetConfigList(), Default = getgenv().FG_CurrentConfig or "Default", Multi = false,
+        Callback = function(v)
+            local chosen = type(v) == "table" and v[1] or v or "Default"
+            chosen = tostring(chosen):gsub("^%s+", ""):gsub("%s+$", "")
+            if chosen ~= "" then
+                getgenv().FG_CurrentConfig = chosen
+                if profileNameInput and typeof(profileNameInput) == "Instance" and profileNameInput:IsA("TextBox") then
+                    profileNameInput.Text = chosen
+                end
+            end
+        end,
     })
 
     setSec:AddButton({
         Title = "Save Current Config",
+        Description = "Saves all current hub settings to the specified config name",
         Callback = function()
-            SaveConfig(getgenv().FG_CurrentConfig)
-            configDropdown:Refresh(GetConfigList(), getgenv().FG_CurrentConfig)
-        end
+            local activeName = getActiveProfile()
+            local ok = SaveConfig(activeName)
+            local list = GetConfigList()
+            if configDropdown and configDropdown.Refresh then
+                pcall(function() configDropdown:Refresh(list, activeName) end)
+            end
+            if PinatHubAdapter and PinatHubAdapter.Notify then
+                pcall(function()
+                    PinatHubAdapter:Notify({
+                        Title = "Config Saved",
+                        Content = ok and ("Saved config as: " .. activeName) or "Failed to write config file!",
+                        Duration = 3,
+                    })
+                end)
+            end
+        end,
     })
 
     setSec:AddButton({
         Title = "Load Selected Config",
+        Description = "Loads settings from the specified config and updates UI controls",
         Callback = function()
-            LoadConfig(getgenv().FG_CurrentConfig)
-        end
+            local activeName = getActiveProfile()
+            local ok = LoadConfig(activeName)
+            if PinatHubAdapter and PinatHubAdapter.Notify then
+                pcall(function()
+                    PinatHubAdapter:Notify({
+                        Title = "Config Loaded",
+                        Content = ok and ("Loaded config: " .. activeName) or ("Config '" .. activeName .. "' not found!"),
+                        Duration = 3,
+                    })
+                end)
+            end
+        end,
     })
 
     setSec:AddButton({
         Title = "Delete Selected Config",
+        Description = "Permanently deletes the selected config file (cannot delete Default)",
         Callback = function()
-            DeleteConfig(getgenv().FG_CurrentConfig)
-            configDropdown:Refresh(GetConfigList(), "Default")
-        end
+            local activeName = getActiveProfile()
+            if activeName == "Default" then
+                if PinatHubAdapter and PinatHubAdapter.Notify then
+                    pcall(function()
+                        PinatHubAdapter:Notify({
+                            Title = "Cannot Delete",
+                            Content = "The 'Default' config profile cannot be deleted.",
+                            Duration = 3,
+                        })
+                    end)
+                end
+                return
+            end
+            local ok = DeleteConfig(activeName)
+            getgenv().FG_CurrentConfig = "Default"
+            if profileNameInput and typeof(profileNameInput) == "Instance" and profileNameInput:IsA("TextBox") then
+                profileNameInput.Text = "Default"
+            end
+            local list = GetConfigList()
+            if configDropdown and configDropdown.Refresh then
+                pcall(function() configDropdown:Refresh(list, "Default") end)
+            end
+            if PinatHubAdapter and PinatHubAdapter.Notify then
+                pcall(function()
+                    PinatHubAdapter:Notify({
+                        Title = "Config Deleted",
+                        Content = ok and ("Deleted config: " .. activeName) or "Failed to delete file!",
+                        Duration = 3,
+                    })
+                end)
+            end
+        end,
+    })
+
+    setSec:AddButton({
+        Title = "Refresh Config List",
+        Description = "Rescans the saved config directory for changes",
+        Callback = function()
+            local activeName = getActiveProfile()
+            local list = GetConfigList()
+            if configDropdown and configDropdown.Refresh then
+                pcall(function() configDropdown:Refresh(list, activeName) end)
+            end
+            if PinatHubAdapter and PinatHubAdapter.Notify then
+                pcall(function()
+                    PinatHubAdapter:Notify({
+                        Title = "Configs Refreshed",
+                        Content = "Found " .. tostring(#list) .. " config profiles.",
+                        Duration = 2,
+                    })
+                end)
+            end
+        end,
     })
 
     local hubSec = TabSettings:AddSection({ Title = "Hub Management" })
@@ -1653,6 +1817,21 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
+-- 6b. Auto Sell Fish Loop (UpgradeAction:FireServer("SellFish"))
+local lastSellCheck = 0
+RunService.Heartbeat:Connect(function(dt)
+    if not FG.AutoSellCatch or not UpgradeActionRemote then return end
+    lastSellCheck = lastSellCheck + dt
+    if lastSellCheck < 1 then return end
+    lastSellCheck = 0
+
+    local threshold = math.max(1, FG.SellThreshold or 1)
+    local currentStored = GameState.StoredFish or 0
+    if currentStored >= threshold or (threshold == 1 and currentStored > 0) then
+        pcall(function() UpgradeActionRemote:FireServer("SellFish") end)
+    end
+end)
+
 -- 7. Auto Collect Scales Loop
 local lastScaleCheck = 0
 RunService.Heartbeat:Connect(function(dt)
@@ -1686,7 +1865,7 @@ RunService.Heartbeat:Connect(function(dt)
     end)
 end)
 
--- 9. Auto Upgrades Loop (UpgradeAction Remote)
+-- 9. Auto Upgrades Loop (UpgradeAction Remote: FireServer("Upgrade", id))
 local lastUpgradeTime = 0
 RunService.Heartbeat:Connect(function(dt)
     if not UpgradeActionRemote then return end
@@ -1703,17 +1882,17 @@ RunService.Heartbeat:Connect(function(dt)
             "BetterDock", "AdditionalDogs", "Airstrike", "AirstrikeCooldown"
         }
         for _, k in ipairs(allKeys) do
-            local cost = (GameState.UpgradeCosts and GameState.UpgradeCosts[k]) or 0
-            if GameState.TeamCash >= cost then
-                pcall(function() UpgradeActionRemote:FireServer(k) end)
+            local cost = (GameState.UpgradeCosts and GameState.UpgradeCosts[k])
+            if cost == nil or GameState.TeamCash >= cost then
+                pcall(function() UpgradeActionRemote:FireServer("Upgrade", k) end)
             end
         end
     else
         for k, enabled in pairs(FG.UpgradesSelected) do
             if enabled then
-                local cost = (GameState.UpgradeCosts and GameState.UpgradeCosts[k]) or 0
-                if GameState.TeamCash >= cost then
-                    pcall(function() UpgradeActionRemote:FireServer(k) end)
+                local cost = (GameState.UpgradeCosts and GameState.UpgradeCosts[k])
+                if cost == nil or GameState.TeamCash >= cost then
+                    pcall(function() UpgradeActionRemote:FireServer("Upgrade", k) end)
                 end
             end
         end
