@@ -322,6 +322,23 @@ local Flags = {
     ExtendedDragReach = false,
     MuteAmbience = false,
 
+    -- Auto Drive Drill System
+    AutoDriveDrill = false,
+    AutoDriveSpeed = 55,
+    AutoSitDriver = true,
+    DrillAntiStuck = true,
+
+    -- Auto Collect All Items System
+    AutoCollectItems = false,
+    ItemCollectFilter = "All Items",
+    ItemCollectRadius = 60,
+    ItemCollectDelay = 0.12,
+    VacuumItemsToPlayer = true,
+    AutoStoreInSack = true,
+
+    -- Performance & Lag Reducer
+    DisableParticleLag = false,
+
     -- Player & Movement
     WalkSpeedEnabled = false,
     WalkSpeedValue = 16,
@@ -359,6 +376,75 @@ local Flags = {
     -- Internal state
     Unloaded = false
 }
+
+-- ── Item Filtering & Collection Helpers ───────────────────────────────────────────────
+
+local function MatchesItemFilter(item)
+    if not item then return false end
+    local name = item.Name:lower()
+    local cat = item:GetAttribute("Category") or ""
+    cat = tostring(cat):lower()
+    local filter = Flags.ItemCollectFilter or "All Items"
+
+    if filter == "All Items" then
+        return true
+    elseif filter == "Ores & Minerals" then
+        return name:find("ore") or name:find("coal") or name:find("iron") or name:find("gold") or name:find("emerald") or name:find("ruby") or name:find("diamond") or name:find("heartgem") or cat == "ore" or cat == "gem"
+    elseif filter == "Money & Sacks" then
+        return name:find("money") or name:find("sack") or name:find("coin") or name:find("soulorb") or name:find("medal")
+    elseif filter == "Fuel & Gas Cans" then
+        return name:find("gas") or name:find("fuel") or name:find("can") or name:find("oil") or cat == "fuel"
+    elseif filter == "Supply Crates & Chests" then
+        return name:find("crate") or name:find("chest") or CollectionService:HasTag(item, "Crate") or CollectionService:HasTag(item, "SupplyCrate")
+    elseif filter == "Consumables & Medkits" then
+        return name:find("medkit") or name:find("potion") or name:find("bandage") or cat == "consumable"
+    elseif filter == "Weapons & Ammo" then
+        return name:find("ammo") or name:find("gun") or name:find("sword") or name:find("bullet") or name:find("pickaxe") or cat:find("gun") or cat:find("weapon") or cat == "ammo"
+    elseif filter == "Crafted Placeables" then
+        return item:GetAttribute("CraftedPlaceable") == true or name:find("turret") or name:find("sentry") or name:find("cannon") or name:find("decoy") or name:find("autopilot") or cat == "placeable"
+    elseif filter == "Scrap & Materials" then
+        return name:find("scrap") or name:find("wire") or name:find("copper") or name:find("metal") or cat == "scrap"
+    end
+    return true
+end
+
+local function CollectItem(item)
+    if not item or not Root then return end
+    pcall(function()
+        local part = item:IsA("BasePart") and item or item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+        if not part then return end
+
+        -- 1. Trigger ProximityPrompt
+        local prompt = item:FindFirstChildWhichIsA("ProximityPrompt", true)
+        if prompt then
+            pcall(function() fireproximityprompt(prompt) end)
+        end
+
+        -- 2. Trigger InteractionService
+        if InteractionService and InteractionService.Interact then
+            InteractionService:Interact(item)
+        end
+
+        -- 3. Vacuum item to character
+        if Flags.VacuumItemsToPlayer then
+            part.CFrame = Root.CFrame
+        end
+
+        -- 4. Touch interest pickup
+        if firetouchinterest then
+            firetouchinterest(Root, part, 0)
+            firetouchinterest(Root, part, 1)
+        end
+
+        -- 5. Bag tool pickup
+        if Flags.AutoStoreInSack then
+            local tool = GetActiveTool()
+            if tool and type(tool) == "table" and tool.Execute then
+                tool.Execute:Fire({"Pickup", item})
+            end
+        end
+    end)
+end
 
 -- ── Tool & Game Mechanics Helpers ─────────────────────────────────────────────────────
 
@@ -670,6 +756,103 @@ MiningSec:AddToggle({
     end
 })
 
+local ItemCollectorSec = MiningTab:AddSection("Auto Collect All Items & World Vacuum")
+
+ItemCollectorSec:AddToggle({
+    Name = "Auto Collect All Items",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoCollectItems = v
+        if v then Notify("Item Collector Active", 2) end
+    end
+})
+
+ItemCollectorSec:AddDropdown({
+    Name = "Item Filter Category",
+    Options = {
+        "All Items",
+        "Ores & Minerals",
+        "Money & Sacks",
+        "Fuel & Gas Cans",
+        "Supply Crates & Chests",
+        "Consumables & Medkits",
+        "Weapons & Ammo",
+        "Crafted Placeables",
+        "Scrap & Materials"
+    },
+    Default = "All Items",
+    Callback = function(v)
+        Flags.ItemCollectFilter = v
+    end
+})
+
+ItemCollectorSec:AddSlider({
+    Name = "Collect Search Radius",
+    Min = 15,
+    Max = 200,
+    Default = 60,
+    Precision = 1,
+    Callback = function(v)
+        Flags.ItemCollectRadius = v
+    end
+})
+
+ItemCollectorSec:AddSlider({
+    Name = "Collection Speed Delay (s)",
+    Min = 0.05,
+    Max = 0.5,
+    Default = 0.12,
+    Precision = 2,
+    Callback = function(v)
+        Flags.ItemCollectDelay = v
+    end
+})
+
+ItemCollectorSec:AddToggle({
+    Name = "Vacuum Teleport Items to Player",
+    Default = true,
+    Callback = function(v)
+        Flags.VacuumItemsToPlayer = v
+    end
+})
+
+ItemCollectorSec:AddToggle({
+    Name = "Auto Store in Sack / Bag",
+    Default = true,
+    Callback = function(v)
+        Flags.AutoStoreInSack = v
+    end
+})
+
+ItemCollectorSec:AddButton({
+    Name = "Sweep & Collect All Items In Radius Now",
+    Callback = function()
+        pcall(function()
+            local count = 0
+            local itemsFolder = Workspace:FindFirstChild("Items")
+            local list = {}
+            if itemsFolder then
+                for _, it in ipairs(itemsFolder:GetChildren()) do table.insert(list, it) end
+            end
+            for _, tag in ipairs({"Ore", "SupplyCrate", "GasCan", "Crate"}) do
+                for _, obj in ipairs(CollectionService:GetTagged(tag)) do table.insert(list, obj) end
+            end
+            for _, item in ipairs(list) do
+                if item:IsDescendantOf(Workspace) and Root then
+                    local p = item:IsA("BasePart") and item.Position or item:GetPivot().Position
+                    if (p - Root.Position).Magnitude <= (Flags.ItemCollectRadius or 60) then
+                        if MatchesItemFilter(item) then
+                            CollectItem(item)
+                            count = count + 1
+                        end
+                    end
+                end
+            end
+            Notify(string.format("Collected %d items in radius!", count), 2)
+        end)
+    end
+})
+
 local RockWallSec = MiningTab:AddSection("Wall & Scrap Utilities")
 
 RockWallSec:AddToggle({
@@ -701,6 +884,81 @@ RockWallSec:AddToggle({
 -- ──────────────────────────────────────────────────────────────────────────────────────
 -- TAB 2: Drill & Engine
 -- ──────────────────────────────────────────────────────────────────────────────────────
+local DrillDriveSec = DrillTab:AddSection("Auto Drive & Vehicle Controls")
+
+DrillDriveSec:AddToggle({
+    Name = "Auto Drive Drill (Core Descent Mode)",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoDriveDrill = v
+        if v then Notify("Auto Drive Engaged", 2) end
+    end
+})
+
+DrillDriveSec:AddSlider({
+    Name = "Target Drive Speed (studs/s)",
+    Min = 20,
+    Max = 120,
+    Default = 55,
+    Precision = 1,
+    Callback = function(v)
+        Flags.AutoDriveSpeed = v
+    end
+})
+
+DrillDriveSec:AddToggle({
+    Name = "Auto Sit in Driver Seat",
+    Default = true,
+    Callback = function(v)
+        Flags.AutoSitDriver = v
+    end
+})
+
+DrillDriveSec:AddToggle({
+    Name = "Drill Anti-Stuck Auto-Unjam",
+    Default = true,
+    Callback = function(v)
+        Flags.DrillAntiStuck = v
+    end
+})
+
+DrillDriveSec:AddButton({
+    Name = "Sit in Driver Seat Now",
+    Callback = function()
+        pcall(function()
+            local drill = FindDrillModel()
+            if drill and Humanoid then
+                local seat = drill:FindFirstChild("DrillPhysicsSeat", true) or drill:FindFirstChildWhichIsA("VehicleSeat", true) or drill:FindFirstChildWhichIsA("Seat", true)
+                if seat then
+                    seat:Sit(Humanoid)
+                    Notify("Seated in Driver Seat", 2)
+                else
+                    Notify("Driver seat not found on Drill", 2)
+                end
+            end
+        end)
+    end
+})
+
+DrillDriveSec:AddButton({
+    Name = "Emergency Drill Unstuck / Downward Nudge",
+    Callback = function()
+        pcall(function()
+            local drill = FindDrillModel()
+            if drill then
+                local prim = drill.PrimaryPart or drill:FindFirstChildWhichIsA("BasePart")
+                if prim then
+                    prim.AssemblyLinearVelocity = Vector3.new(0, -60, 0)
+                end
+                if TeleportManagerService and TeleportManagerService.VoteUnstuck then
+                    TeleportManagerService:VoteUnstuck(true)
+                end
+                Notify("Drill Downward Nudge Applied", 2)
+            end
+        end)
+    end
+})
+
 local DrillSec = DrillTab:AddSection("Drill Speed & Nitro")
 
 DrillSec:AddToggle({
@@ -1697,6 +1955,26 @@ SetSec:AddButton({
     end
 })
 
+local PerfSec = SettingsTab:AddSection("Performance & Lag Optimization")
+
+PerfSec:AddToggle({
+    Name = "Disable Heavy Mining Dust & Particle Lag",
+    Default = false,
+    Callback = function(v)
+        Flags.DisableParticleLag = v
+        if v then
+            pcall(function()
+                for _, emitter in ipairs(Workspace:GetDescendants()) do
+                    if emitter:IsA("ParticleEmitter") or emitter:IsA("Smoke") or emitter:IsA("Fire") then
+                        emitter.Enabled = false
+                    end
+                end
+            end)
+            Notify("Heavy Particle Emitters Disabled", 2)
+        end
+    end
+})
+
 local InfoSec = SettingsTab:AddSection("Information")
 InfoSec:AddParagraph({
     Title = "PinatHub v3.5 (SharedPlanets Edition)",
@@ -2085,6 +2363,139 @@ task.spawn(function()
         end
 
         task.wait(0.3)
+    end
+end)
+
+-- 10.1 Auto Drive Drill Engine
+task.spawn(function()
+    local lastY = 0
+    local stuckTicks = 0
+
+    while not Flags.Unloaded do
+        if Flags.AutoDriveDrill then
+            pcall(function()
+                local drill = FindDrillModel()
+                if drill and Character and Humanoid and Root then
+                    local seat = drill:FindFirstChild("DrillPhysicsSeat", true) or drill:FindFirstChildWhichIsA("VehicleSeat", true) or drill:FindFirstChildWhichIsA("Seat", true)
+
+                    -- Auto Sit in driver seat
+                    if seat and Humanoid.SeatPart ~= seat and Flags.AutoSitDriver then
+                        seat:Sit(Humanoid)
+                    end
+
+                    -- Throttle vehicle forward
+                    if seat and seat:IsA("VehicleSeat") then
+                        seat.Throttle = 1
+                    end
+
+                    -- Apply physical downward velocity propulsion
+                    local primary = drill.PrimaryPart or drill:FindFirstChildWhichIsA("BasePart")
+                    if primary then
+                        local curY = primary.Position.Y
+                        local vel = primary.AssemblyLinearVelocity
+                        local targetSpd = Flags.AutoDriveSpeed or 55
+
+                        if vel.Y > -targetSpd then
+                            primary.AssemblyLinearVelocity = Vector3.new(vel.X * 0.7, -targetSpd, vel.Z * 0.7)
+                        end
+
+                        -- Anti-stuck detection
+                        if Flags.DrillAntiStuck then
+                            if math.abs(curY - lastY) < 1.0 then
+                                stuckTicks = stuckTicks + 1
+                                if stuckTicks >= 3 then
+                                    primary.AssemblyLinearVelocity = Vector3.new(0, -targetSpd * 1.5, 0)
+                                    if TeleportManagerService and TeleportManagerService.VoteUnstuck then
+                                        TeleportManagerService:VoteUnstuck(true)
+                                    end
+                                    stuckTicks = 0
+                                end
+                            else
+                                stuckTicks = 0
+                            end
+                            lastY = curY
+                        end
+                    end
+
+                    -- Auto trigger boost / nitro
+                    ExecuteToolAction("Use")
+
+                    -- Auto clear rock walls in drill path
+                    local walls = CollectionService:GetTagged("RockWall")
+                    local nearbyWalls = {}
+                    local drillPos = drill:GetPivot().Position
+                    for _, wall in ipairs(walls) do
+                        if wall:IsDescendantOf(Workspace) then
+                            local wp = wall:IsA("BasePart") and wall.Position or wall:GetPivot().Position
+                            if (wp - drillPos).Magnitude <= 40 then
+                                table.insert(nearbyWalls, wall)
+                            end
+                        end
+                    end
+                    if #nearbyWalls > 0 then
+                        ExecuteToolAction("Swing", nearbyWalls)
+                    end
+                end
+            end)
+        end
+        task.wait(0.3)
+    end
+end)
+
+-- 10.2 Auto Collect All Items Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.AutoCollectItems and Root then
+            pcall(function()
+                local itemsFolder = Workspace:FindFirstChild("Items")
+                local candidates = {}
+
+                if itemsFolder then
+                    for _, it in ipairs(itemsFolder:GetChildren()) do
+                        table.insert(candidates, it)
+                    end
+                end
+
+                for _, tag in ipairs({"Ore", "SupplyCrate", "GasCan", "Crate"}) do
+                    for _, it in ipairs(CollectionService:GetTagged(tag)) do
+                        if it:IsDescendantOf(Workspace) then
+                            table.insert(candidates, it)
+                        end
+                    end
+                end
+
+                local radius = Flags.ItemCollectRadius or 60
+                for _, item in ipairs(candidates) do
+                    if not Flags.AutoCollectItems then break end
+                    if item:IsDescendantOf(Workspace) and item ~= Character and not item:IsDescendantOf(Character) then
+                        local p = item:IsA("BasePart") and item.Position or item:GetPivot().Position
+                        if (p - Root.Position).Magnitude <= radius then
+                            if MatchesItemFilter(item) then
+                                CollectItem(item)
+                                task.wait(0.02)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(Flags.ItemCollectDelay or 0.12)
+    end
+end)
+
+-- 10.3 Performance Particle Lag Reducer Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.DisableParticleLag then
+            pcall(function()
+                for _, emitter in ipairs(Workspace:GetDescendants()) do
+                    if emitter:IsA("ParticleEmitter") or emitter:IsA("Smoke") or emitter:IsA("Fire") then
+                        emitter.Enabled = false
+                    end
+                end
+            end)
+        end
+        task.wait(3.0)
     end
 end)
 
