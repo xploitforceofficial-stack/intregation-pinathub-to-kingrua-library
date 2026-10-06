@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════════╗
 -- ║               PinatHub — Anime Blade Champions & Training RPG Hub                ║
--- ║         Full Native Integration for Blade Training & Combat RPG (Roblox)         ║
+-- ║          Full Native Multi-Module Master Edition (392 Game Modules)              ║
 -- ║      Engineered with PinatHub / KingRua UI Library & Native Game Architecture      ║
 -- ╚══════════════════════════════════════════════════════════════════════════════════╝
 
@@ -28,31 +28,43 @@ end
 refreshChar()
 LocalPlayer.CharacterAdded:Connect(refreshChar)
 
--- ── Game Architecture & Network Bridge ───────────────────────────────────────────────
-local CommunicationUtils = nil
-pcall(function()
-    CommunicationUtils = require(ReplicatedStorage:WaitForChild("Utils", 5):WaitForChild("CommunicationUtils", 5))
-end)
+-- ── Safe Module Resolution (Zero Luau Static Require Errors) ─────────────────────────
+local function safeRequire(modInstance)
+    if not modInstance then return nil end
+    local req = (getrenv and getrenv().require) or require
+    local ok, res = pcall(function()
+        return req(modInstance)
+    end)
+    if ok and res then return res end
+    return nil
+end
 
-local EncodingUtils = nil
-pcall(function()
-    EncodingUtils = require(ReplicatedStorage.Utils.EncodingUtils)
-end)
+local function getGameModule(folderName, moduleName)
+    local f = ReplicatedStorage:FindFirstChild(folderName)
+    if f then
+        local m = f:FindFirstChild(moduleName)
+        if m and m:IsA("ModuleScript") then
+            return safeRequire(m)
+        end
+    end
+    return nil
+end
 
-local HPCTRL = nil
-pcall(function()
-    HPCTRL = require(ReplicatedStorage:WaitForChild("CTRL", 5):WaitForChild("HPCTRL", 5))
-end)
-
-local TrainCTRL = nil
-pcall(function()
-    TrainCTRL = require(ReplicatedStorage:WaitForChild("CTRL", 5):WaitForChild("TrainCTRL", 5))
-end)
-
-local SkillCTRL = nil
-pcall(function()
-    SkillCTRL = require(ReplicatedStorage:WaitForChild("SkillSystemNew", 5):WaitForChild("SkillCTRL", 5))
-end)
+-- Resolve Core Game Modules Dynamically
+local CommunicationUtils = getGameModule("Utils", "CommunicationUtils")
+local EncodingUtils      = getGameModule("Utils", "EncodingUtils")
+local HPCTRL             = getGameModule("CTRL", "HPCTRL")
+local TrainCTRL          = getGameModule("CTRL", "TrainCTRL")
+local EnemyCTRL          = getGameModule("CTRL", "EnemyCTRL")
+local SkillCTRL          = getGameModule("SkillSystemNew", "SkillCTRL")
+local BackpackData       = getGameModule("LocalData", "BackpackData")
+local ClassData          = getGameModule("LocalData", "ClassData")
+local UpgradeData        = getGameModule("LocalData", "UpgradeData")
+local PotionData         = getGameModule("LocalData", "PotionData")
+local StatsData          = getGameModule("LocalData", "StatsData")
+local DungeonData        = getGameModule("LocalData", "DungeonData")
+local OnlineData         = getGameModule("LocalData", "OnlineData")
+local IndexData          = getGameModule("LocalData", "IndexData")
 
 -- Safe Remote Resolution Helpers
 local function GetRemoteEvent(category, name)
@@ -100,6 +112,7 @@ local UseAnyATKRE          = GetRemoteEvent("Attack", "UseAnyATKRE")
 local UseAnySkillRE        = GetRemoteEvent("Attack", "UseAnySkillRE")
 local KillEnemyRE          = GetRemoteEvent("Attack", "KillEnemyRE")
 local UseSkillByIndexBE    = GetBindableEvent("Skill", "UseSkillByIndexBE")
+local EnemyHitBE           = GetBindableEvent("Attack", "EnemyHitBE")
 
 local GetOreRF             = GetRemoteFunction("Stage", "GetOreRF")
 local ClaimedAllOreRE      = GetRemoteEvent("Stage", "ClaimedAllOreRE")
@@ -120,6 +133,7 @@ local TryUsePotionRE       = GetRemoteEvent("Potion", "TryUsePotionRE")
 local TryUseCodeRF         = GetRemoteFunction("Code", "TryUseCodeRF")
 local TryClaimOfflineRE    = GetRemoteEvent("Offline", "TryClaimOfflineRewardRE")
 local DungeonRebirthRE     = GetRemoteEvent("Dungeon", "DungeonRebirthRE")
+local ShowLuckResultRE     = GetRemoteEvent("Class", "ShowLuckResultRE")
 
 -- Workspace Folders & Entities
 local EnemyFolder      = Workspace:WaitForChild("EnemyFolder", 5) or Workspace:FindFirstChild("EnemyFolder")
@@ -160,8 +174,9 @@ local PH = {
     AutoSkill1           = false,
     AutoSkill2           = false,
     SkillCastDelay       = 1.5,
+    AutoDodgeBossSkill   = false,
 
-    -- Stage & Dungeon Tab
+    -- Stage & Ore Tab
     SelectedStage        = "Stage_1",
     AutoFarmStage        = false,
     AutoProgressStage    = false,
@@ -169,7 +184,11 @@ local PH = {
     AutoClaimAllOre      = false,
     AutoEnchantStone     = false,
     AutoSuperLoot        = false,
+    AutoSellAllOres      = false,
+
+    -- Dungeon Tab
     AutoJoinDungeon      = false,
+    AutoClearDungeon     = false,
     AutoDungeonRebirth   = false,
 
     -- World Boss Tab
@@ -177,15 +196,28 @@ local PH = {
     AutoAttackWorldBoss  = false,
     AutoClaimBossReward  = false,
     AutoCollectBossBalls = false,
+    SelectedRewardCard   = 1,
 
-    -- Upgrades & Economy Tab
+    -- Equipment & Forge Tab
+    AutoForgeWeapon      = false,
+    AutoForgeArmor       = false,
+    AutoEnchantEquipment = false,
+    SelectedEnchantType  = "Fire",
+
+    -- Class, Titles & Upgrades Tab
+    AutoRollClass        = false,
+    StopOnRarity         = "Legendary",
+    SelectedClassSlot    = 1,
     AutoUpgradeLuck      = false,
     AutoUpgradeOrePack   = false,
     AutoUpgradeTrain     = false,
-    AutoForge            = false,
     SelectedPotion       = "Damage",
     AutoUsePotion        = false,
+
+    -- Economy & Gifts Tab
     AutoOfflineReward    = false,
+    AutoOnlineGift       = false,
+    AutoDailySign        = false,
 
     -- Movement Tab
     WalkSpeedBoost       = false,
@@ -254,7 +286,6 @@ local function loadLibrary()
         return getgenv().PinatHubAdapter or getgenv().PinatHubLibrary
     end
 
-    -- 1. Try local executor workspace files
     if readfile and isfile then
         local candidates = {
             "kingrualibrarysource.lua",
@@ -277,7 +308,6 @@ local function loadLibrary()
         end
     end
 
-    -- 2. Fetch from GitHub raw fallback
     local remoteUrls = {
         "https://raw.githubusercontent.com/xploitforceofficial-stack/intregation-pinathub-to-kingrua-library/main/kingrualibrarysource.lua",
         "https://raw.githubusercontent.com/stokompetgacor23-dotcom/intregation-pinathub-to-kingrua-library-1/main/kingrualibrarysource.lua",
@@ -353,7 +383,6 @@ local function LoadConfig(name)
                 for k, v in pairs(data) do
                     PH[k] = v
                 end
-                -- Synchronize visual state of all UI controls
                 for flagKey, ctrl in pairs(UI_Controls) do
                     if ctrl and type(ctrl.Set) == "function" and PH[flagKey] ~= nil then
                         pcall(function() ctrl:Set(PH[flagKey]) end)
@@ -391,9 +420,9 @@ local Window
 if PinatHubAdapter then
     Window = PinatHubAdapter:CreateWindow({
         Title    = "PinatHub — Anime Blade Champions",
-        SubTitle = "Combat & Training Master Hub",
+        SubTitle = "Complete Multi-Module Hub",
         Game     = "Anime Blade RPG",
-        Version  = "2.2.0 Native",
+        Version  = "3.0.0 Master",
         Logo     = "rbxassetid://84214776605047",
         OnClose  = function()
             PH.AutoTrain  = false
@@ -657,6 +686,15 @@ if NavCombat_Filter then
             PH.WeaponComboStyle = val
         end
     })
+
+    UI_Controls.AutoDodgeBossSkill = SecFilter:AddToggle({
+        Name     = "Auto Dodge Boss AoE Attacks",
+        Default  = false,
+        Flag     = "AutoDodgeBossSkill",
+        Callback = function(val)
+            PH.AutoDodgeBossSkill = val
+        end
+    })
 end
 
 -- ── [Tab 2 - Subnav: Skills & Auto-Cast] ─────────────────────────────────────────────
@@ -706,24 +744,26 @@ if NavCombat_Skills then
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════════════
--- TAB 3: STAGES & DUNGEONS
+-- TAB 3: STAGES & ORES
 -- ═════════════════════════════════════════════════════════════════════════════════════
 local TabStage = Window and Window:CreateTab({
-    Name = "Stages",
+    Name = "Stages & Ores",
     Icon = "trophy",
-    Description = "Stage Progression, Mineral Collection & Dungeon Raids"
+    Description = "Stage Progression, Mineral Mining, Auto Sell & Super Loot"
 })
 
-local NavStage_Farm, NavStage_Ore, NavStage_Dungeon
+local NavStage_Farm, NavStage_Ore, NavStage_Sell, NavStage_Super
 if TabStage then
     local sections = TabStage:AddSubNav({
         "Stage Automation",
-        "Ore & Minerals",
-        "Dungeon Raids"
+        "Ore Collection",
+        "Auto Sell Ores",
+        "Super Loot"
     })
-    NavStage_Farm    = sections["Stage Automation"]
-    NavStage_Ore     = sections["Ore & Minerals"]
-    NavStage_Dungeon = sections["Dungeon Raids"]
+    NavStage_Farm  = sections["Stage Automation"]
+    NavStage_Ore   = sections["Ore Collection"]
+    NavStage_Sell  = sections["Auto Sell Ores"]
+    NavStage_Super = sections["Super Loot"]
 end
 
 -- ── [Tab 3 - Subnav: Stage Automation] ───────────────────────────────────────────────
@@ -791,7 +831,7 @@ if NavStage_Farm then
     })
 end
 
--- ── [Tab 3 - Subnav: Ore & Minerals] ─────────────────────────────────────────────────
+-- ── [Tab 3 - Subnav: Ore Collection] ─────────────────────────────────────────────────
 if NavStage_Ore then
     local SecOre = NavStage_Ore:AddSection("Ore & Mineral Collection")
 
@@ -822,15 +862,6 @@ if NavStage_Ore then
         end
     })
 
-    UI_Controls.AutoSuperLoot = SecOre:AddToggle({
-        Name     = "Auto Break Super Loot Drops",
-        Default  = false,
-        Flag     = "AutoSuperLoot",
-        Callback = function(val)
-            PH.AutoSuperLoot = val
-        end
-    })
-
     SecOre:AddButton({
         Name     = "Claim All Ores Now",
         Callback = function()
@@ -841,9 +872,65 @@ if NavStage_Ore then
     })
 end
 
--- ── [Tab 3 - Subnav: Dungeon Raids] ──────────────────────────────────────────────────
-if NavStage_Dungeon then
-    local SecDungeon = NavStage_Dungeon:AddSection("Dungeon Raid Automation")
+-- ── [Tab 3 - Subnav: Auto Sell Ores] ─────────────────────────────────────────────────
+if NavStage_Sell then
+    local SecSell = NavStage_Sell:AddSection("Auto Sell Ores & Backpack Capacity")
+
+    UI_Controls.AutoSellAllOres = SecSell:AddToggle({
+        Name     = "Auto Sell All Ores (Continuous)",
+        Default  = false,
+        Flag     = "AutoSellAllOres",
+        Callback = function(val)
+            PH.AutoSellAllOres = val
+        end
+    })
+
+    SecSell:AddButton({
+        Name     = "Sell All Ores Now",
+        Callback = function()
+            if BackpackData and BackpackData.SellAll then
+                pcall(function() BackpackData.SellAll() end)
+            end
+        end
+    })
+end
+
+-- ── [Tab 3 - Subnav: Super Loot] ─────────────────────────────────────────────────────
+if NavStage_Super then
+    local SecSuper = NavStage_Super:AddSection("Super Loot Chest Automation")
+
+    UI_Controls.AutoSuperLoot = SecSuper:AddToggle({
+        Name     = "Auto Break Super Loot Drops",
+        Default  = false,
+        Flag     = "AutoSuperLoot",
+        Callback = function(val)
+            PH.AutoSuperLoot = val
+        end
+    })
+end
+
+-- ═════════════════════════════════════════════════════════════════════════════════════
+-- TAB 4: DUNGEONS & RAIDS
+-- ═════════════════════════════════════════════════════════════════════════════════════
+local TabDungeon = Window and Window:CreateTab({
+    Name = "Dungeons",
+    Icon = "shield",
+    Description = "Dungeon Raids, Multi-Round Waves & Dungeon Rebirth"
+})
+
+local NavDungeon_Auto, NavDungeon_Actions
+if TabDungeon then
+    local sections = TabDungeon:AddSubNav({
+        "Dungeon Automation",
+        "Dungeon Actions"
+    })
+    NavDungeon_Auto    = sections["Dungeon Automation"]
+    NavDungeon_Actions = sections["Dungeon Actions"]
+end
+
+-- ── [Tab 4 - Subnav: Dungeon Automation] ─────────────────────────────────────────────
+if NavDungeon_Auto then
+    local SecDungeon = NavDungeon_Auto:AddSection("Dungeon Raid Automation")
 
     UI_Controls.AutoJoinDungeon = SecDungeon:AddToggle({
         Name     = "Auto Step into Dungeon",
@@ -851,6 +938,15 @@ if NavStage_Dungeon then
         Flag     = "AutoJoinDungeon",
         Callback = function(val)
             PH.AutoJoinDungeon = val
+        end
+    })
+
+    UI_Controls.AutoClearDungeon = SecDungeon:AddToggle({
+        Name     = "Auto Clear Dungeon Waves",
+        Default  = false,
+        Flag     = "AutoClearDungeon",
+        Callback = function(val)
+            PH.AutoClearDungeon = val
         end
     })
 
@@ -862,43 +958,59 @@ if NavStage_Dungeon then
             PH.AutoDungeonRebirth = val
         end
     })
+end
 
-    SecDungeon:AddButton({
+-- ── [Tab 4 - Subnav: Dungeon Actions] ────────────────────────────────────────────────
+if NavDungeon_Actions then
+    local SecDgActions = NavDungeon_Actions:AddSection("Dungeon Quick Teleports & Controls")
+
+    SecDgActions:AddButton({
         Name     = "Teleport to Dungeon Portal",
         Callback = function()
             refreshChar()
             if Root and TouchedFolder then
-                local dOpen = TouchedFolder:FindFirstChild("DungeonOpen")
-                if dOpen and dOpen:IsA("BasePart") then
-                    Root.CFrame = dOpen.CFrame * CFrame.new(0, 4, 0)
+                local dg = TouchedFolder:FindFirstChild("DungeonOpen")
+                if dg and dg:IsA("BasePart") then
+                    Root.CFrame = dg.CFrame * CFrame.new(0, 4, 0)
                 end
+            end
+        end
+    })
+
+    SecDgActions:AddButton({
+        Name     = "Dungeon Rebirth Once",
+        Callback = function()
+            if DungeonRebirthRE then
+                DungeonRebirthRE:FireServer()
             end
         end
     })
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════════════
--- TAB 4: WORLD BOSS
+-- TAB 5: WORLD BOSS
 -- ═════════════════════════════════════════════════════════════════════════════════════
 local TabBoss = Window and Window:CreateTab({
     Name = "World Boss",
     Icon = "skull",
-    Description = "World Boss Raids, Rewards & HP Buff Balls"
+    Description = "World Boss Raids, Rewards, Card Flips & HP Buff Balls"
 })
 
-local NavBoss_Auto, NavBoss_Rewards
+local NavBoss_Auto, NavBoss_Rewards, NavBoss_Balls
 if TabBoss then
     local sections = TabBoss:AddSubNav({
-        "Boss Automation",
-        "Boss Rewards"
+        "World Boss Combat",
+        "Boss Rewards & Cards",
+        "HP Ball Collector"
     })
-    NavBoss_Auto    = sections["Boss Automation"]
-    NavBoss_Rewards = sections["Boss Rewards"]
+    NavBoss_Auto    = sections["World Boss Combat"]
+    NavBoss_Rewards = sections["Boss Rewards & Cards"]
+    NavBoss_Balls   = sections["HP Ball Collector"]
 end
 
--- ── [Tab 4 - Subnav: Boss Automation] ────────────────────────────────────────────────
+-- ── [Tab 5 - Subnav: World Boss Combat] ──────────────────────────────────────────────
 if NavBoss_Auto then
-    local SecBossFight = NavBoss_Auto:AddSection("World Boss Combat")
+    local SecBossFight = NavBoss_Auto:AddSection("World Boss Combat Automation")
 
     UI_Controls.AutoJoinWorldBoss = SecBossFight:AddToggle({
         Name     = "Auto Join World Boss (On Spawn)",
@@ -915,15 +1027,6 @@ if NavBoss_Auto then
         Flag     = "AutoAttackWorldBoss",
         Callback = function(val)
             PH.AutoAttackWorldBoss = val
-        end
-    })
-
-    UI_Controls.AutoCollectBossBalls = SecBossFight:AddToggle({
-        Name     = "Auto Collect Boss HP Balls",
-        Default  = false,
-        Flag     = "AutoCollectBossBalls",
-        Callback = function(val)
-            PH.AutoCollectBossBalls = val
         end
     })
 
@@ -960,9 +1063,9 @@ if NavBoss_Auto then
     })
 end
 
--- ── [Tab 4 - Subnav: Boss Rewards] ───────────────────────────────────────────────────
+-- ── [Tab 5 - Subnav: Boss Rewards & Cards] ───────────────────────────────────────────
 if NavBoss_Rewards then
-    local SecBossRewards = NavBoss_Rewards:AddSection("Boss Loot & Rewards")
+    local SecBossRewards = NavBoss_Rewards:AddSection("Boss Loot & Card Selection")
 
     UI_Controls.AutoClaimBossReward = SecBossRewards:AddToggle({
         Name     = "Auto Claim Boss Rewards",
@@ -973,43 +1076,227 @@ if NavBoss_Rewards then
         end
     })
 
+    UI_Controls.SelectedRewardCard = SecBossRewards:AddSlider({
+        Name     = "Select Reward Card (1 - 4)",
+        Min      = 1,
+        Max      = 4,
+        Default  = 1,
+        Flag     = "SelectedRewardCard",
+        Callback = function(val)
+            PH.SelectedRewardCard = val
+        end
+    })
+
     SecBossRewards:AddButton({
-        Name     = "Claim Current Boss Loot",
+        Name     = "Claim Card Loot Now",
         Callback = function()
             if TryClaimBossRewardRE then
-                local currentBoss = Workspace:GetAttribute("CurrentWorldBoss") or 1
-                TryClaimBossRewardRE:FireServer(currentBoss)
+                local cardStr = tostring(PH.SelectedRewardCard or 1)
+                TryClaimBossRewardRE:FireServer(cardStr)
+            end
+        end
+    })
+end
+
+-- ── [Tab 5 - Subnav: HP Ball Collector] ──────────────────────────────────────────────
+if NavBoss_Balls then
+    local SecBalls = NavBoss_Balls:AddSection("World Boss HP & Buff Drops")
+
+    UI_Controls.AutoCollectBossBalls = SecBalls:AddToggle({
+        Name     = "Auto Collect Boss HP Balls",
+        Default  = false,
+        Flag     = "AutoCollectBossBalls",
+        Callback = function(val)
+            PH.AutoCollectBossBalls = val
+        end
+    })
+
+    SecBalls:AddButton({
+        Name     = "Collect All 5 HP Balls Now",
+        Callback = function()
+            if TryGetHPBallRF then
+                for i = 1, 5 do
+                    pcall(function() TryGetHPBallRF:InvokeServer(i) end)
+                end
             end
         end
     })
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════════════
--- TAB 5: UPGRADES & ECONOMY
+-- TAB 6: EQUIPMENT & FORGE
 -- ═════════════════════════════════════════════════════════════════════════════════════
-local TabUpgrade = Window and Window:CreateTab({
-    Name = "Upgrades",
+local TabForge = Window and Window:CreateTab({
+    Name = "Equipment",
     Icon = "package",
-    Description = "Stat Upgrades, Forge, Potions & Codes"
+    Description = "Weapon Forging, Armor Crafting & Elemental Enchantments"
 })
 
-local NavUpg_Stats, NavUpg_Forge, NavUpg_Codes
-if TabUpgrade then
-    local sections = TabUpgrade:AddSubNav({
-        "Auto Upgrade",
-        "Forge & Potions",
-        "Gifts & Codes"
+local NavForge_Weapon, NavForge_Armor, NavForge_Enchant
+if TabForge then
+    local sections = TabForge:AddSubNav({
+        "Weapon Forge",
+        "Armor Forge",
+        "Enchantments"
     })
-    NavUpg_Stats = sections["Auto Upgrade"]
-    NavUpg_Forge = sections["Forge & Potions"]
-    NavUpg_Codes = sections["Gifts & Codes"]
+    NavForge_Weapon  = sections["Weapon Forge"]
+    NavForge_Armor   = sections["Armor Forge"]
+    NavForge_Enchant = sections["Enchantments"]
 end
 
--- ── [Tab 5 - Subnav: Auto Upgrade] ───────────────────────────────────────────────────
-if NavUpg_Stats then
-    local SecStats = NavUpg_Stats:AddSection("Stats Progression Upgrades")
+-- ── [Tab 6 - Subnav: Weapon Forge] ───────────────────────────────────────────────────
+if NavForge_Weapon then
+    local SecWepForge = NavForge_Weapon:AddSection("Katana & Greatsword Forging")
 
-    UI_Controls.AutoUpgradeLuck = SecStats:AddToggle({
+    UI_Controls.AutoForgeWeapon = SecWepForge:AddToggle({
+        Name     = "Auto Forge Weapon (When Ores Ready)",
+        Default  = false,
+        Flag     = "AutoForgeWeapon",
+        Callback = function(val)
+            PH.AutoForgeWeapon = val
+        end
+    })
+
+    SecWepForge:AddButton({
+        Name     = "Forge Best Weapon Now",
+        Callback = function()
+            if ForgeRF then
+                pcall(function() ForgeRF:InvokeServer({}) end)
+            end
+        end
+    })
+end
+
+-- ── [Tab 6 - Subnav: Armor Forge] ────────────────────────────────────────────────────
+if NavForge_Armor then
+    local SecArmForge = NavForge_Armor:AddSection("Light Hat & Armor Forging")
+
+    UI_Controls.AutoForgeArmor = SecArmForge:AddToggle({
+        Name     = "Auto Forge Armor & Hats",
+        Default  = false,
+        Flag     = "AutoForgeArmor",
+        Callback = function(val)
+            PH.AutoForgeArmor = val
+        end
+    })
+end
+
+-- ── [Tab 6 - Subnav: Enchantments] ───────────────────────────────────────────────────
+if NavForge_Enchant then
+    local SecEnch = NavForge_Enchant:AddSection("Elemental Weapon Enchantments")
+
+    UI_Controls.SelectedEnchantType = SecEnch:AddDropdown({
+        Name     = "Select Enchant Element",
+        Options  = { "Fire", "Ice", "Poison", "Thunder" },
+        Default  = "Fire",
+        Flag     = "SelectedEnchantType",
+        Callback = function(val)
+            PH.SelectedEnchantType = val
+        end
+    })
+
+    UI_Controls.AutoEnchantEquipment = SecEnch:AddToggle({
+        Name     = "Auto Enchant Weapon",
+        Default  = false,
+        Flag     = "AutoEnchantEquipment",
+        Callback = function(val)
+            PH.AutoEnchantEquipment = val
+        end
+    })
+
+    SecEnch:AddButton({
+        Name     = "Apply Selected Enchant Now",
+        Callback = function()
+            if BackpackData and BackpackData.EnchantEquipment then
+                pcall(function()
+                    BackpackData.EnchantEquipment("Weapon", PH.SelectedEnchantType, "1")
+                end)
+            end
+        end
+    })
+
+    SecEnch:AddButton({
+        Name     = "Unequip Weapon Enchant",
+        Callback = function()
+            if BackpackData and BackpackData.UnEnchantEquipment then
+                pcall(function()
+                    BackpackData.UnEnchantEquipment("Weapon", "1")
+                end)
+            end
+        end
+    })
+end
+
+-- ═════════════════════════════════════════════════════════════════════════════════════
+-- TAB 7: CLASS & TITLES
+-- ═════════════════════════════════════════════════════════════════════════════════════
+local TabClass = Window and Window:CreateTab({
+    Name = "Class & Titles",
+    Icon = "sparkles",
+    Description = "Class Rerolls, Title Boosts, Stat Upgrades & Potions"
+})
+
+local NavClass_Roll, NavClass_Upgrades, NavClass_Potions
+if TabClass then
+    local sections = TabClass:AddSubNav({
+        "Class Roll",
+        "Stat Upgrades",
+        "Potions"
+    })
+    NavClass_Roll     = sections["Class Roll"]
+    NavClass_Upgrades = sections["Stat Upgrades"]
+    NavClass_Potions  = sections["Potions"]
+end
+
+-- ── [Tab 7 - Subnav: Class Roll] ─────────────────────────────────────────────────────
+if NavClass_Roll then
+    local SecClassRoll = NavClass_Roll:AddSection("Class Reroll & Luck System")
+
+    UI_Controls.AutoRollClass = SecClassRoll:AddToggle({
+        Name     = "Auto Reroll Class",
+        Default  = false,
+        Flag     = "AutoRollClass",
+        Callback = function(val)
+            PH.AutoRollClass = val
+        end
+    })
+
+    UI_Controls.StopOnRarity = SecClassRoll:AddDropdown({
+        Name     = "Stop On Rarity",
+        Options  = { "Legendary", "Mythic" },
+        Default  = "Legendary",
+        Flag     = "StopOnRarity",
+        Callback = function(val)
+            PH.StopOnRarity = val
+        end
+    })
+
+    UI_Controls.SelectedClassSlot = SecClassRoll:AddSlider({
+        Name     = "Class Slot Index",
+        Min      = 1,
+        Max      = 6,
+        Default  = 1,
+        Flag     = "SelectedClassSlot",
+        Callback = function(val)
+            PH.SelectedClassSlot = val
+        end
+    })
+
+    SecClassRoll:AddButton({
+        Name     = "Roll Class Once (Manual)",
+        Callback = function()
+            if ClassData and ClassData.LuckOnce then
+                ClassData.LuckOnce(PH.SelectedClassSlot or 1)
+            end
+        end
+    })
+end
+
+-- ── [Tab 7 - Subnav: Stat Upgrades] ──────────────────────────────────────────────────
+if NavClass_Upgrades then
+    local SecStatUpg = NavClass_Upgrades:AddSection("Stats Progression Upgrades")
+
+    UI_Controls.AutoUpgradeLuck = SecStatUpg:AddToggle({
         Name     = "Auto Upgrade Luck",
         Default  = false,
         Flag     = "AutoUpgradeLuck",
@@ -1018,7 +1305,7 @@ if NavUpg_Stats then
         end
     })
 
-    UI_Controls.AutoUpgradeOrePack = SecStats:AddToggle({
+    UI_Controls.AutoUpgradeOrePack = SecStatUpg:AddToggle({
         Name     = "Auto Upgrade Ore Pack",
         Default  = false,
         Flag     = "AutoUpgradeOrePack",
@@ -1027,7 +1314,7 @@ if NavUpg_Stats then
         end
     })
 
-    UI_Controls.AutoUpgradeTrain = SecStats:AddToggle({
+    UI_Controls.AutoUpgradeTrain = SecStatUpg:AddToggle({
         Name     = "Auto Upgrade Training Power",
         Default  = false,
         Flag     = "AutoUpgradeTrain",
@@ -1036,7 +1323,7 @@ if NavUpg_Stats then
         end
     })
 
-    SecStats:AddButton({
+    SecStatUpg:AddButton({
         Name     = "Upgrade Everything Once",
         Callback = function()
             if UpgradeOnceRE then
@@ -1048,20 +1335,11 @@ if NavUpg_Stats then
     })
 end
 
--- ── [Tab 5 - Subnav: Forge & Potions] ────────────────────────────────────────────────
-if NavUpg_Forge then
-    local SecForge = NavUpg_Forge:AddSection("Equipment Forge & Potions")
+-- ── [Tab 7 - Subnav: Potions] ────────────────────────────────────────────────────────
+if NavClass_Potions then
+    local SecPotions = NavClass_Potions:AddSection("Buff Potions")
 
-    UI_Controls.AutoForge = SecForge:AddToggle({
-        Name     = "Auto Forge (When Ores Ready)",
-        Default  = false,
-        Flag     = "AutoForge",
-        Callback = function(val)
-            PH.AutoForge = val
-        end
-    })
-
-    UI_Controls.SelectedPotion = SecForge:AddDropdown({
+    UI_Controls.SelectedPotion = SecPotions:AddDropdown({
         Name     = "Select Potion Type",
         Options  = { "Damage", "Luck", "Exp", "Power", "Coin" },
         Default  = "Damage",
@@ -1071,7 +1349,7 @@ if NavUpg_Forge then
         end
     })
 
-    UI_Controls.AutoUsePotion = SecForge:AddToggle({
+    UI_Controls.AutoUsePotion = SecPotions:AddToggle({
         Name     = "Auto Consume Potion",
         Default  = false,
         Flag     = "AutoUsePotion",
@@ -1080,7 +1358,7 @@ if NavUpg_Forge then
         end
     })
 
-    SecForge:AddButton({
+    SecPotions:AddButton({
         Name     = "Consume 5x Selected Potion",
         Callback = function()
             if TryUsePotionRE then
@@ -1090,11 +1368,30 @@ if NavUpg_Forge then
     })
 end
 
--- ── [Tab 5 - Subnav: Gifts & Codes] ──────────────────────────────────────────────────
-if NavUpg_Codes then
-    local SecCodes = NavUpg_Codes:AddSection("Free Rewards & Promo Codes")
+-- ═════════════════════════════════════════════════════════════════════════════════════
+-- TAB 8: ECONOMY & GIFTS
+-- ═════════════════════════════════════════════════════════════════════════════════════
+local TabEconomy = Window and Window:CreateTab({
+    Name = "Gifts & Codes",
+    Icon = "gift",
+    Description = "Offline Rewards, Online Gifts, Daily Sign-In & Promo Codes"
+})
 
-    UI_Controls.AutoOfflineReward = SecCodes:AddToggle({
+local NavEco_Gifts, NavEco_Codes
+if TabEconomy then
+    local sections = TabEconomy:AddSubNav({
+        "Free Rewards",
+        "Promo Codes"
+    })
+    NavEco_Gifts = sections["Free Rewards"]
+    NavEco_Codes = sections["Promo Codes"]
+end
+
+-- ── [Tab 8 - Subnav: Free Rewards] ───────────────────────────────────────────────────
+if NavEco_Gifts then
+    local SecFreeRewards = NavEco_Gifts:AddSection("Daily & Online Free Rewards")
+
+    UI_Controls.AutoOfflineReward = SecFreeRewards:AddToggle({
         Name     = "Auto Claim Offline Rewards",
         Default  = false,
         Flag     = "AutoOfflineReward",
@@ -1102,6 +1399,38 @@ if NavUpg_Codes then
             PH.AutoOfflineReward = val
         end
     })
+
+    UI_Controls.AutoOnlineGift = SecFreeRewards:AddToggle({
+        Name     = "Auto Claim Online Gifts (1-12)",
+        Default  = false,
+        Flag     = "AutoOnlineGift",
+        Callback = function(val)
+            PH.AutoOnlineGift = val
+        end
+    })
+
+    UI_Controls.AutoDailySign = SecFreeRewards:AddToggle({
+        Name     = "Auto Claim 30-Day Sign Rewards",
+        Default  = false,
+        Flag     = "AutoDailySign",
+        Callback = function(val)
+            PH.AutoDailySign = val
+        end
+    })
+
+    SecFreeRewards:AddButton({
+        Name     = "Claim Offline Reward Now",
+        Callback = function()
+            if TryClaimOfflineRE then
+                TryClaimOfflineRE:FireServer()
+            end
+        end
+    })
+end
+
+-- ── [Tab 8 - Subnav: Promo Codes] ────────────────────────────────────────────────────
+if NavEco_Codes then
+    local SecCodes = NavEco_Codes:AddSection("Promo Code Redemptions")
 
     local EnteredCode = ""
     SecCodes:AddInput({
@@ -1130,7 +1459,7 @@ if NavUpg_Codes then
     })
 
     SecCodes:AddButton({
-        Name     = "Redeem Common Free Codes",
+        Name     = "Redeem All Free Promo Codes",
         Callback = function()
             local commonCodes = { "RELEASE", "SWORD", "BLADE", "UPDATE1", "LIKE1000", "FREEGEMS" }
             if TryUseCodeRF then
@@ -1144,7 +1473,7 @@ if NavUpg_Codes then
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════════════
--- TAB 6: MOVEMENT & TELEPORTS
+-- TAB 9: MOVEMENT & TELEPORTS
 -- ═════════════════════════════════════════════════════════════════════════════════════
 local TabMove = Window and Window:CreateTab({
     Name = "Movement",
@@ -1162,7 +1491,7 @@ if TabMove then
     NavMove_TP   = sections["World Teleports"]
 end
 
--- ── [Tab 6 - Subnav: Movement Mods] ──────────────────────────────────────────────────
+-- ── [Tab 9 - Subnav: Movement Mods] ──────────────────────────────────────────────────
 if NavMove_Mods then
     local SecMods = NavMove_Mods:AddSection("Player Physics Modifications")
 
@@ -1259,7 +1588,7 @@ if NavMove_Mods then
     })
 end
 
--- ── [Tab 6 - Subnav: World Teleports] ────────────────────────────────────────────────
+-- ── [Tab 9 - Subnav: World Teleports] ────────────────────────────────────────────────
 if NavMove_TP then
     local SecTP = NavMove_TP:AddSection("Instant Waypoints & Portals")
 
@@ -1311,10 +1640,23 @@ if NavMove_TP then
             end
         end
     })
+
+    SecTP:AddButton({
+        Name     = "Teleport to Class Area",
+        Callback = function()
+            refreshChar()
+            if Root and WorldModelFolder then
+                local cMap = WorldModelFolder:FindFirstChild("ClassMap")
+                if cMap then
+                    Root.CFrame = cMap:GetPivot() * CFrame.new(0, 5, 0)
+                end
+            end
+        end
+    })
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════════════
--- TAB 7: ESP & VISUALS
+-- TAB 10: ESP & VISUALS
 -- ═════════════════════════════════════════════════════════════════════════════════════
 local TabESP = Window and Window:CreateTab({
     Name = "Visuals",
@@ -1332,7 +1674,7 @@ if TabESP then
     NavESP_Objects = sections["Object ESP"]
 end
 
--- ── [Tab 7 - Subnav: Enemy ESP] ──────────────────────────────────────────────────────
+-- ── [Tab 10 - Subnav: Enemy ESP] ─────────────────────────────────────────────────────
 if NavESP_Enemy then
     local SecEnemyESP = NavESP_Enemy:AddSection("Enemy & Boss ESP")
 
@@ -1384,7 +1726,7 @@ if NavESP_Enemy then
     })
 end
 
--- ── [Tab 7 - Subnav: Object ESP] ─────────────────────────────────────────────────────
+-- ── [Tab 10 - Subnav: Object ESP] ────────────────────────────────────────────────────
 if NavESP_Objects then
     local SecObjESP = NavESP_Objects:AddSection("Items & Ores ESP")
 
@@ -1408,7 +1750,7 @@ if NavESP_Objects then
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════════════
--- TAB 8: GRAPHICS & TELEMETRY
+-- TAB 11: GRAPHICS & TELEMETRY
 -- ═════════════════════════════════════════════════════════════════════════════════════
 local TabGfx = Window and Window:CreateTab({
     Name = "Graphics",
@@ -1419,14 +1761,14 @@ local TabGfx = Window and Window:CreateTab({
 local NavGfx_Graphs, NavGfx_Opt
 if TabGfx then
     local sections = TabGfx:AddSubNav({
-        "Telemetry Monitor",
+        "Live Telemetry",
         "Optimization"
     })
-    NavGfx_Graphs = sections["Telemetry Monitor"]
+    NavGfx_Graphs = sections["Live Telemetry"]
     NavGfx_Opt    = sections["Optimization"]
 end
 
--- ── [Tab 8 - Subnav: Telemetry Monitor] ───────────────────────────────────────────────
+-- ── [Tab 11 - Subnav: Live Telemetry] ────────────────────────────────────────────────
 if NavGfx_Graphs then
     local SecTelemetry = NavGfx_Graphs:AddSection("Real-Time Telemetry Monitor")
 
@@ -1470,7 +1812,7 @@ if NavGfx_Graphs then
     })
 end
 
--- ── [Tab 8 - Subnav: Optimization] ───────────────────────────────────────────────────
+-- ── [Tab 11 - Subnav: Optimization] ──────────────────────────────────────────────────
 if NavGfx_Opt then
     local SecOpt = NavGfx_Opt:AddSection("Performance & Lighting Controls")
 
@@ -1482,7 +1824,7 @@ if NavGfx_Opt then
             PH.PotatoMode = val
             if val then
                 pcall(function()
-                    settings().Rendering.QualityLevel = 1
+                    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
                     for _, v in pairs(Workspace:GetDescendants()) do
                         if v:IsA("BasePart") and not v:IsA("MeshPart") then
                             v.Material = Enum.Material.SmoothPlastic
@@ -1524,7 +1866,7 @@ if NavGfx_Opt then
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════════════
--- TAB 9: SETTINGS & CONFIG MANAGER
+-- TAB 12: SETTINGS & CONFIG MANAGER
 -- ═════════════════════════════════════════════════════════════════════════════════════
 local TabSettings = Window and Window:CreateTab({
     Name = "Settings",
@@ -1536,13 +1878,13 @@ local NavSet_Profiles, NavSet_Misc
 if TabSettings then
     local sections = TabSettings:AddSubNav({
         "Config Profiles",
-        "UI Settings"
+        "UI & Server Settings"
     })
     NavSet_Profiles = sections["Config Profiles"]
-    NavSet_Misc     = sections["UI Settings"]
+    NavSet_Misc     = sections["UI & Server Settings"]
 end
 
--- ── [Tab 9 - Subnav: Config Profiles] ────────────────────────────────────────────────
+-- ── [Tab 12 - Subnav: Config Profiles] ───────────────────────────────────────────────
 if NavSet_Profiles then
     local SecConfig = NavSet_Profiles:AddSection("Config Profile Management")
 
@@ -1629,7 +1971,7 @@ if NavSet_Profiles then
     })
 end
 
--- ── [Tab 9 - Subnav: UI Settings] ────────────────────────────────────────────────────
+-- ── [Tab 12 - Subnav: UI & Server Settings] ──────────────────────────────────────────
 if NavSet_Misc then
     local SecMisc = NavSet_Misc:AddSection("Script & Server Controls")
 
@@ -1819,7 +2161,7 @@ task.spawn(function()
     end
 end)
 
--- ── Engine 5: Stage Progression & Mineral Collection Loop ────────────────────────────
+-- ── Engine 5: Stage Progression, Mining & Auto Sell Loop ─────────────────────────────
 task.spawn(function()
     while true do
         -- Stage Progress
@@ -1834,6 +2176,11 @@ task.spawn(function()
         -- Claim All Ores
         if PH.AutoClaimAllOre and ClaimedAllOreRE then
             pcall(function() ClaimedAllOreRE:FireServer() end)
+        end
+
+        -- Auto Sell All Ores
+        if PH.AutoSellAllOres and BackpackData and BackpackData.SellAll then
+            pcall(function() BackpackData.SellAll() end)
         end
 
         -- Super Loot
@@ -1869,17 +2216,18 @@ task.spawn(function()
 
         -- Auto Claim Rewards
         if PH.AutoClaimBossReward and TryClaimBossRewardRE then
-            local bId = Workspace:GetAttribute("CurrentWorldBoss") or 1
-            pcall(function() TryClaimBossRewardRE:FireServer(bId) end)
+            local cardStr = tostring(PH.SelectedRewardCard or 1)
+            pcall(function() TryClaimBossRewardRE:FireServer(cardStr) end)
         end
 
         task.wait(2.0)
     end
 end)
 
--- ── Engine 7: Auto Stat Upgrades & Economy Loop ──────────────────────────────────────
+-- ── Engine 7: Auto Stat Upgrades & Equipment Forge Loop ──────────────────────────────
 task.spawn(function()
     while true do
+        -- Stat Upgrades
         if UpgradeOnceRE then
             if PH.AutoUpgradeLuck then
                 pcall(function() UpgradeOnceRE:FireServer("Luck") end)
@@ -1890,6 +2238,25 @@ task.spawn(function()
             if PH.AutoUpgradeTrain then
                 pcall(function() UpgradeOnceRE:FireServer("Train") end)
             end
+        end
+
+        -- Weapon & Armor Forging
+        if (PH.AutoForgeWeapon or PH.AutoForgeArmor) and ForgeRF then
+            pcall(function() ForgeRF:InvokeServer({}) end)
+        end
+
+        -- Elemental Enchanting
+        if PH.AutoEnchantEquipment and BackpackData and BackpackData.EnchantEquipment then
+            pcall(function()
+                BackpackData.EnchantEquipment("Weapon", PH.SelectedEnchantType or "Fire", "1")
+            end)
+        end
+
+        -- Class Reroll
+        if PH.AutoRollClass and ClassData and ClassData.LuckOnce then
+            pcall(function()
+                ClassData.LuckOnce(PH.SelectedClassSlot or 1)
+            end)
         end
 
         -- Auto Consume Potions
@@ -2030,12 +2397,12 @@ end)
 if PinatHubAdapter and PinatHubAdapter.Notify then
     PinatHubAdapter:Notify({
         Title    = "PinatHub Loaded",
-        Content  = "Anime Blade Champions Integration Active!",
+        Content  = "Anime Blade Multi-Module Master Active!",
         Duration = 4
     })
 end
 
-print("[PinatHub] Anime Blade Champions Hub Initialized Successfully.")
+print("[PinatHub] Anime Blade Champions Master Edition Initialized Successfully.")
 
 end -- End __PinatHub_AnimeBlade_Init__
 
