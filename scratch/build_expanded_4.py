@@ -948,7 +948,7 @@ local __ok, __err = pcall(__PinatHub_AnimeBlade_Init__)
 if not __ok then
     warn("[PinatHub Fatal Error]:", __err)
     if rconsoleprint then
-        pcall(rconsoleprint, "@@RED@@\n[PinatHub Fatal Error]: " .. tostring(__err) .. "\n")
+        pcall(rconsoleprint, "[PinatHub Fatal Error]: " .. tostring(__err))
     end
     if PinatHubAdapter and PinatHubAdapter.Notify then
         pcall(function()
