@@ -1,0 +1,1907 @@
+-- ╔══════════════════════════════════════════════════════════════════════════════════╗
+-- ║        PinatHub — The Underground: Drill to the Core / SharedPlanets             ║
+-- ║       Comprehensive Automation, Combat, Mining, Drill & Dungeon System           ║
+-- ║           Engineered with KingRua UI Library & Native Knit Framework             ║
+-- ╚══════════════════════════════════════════════════════════════════════════════════╝
+
+local function __PinatHub_SharedPlanets_Init__()
+
+-- ── Core Roblox Engine Services ──────────────────────────────────────────────────────
+local Players           = game:GetService("Players")
+local RunService        = game:GetService("RunService")
+local UserInputService  = game:GetService("UserInputService")
+local Workspace         = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService      = game:GetService("TweenService")
+local HttpService       = game:GetService("HttpService")
+local Lighting          = game:GetService("Lighting")
+local CollectionService = game:GetService("CollectionService")
+local Debris            = game:GetService("Debris")
+local TextService       = game:GetService("TextService")
+
+local Camera      = Workspace.CurrentCamera or Workspace:WaitForChild("Camera", 5)
+local LocalPlayer = Players.LocalPlayer
+local Character, Humanoid, Root
+
+local function refreshChar(char)
+    Character = char or LocalPlayer.Character
+    Humanoid  = Character and Character:FindFirstChildOfClass("Humanoid")
+    Root      = Character and (Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChild("Torso") or Character.PrimaryPart)
+end
+refreshChar()
+LocalPlayer.CharacterAdded:Connect(refreshChar)
+
+-- ── Multi-Tier Knit Framework Resolver ────────────────────────────────────────────────
+local Knit = nil
+pcall(function()
+    Knit = require(ReplicatedStorage:WaitForChild("Packages", 3):WaitForChild("Knit", 3))
+end)
+if not Knit then
+    pcall(function()
+        Knit = require(ReplicatedStorage:WaitForChild("Knit", 2))
+    end)
+end
+if not Knit and getrenv and getrenv().require then
+    pcall(function()
+        Knit = getrenv().require(ReplicatedStorage.Packages.Knit)
+    end)
+end
+
+-- Safe Service Resolver with Direct Remote Fallback
+local function SafeGetService(svcName)
+    if Knit and Knit.GetService then
+        local ok, svc = pcall(function() return Knit.GetService(svcName) end)
+        if ok and svc then return svc end
+    end
+
+    -- Direct Remote Proxy Fallback via ReplicatedStorage.Knit.Services
+    local kFolder = ReplicatedStorage:FindFirstChild("Knit") or (ReplicatedStorage:FindFirstChild("Packages") and ReplicatedStorage.Packages:FindFirstChild("Knit"))
+    local sFolder = kFolder and kFolder:FindFirstChild("Services") and kFolder.Services:FindFirstChild(svcName)
+    if sFolder then
+        local proxy = { _name = svcName, _folder = sFolder }
+        setmetatable(proxy, {
+            __index = function(_, key)
+                local rf = sFolder:FindFirstChild("RF") and sFolder.RF:FindFirstChild(key)
+                if rf and rf:IsA("RemoteFunction") then
+                    return function(_, ...)
+                        return rf:InvokeServer(...)
+                    end
+                end
+                local re = sFolder:FindFirstChild("RE") and sFolder.RE:FindFirstChild(key)
+                if re and re:IsA("RemoteEvent") then
+                    return {
+                        Connect = function(_, cb) return re.OnClientEvent:Connect(cb) end,
+                        Fire = function(_, ...) return re:FireServer(...) end,
+                        FireServer = function(_, ...) return re:FireServer(...) end
+                    }
+                end
+                return function() end
+            end
+        })
+        return proxy
+    end
+    return nil
+end
+
+-- Safe Controller Resolver
+local function SafeGetController(ctrlName)
+    if Knit and Knit.GetController then
+        local ok, ctrl = pcall(function() return Knit.GetController(ctrlName) end)
+        if ok and ctrl then return ctrl end
+    end
+    return nil
+end
+
+-- Game Services
+local DrillService           = SafeGetService("DrillService")
+local OreService             = SafeGetService("OreService")
+local BulletService          = SafeGetService("BulletService")
+local InteractionService     = SafeGetService("InteractionService")
+local DragService            = SafeGetService("DragService")
+local PlayerService          = SafeGetService("PlayerService")
+local TeleportManagerService = SafeGetService("TeleportManagerService")
+local ShopService            = SafeGetService("ShopService")
+local CurrencyService        = SafeGetService("CurrencyService")
+local CrateStorageService    = SafeGetService("CrateStorageService")
+local RankedService          = SafeGetService("RankedService")
+local ToolService            = SafeGetService("ToolService")
+local AdventureQuestService  = SafeGetService("AdventureQuestService")
+local ResourceScannerService = SafeGetService("ResourceScannerService")
+
+-- Game Controllers
+local ToolController               = SafeGetController("ToolController")
+local DungeonUIController          = SafeGetController("DungeonUIController")
+local CrateController              = SafeGetController("CrateController")
+local UIController                 = SafeGetController("UIController")
+local SoundController              = SafeGetController("SoundController")
+local NotificationController       = SafeGetController("NotificationController")
+local CameraController             = SafeGetController("CameraController")
+local DungeonLootHighlightController = SafeGetController("DungeonLootHighlightController")
+
+-- Notification Utility
+local function Notify(msg, duration, color)
+    duration = duration or 3
+    color = color or Color3.fromRGB(0, 255, 170)
+    if NotificationController and NotificationController.PlayNotification then
+        pcall(function()
+            NotificationController.PlayNotification(msg, duration, color, false)
+        end)
+    else
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "PinatHub",
+                Text = msg,
+                Duration = duration
+            })
+        end)
+    end
+end
+
+
+-- ── KingRua UI Library Loader & Compatibility Adapter ─────────────────────────────────
+local KingRua = nil
+pcall(function()
+    local source = game:HttpGet("https://raw.githubusercontent.com/xploitforceofficial-stack/intregation-pinathub-to-kingrua-library/main/kingrualibrarysource.lua")
+    if source and #source > 100 then
+        KingRua = loadstring(source)()
+    end
+end)
+
+-- Fallback to local script if available
+if not KingRua then
+    pcall(function()
+        local scr = script.Parent:FindFirstChild("kingrualibrarysource")
+        if scr and scr:IsA("ModuleScript") then
+            KingRua = require(scr)
+        end
+    end)
+end
+
+if not KingRua then
+    -- Minimal standalone fallback UI engine if library download fails
+    KingRua = {
+        CreateWindow = function(_, cfg)
+            local win = {}
+            function win:AddTab(tcfg)
+                local tab = { Name = tcfg.Name }
+                function tab:AddSection(_)
+                    local sec = {}
+                    function sec:AddToggle(o) return o end
+                    function sec:AddSlider(o) return o end
+                    function sec:AddDropdown(o) return o end
+                    function sec:AddButton(o) return o end
+                    function sec:AddKeybind(o) return o end
+                    function sec:AddParagraph(o) return o end
+                    return sec
+                end
+                tab.CreateSection = tab.AddSection
+                return tab
+            end
+            win.CreateTab = win.AddTab
+            return win
+        end
+    }
+end
+
+-- Adapt Window methods
+local origCreateWindow = KingRua.CreateWindow
+KingRua.CreateWindow = function(self, config)
+    local win = origCreateWindow(self, config)
+    if win and not win.CreateTab and win.AddTab then
+        win.CreateTab = function(s, tabConfig)
+            local tabObj = s:AddTab(tabConfig)
+            if tabObj and not tabObj.CreateSection and tabObj.AddSection then
+                tabObj.CreateSection = function(ts, secName)
+                    return ts:AddSection(secName)
+                end
+            end
+            return tabObj
+        end
+    end
+    return win
+end
+
+local Window = KingRua:CreateWindow({
+    Title = "PinatHub",
+    SubTitle = "The Underground: Drill to the Core",
+    TabWidth = 165,
+    Size = UDim2.fromOffset(590, 470),
+    Theme = "Default"
+})
+
+
+-- ── State Management Table ───────────────────────────────────────────────────────────
+local Flags = {
+    -- Mining & Ores
+    AutoMine = false,
+    MiningAura = false,
+    MiningAuraRadius = 30,
+    MiningSpeedDelay = 0.15,
+    OreFilter = "All Ores",
+    AutoTweenOre = false,
+    InstantBreakWalls = false,
+    AutoScrapCollector = false,
+    OreMagnet = false,
+
+    -- Drill & Engine
+    AutoDrillBoost = false,
+    DrillBoostInterval = 1.0,
+    AutoUpgradeDrill = false,
+    UpgradePriority = "Drill Speed",
+    AutoReroll = false,
+    RerollThreshold = "Uncommon",
+    AutoClassRewards = false,
+    AutoRepairScreens = false,
+    AutoTurretDefense = false,
+    AutoVoteUnstuck = true,
+
+    -- Combat & Guns
+    SilentAim = false,
+    SilentAimTarget = "Nearest NPC",
+    KillAura = false,
+    KillAuraRange = 25,
+    AutoReload = false,
+    GiantWormFarm = false,
+    MimicKiller = false,
+    NoSpreadRecoil = false,
+
+    -- Dungeon & Secrets
+    AutoUnlockDoors = false,
+    AutoLootChests = false,
+    DungeonHighlightAlways = true,
+    AutoTriggerWaves = false,
+
+    -- Tools & Inventory
+    AutoHeal = false,
+    HealThreshold = 50,
+    AutoSpeedPotion = false,
+    AutoDragWeldCrates = false,
+    AutoStoreTools = false,
+    AutoSaveGear = false,
+    InstantSelfRevive = false,
+    AutoDeathChests = false,
+
+    -- Player & Movement
+    WalkSpeedEnabled = false,
+    WalkSpeedValue = 16,
+    JumpPowerEnabled = false,
+    JumpPowerValue = 50,
+    InfiniteJump = false,
+    FlyEnabled = false,
+    FlySpeed = 50,
+    Noclip = false,
+    Fullbright = false,
+    AntiVoid = true,
+
+    -- ESP & Visuals
+    OreESP = false,
+    OreESPMaxDist = 400,
+    NpcESP = false,
+    ChestESP = false,
+    DrillTrackerHUD = true,
+    PlayerESP = false,
+
+    -- Internal state
+    Unloaded = false
+}
+
+-- ── Tool & Game Mechanics Helpers ─────────────────────────────────────────────────────
+
+-- Retrieve current active tool instance
+local function GetActiveTool()
+    if ToolController and ToolController.ActiveTool then
+        return ToolController.ActiveTool
+    end
+    if Character then
+        local equipped = Character:FindFirstChildOfClass("Tool")
+        if equipped then return equipped end
+    end
+    return nil
+end
+
+-- Fire tool action through CustomTool.Execute signal or direct method
+local function ExecuteToolAction(action, ...)
+    local tool = GetActiveTool()
+    if not tool then return false end
+
+    -- CustomTool instance with Execute signal
+    if type(tool) == "table" and tool.Execute and tool.Execute.Fire then
+        pcall(function()
+            tool.Execute:Fire({ action, ... })
+        end)
+        return true
+    end
+
+    -- Direct method invocation fallback
+    if type(tool) == "table" then
+        if action == "Swing" and tool.Swing then
+            pcall(function() tool:Swing() end)
+            return true
+        elseif action == "Shoot" and tool.Shoot then
+            pcall(function() tool:Shoot(...) end)
+            return true
+        elseif action == "Consume" and tool.Consume then
+            pcall(function() tool:Consume() end)
+            return true
+        elseif action == "Use" and tool.Use then
+            pcall(function() tool:Use() end)
+            return true
+        elseif action == "Reload" and tool.Reload then
+            pcall(function() tool:Reload() end)
+            return true
+        end
+    end
+
+    return false
+end
+
+-- Locate the Drill Model in Workspace
+local function FindDrillModel()
+    -- Check common Drill locations
+    local drill = Workspace:FindFirstChild("Drill") or Workspace:FindFirstChild("DrillModel")
+    if drill then return drill end
+
+    -- Check CollectionService tags
+    for _, tag in ipairs({"Drill", "DrillBounds", "TreadManager"}) do
+        local tagged = CollectionService:GetTagged(tag)
+        if #tagged > 0 then
+            local obj = tagged[1]
+            local m = obj:FindFirstAncestorOfClass("Model") or obj
+            if m then return m end
+        end
+    end
+
+    -- Look inside Vehicles or Props
+    local map = Workspace:FindFirstChild("Map") or Workspace
+    for _, child in ipairs(map:GetChildren()) do
+        if child.Name:lower():find("drill") then
+            return child
+        end
+    end
+    return nil
+end
+
+-- Ore Rarity & Value Resolver
+local function GetOreInfo(oreInstance)
+    local modelAttr = oreInstance:GetAttribute("Ore_Model") or oreInstance.Name
+    local name = tostring(modelAttr)
+    local rarity = "Coal"
+    local color = Color3.fromRGB(150, 150, 150)
+    local tier = 1
+
+    if name:find("Heartgem") then
+        rarity = "Heartgem"
+        color = Color3.fromRGB(255, 60, 160)
+        tier = 7
+    elseif name:find("Diamond") then
+        rarity = "Diamond"
+        color = Color3.fromRGB(80, 230, 255)
+        tier = 6
+    elseif name:find("Ruby") then
+        rarity = "Ruby"
+        color = Color3.fromRGB(255, 45, 45)
+        tier = 5
+    elseif name:find("Emerald") then
+        rarity = "Emerald"
+        color = Color3.fromRGB(50, 255, 90)
+        tier = 4
+    elseif name:find("Gold") then
+        rarity = "Gold"
+        color = Color3.fromRGB(255, 215, 0)
+        tier = 3
+    elseif name:find("Iron") then
+        rarity = "Iron"
+        color = Color3.fromRGB(210, 210, 220)
+        tier = 2
+    elseif name:find("Coal") then
+        rarity = "Coal"
+        color = Color3.fromRGB(120, 120, 120)
+        tier = 1
+    end
+
+    return rarity, color, tier
+end
+
+-- Filter check for Ore
+local function MatchesOreFilter(rarity)
+    local filter = Flags.OreFilter
+    if filter == "All Ores" then return true end
+    if filter == "Heartgem Only" then return rarity == "Heartgem" end
+    if filter == "Diamond+" then return rarity == "Diamond" or rarity == "Heartgem" end
+    if filter == "Ruby / Emerald+" then return rarity == "Ruby" or rarity == "Emerald" or rarity == "Diamond" or rarity == "Heartgem" end
+    if filter == "Gold+" then return rarity == "Gold" or rarity == "Ruby" or rarity == "Emerald" or rarity == "Diamond" or rarity == "Heartgem" end
+    if filter == "Iron+" then return rarity ~= "Coal" end
+    if filter == "Coal Only" then return rarity == "Coal" end
+    return true
+end
+
+
+-- ── UI Tabs Construction ──────────────────────────────────────────────────────────────
+local MiningTab   = Window:CreateTab({ Name = "Mining & Ores",     Icon = "rbxassetid://10723415903" })
+local DrillTab    = Window:CreateTab({ Name = "Drill & Engine",    Icon = "rbxassetid://10734950309" })
+local CombatTab   = Window:CreateTab({ Name = "Combat & Guns",     Icon = "rbxassetid://10734975692" })
+local DungeonTab  = Window:CreateTab({ Name = "Dungeon & Secrets", Icon = "rbxassetid://10723346959" })
+local ToolsTab    = Window:CreateTab({ Name = "Tools & Gear",      Icon = "rbxassetid://10734924532" })
+local PlayerTab   = Window:CreateTab({ Name = "Player & Move",     Icon = "rbxassetid://10747373176" })
+local VisualsTab  = Window:CreateTab({ Name = "ESP & Visuals",     Icon = "rbxassetid://10723345518" })
+local TeleportTab = Window:CreateTab({ Name = "Teleports & Depth", Icon = "rbxassetid://10734975486" })
+local SettingsTab = Window:CreateTab({ Name = "Settings & Info",   Icon = "rbxassetid://10734950020" })
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 1: Mining & Ores
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local MiningSec = MiningTab:AddSection("Ore Automation")
+
+MiningSec:AddToggle({
+    Name = "Auto Mine Ores",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoMine = v
+        if v then Notify("Auto Mine Started", 2) end
+    end
+})
+
+MiningSec:AddToggle({
+    Name = "Mining Aura (Multi-Target)",
+    Default = false,
+    Callback = function(v)
+        Flags.MiningAura = v
+        if v then Notify("Mining Aura Enabled", 2) end
+    end
+})
+
+MiningSec:AddSlider({
+    Name = "Mining Aura Radius",
+    Min = 10,
+    Max = 60,
+    Default = 30,
+    Precision = 1,
+    Callback = function(v)
+        Flags.MiningAuraRadius = v
+    end
+})
+
+MiningSec:AddSlider({
+    Name = "Mining Swing Interval (s)",
+    Min = 0.05,
+    Max = 0.5,
+    Default = 0.15,
+    Precision = 2,
+    Callback = function(v)
+        Flags.MiningSpeedDelay = v
+    end
+})
+
+MiningSec:AddDropdown({
+    Name = "Target Ore Filter",
+    Options = {
+        "All Ores",
+        "Heartgem Only",
+        "Diamond+",
+        "Ruby / Emerald+",
+        "Gold+",
+        "Iron+",
+        "Coal Only"
+    },
+    Default = "All Ores",
+    Callback = function(v)
+        Flags.OreFilter = v
+        Notify("Ore Filter: " .. tostring(v), 2)
+    end
+})
+
+MiningSec:AddToggle({
+    Name = "Auto Tween to Nearest Ore",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoTweenOre = v
+    end
+})
+
+local RockWallSec = MiningTab:AddSection("Wall & Scrap Utilities")
+
+RockWallSec:AddToggle({
+    Name = "Auto Drill Rock Walls",
+    Default = false,
+    Callback = function(v)
+        Flags.InstantBreakWalls = v
+        if v then Notify("Rock Wall Breaker Active", 2) end
+    end
+})
+
+RockWallSec:AddToggle({
+    Name = "Auto Scrap Shredder Collector",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoScrapCollector = v
+        if v then Notify("Scrap Collector Active", 2) end
+    end
+})
+
+RockWallSec:AddToggle({
+    Name = "Ore Magnet (Vacuum Drops)",
+    Default = false,
+    Callback = function(v)
+        Flags.OreMagnet = v
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 2: Drill & Engine
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local DrillSec = DrillTab:AddSection("Drill Speed & Nitro")
+
+DrillSec:AddToggle({
+    Name = "Auto Drill Boost (Infinite Velocity)",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoDrillBoost = v
+        if v then Notify("Drill Nitro Boost Active", 2) end
+    end
+})
+
+DrillSec:AddSlider({
+    Name = "Boost Activation Rate (s)",
+    Min = 0.2,
+    Max = 3.0,
+    Default = 1.0,
+    Precision = 1,
+    Callback = function(v)
+        Flags.DrillBoostInterval = v
+    end
+})
+
+local DrillUpgSec = DrillTab:AddSection("Upgrades & Maintenance")
+
+DrillUpgSec:AddToggle({
+    Name = "Auto Buy Drill Upgrades",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoUpgradeDrill = v
+        if v then Notify("Auto Upgrades Enabled", 2) end
+    end
+})
+
+DrillUpgSec:AddDropdown({
+    Name = "Upgrade Card Priority",
+    Options = {
+        "Drill Speed",
+        "Drill Health & Shield",
+        "Fuel Leech & Efficiency",
+        "Cheapest Available"
+    },
+    Default = "Drill Speed",
+    Callback = function(v)
+        Flags.UpgradePriority = v
+    end
+})
+
+DrillUpgSec:AddToggle({
+    Name = "Auto Reroll Low Tier Offers",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoReroll = v
+    end
+})
+
+DrillUpgSec:AddToggle({
+    Name = "Auto Claim Class Boost Cards",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoClassRewards = v
+    end
+})
+
+DrillUpgSec:AddToggle({
+    Name = "Auto Repair Machine Stations",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoRepairScreens = v
+    end
+})
+
+DrillUpgSec:AddToggle({
+    Name = "Auto Defend Turrets (Sentry/Guard)",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoTurretDefense = v
+    end
+})
+
+DrillUpgSec:AddToggle({
+    Name = "Auto Vote Unstuck (Yes)",
+    Default = true,
+    Callback = function(v)
+        Flags.AutoVoteUnstuck = v
+    end
+})
+
+DrillUpgSec:AddButton({
+    Name = "Trigger Unstuck Vote Now",
+    Callback = function()
+        if TeleportManagerService and TeleportManagerService.VoteUnstuck then
+            pcall(function()
+                TeleportManagerService:VoteUnstuck(true)
+                Notify("Unstuck Vote Submitted", 2)
+            end)
+        end
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 3: Combat & Guns
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local CombatSec = CombatTab:AddSection("Targeting & Weapons")
+
+CombatSec:AddToggle({
+    Name = "Silent Aim (Guns & Projectiles)",
+    Default = false,
+    Callback = function(v)
+        Flags.SilentAim = v
+        if v then Notify("Silent Aim Enabled", 2) end
+    end
+})
+
+CombatSec:AddDropdown({
+    Name = "Silent Aim Priority",
+    Options = {
+        "Nearest NPC",
+        "Giant Worm Boss",
+        "Fuel Leech Mobs",
+        "Blinker Mobs",
+        "Mimic Chests"
+    },
+    Default = "Nearest NPC",
+    Callback = function(v)
+        Flags.SilentAimTarget = v
+    end
+})
+
+CombatSec:AddToggle({
+    Name = "Melee Kill Aura (Swords/Tools)",
+    Default = false,
+    Callback = function(v)
+        Flags.KillAura = v
+        if v then Notify("Melee Kill Aura Active", 2) end
+    end
+})
+
+CombatSec:AddSlider({
+    Name = "Kill Aura Range",
+    Min = 10,
+    Max = 40,
+    Default = 25,
+    Precision = 1,
+    Callback = function(v)
+        Flags.KillAuraRange = v
+    end
+})
+
+CombatSec:AddToggle({
+    Name = "Auto Fast Reload",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoReload = v
+    end
+})
+
+CombatSec:AddToggle({
+    Name = "No Recoil & Zero Spread",
+    Default = false,
+    Callback = function(v)
+        Flags.NoSpreadRecoil = v
+    end
+})
+
+local BossSec = CombatTab:AddSection("Boss & Elite Farming")
+
+BossSec:AddToggle({
+    Name = "Giant Worm Boss Auto-Farm",
+    Default = false,
+    Callback = function(v)
+        Flags.GiantWormFarm = v
+        if v then Notify("Giant Worm Farming Active", 2) end
+    end
+})
+
+BossSec:AddToggle({
+    Name = "Auto Eliminate Mimic Chests",
+    Default = false,
+    Callback = function(v)
+        Flags.MimicKiller = v
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 4: Dungeon & Secrets
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local DungeonSec = DungeonTab:AddSection("Dungeon Exploration")
+
+DungeonSec:AddToggle({
+    Name = "Auto Unlock Dungeon Doors",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoUnlockDoors = v
+        if v then Notify("Auto Door Unlocker Active", 2) end
+    end
+})
+
+DungeonSec:AddToggle({
+    Name = "Auto Loot Dungeon Chests",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoLootChests = v
+        if v then Notify("Chest Looter Active", 2) end
+    end
+})
+
+DungeonSec:AddToggle({
+    Name = "Full Loot Highlighter (Always On)",
+    Default = true,
+    Callback = function(v)
+        Flags.DungeonHighlightAlways = v
+    end
+})
+
+DungeonSec:AddToggle({
+    Name = "Auto Engage Dungeon Waves",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoTriggerWaves = v
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 5: Tools & Gear
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local GearSec = ToolsTab:AddSection("Consumables & Survival")
+
+GearSec:AddToggle({
+    Name = "Auto Use Medkit (Emergency Heal)",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoHeal = v
+    end
+})
+
+GearSec:AddSlider({
+    Name = "Heal Trigger Health (%)",
+    Min = 20,
+    Max = 80,
+    Default = 50,
+    Precision = 1,
+    Callback = function(v)
+        Flags.HealThreshold = v
+    end
+})
+
+GearSec:AddToggle({
+    Name = "Auto Speed Potion (Permanent Buff)",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoSpeedPotion = v
+    end
+})
+
+GearSec:AddToggle({
+    Name = "Instant Self Revive on Death",
+    Default = false,
+    Callback = function(v)
+        Flags.InstantSelfRevive = v
+        if v then Notify("Instant Revive Active", 2) end
+    end
+})
+
+GearSec:AddToggle({
+    Name = "Auto Save Gear on Depth Run",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoSaveGear = v
+    end
+})
+
+GearSec:AddToggle({
+    Name = "Auto Retrieve Death Chests",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoDeathChests = v
+    end
+})
+
+local StorageSec = ToolsTab:AddSection("Crates & Storage")
+
+StorageSec:AddToggle({
+    Name = "Auto Drag & Weld Crates to Drill",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoDragWeldCrates = v
+    end
+})
+
+StorageSec:AddButton({
+    Name = "Save Gear to Server Now",
+    Callback = function()
+        if PlayerService and PlayerService.SaveGear then
+            pcall(function()
+                PlayerService:SaveGear()
+                Notify("Gear Saved Successfully", 2)
+            end)
+        end
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 6: Player & Movement
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local MoveSec = PlayerTab:AddSection("Movement Speed & Jump")
+
+MoveSec:AddToggle({
+    Name = "Enable Custom WalkSpeed",
+    Default = false,
+    Callback = function(v)
+        Flags.WalkSpeedEnabled = v
+        if not v and Humanoid then Humanoid.WalkSpeed = 16 end
+    end
+})
+
+MoveSec:AddSlider({
+    Name = "WalkSpeed",
+    Min = 16,
+    Max = 150,
+    Default = 16,
+    Precision = 1,
+    Callback = function(v)
+        Flags.WalkSpeedValue = v
+    end
+})
+
+MoveSec:AddToggle({
+    Name = "Enable Custom JumpPower",
+    Default = false,
+    Callback = function(v)
+        Flags.JumpPowerEnabled = v
+        if not v and Humanoid then Humanoid.JumpPower = 50 end
+    end
+})
+
+MoveSec:AddSlider({
+    Name = "JumpPower",
+    Min = 50,
+    Max = 250,
+    Default = 50,
+    Precision = 1,
+    Callback = function(v)
+        Flags.JumpPowerValue = v
+    end
+})
+
+MoveSec:AddToggle({
+    Name = "Infinite Jump",
+    Default = false,
+    Callback = function(v)
+        Flags.InfiniteJump = v
+    end
+})
+
+local FlySec = PlayerTab:AddSection("Flight & Physics")
+
+FlySec:AddToggle({
+    Name = "Fly Mode (Smooth Mobile/PC)",
+    Default = false,
+    Callback = function(v)
+        Flags.FlyEnabled = v
+        if v then Notify("Fly Mode Enabled", 2) end
+    end
+})
+
+FlySec:AddSlider({
+    Name = "Fly Speed",
+    Min = 20,
+    Max = 200,
+    Default = 50,
+    Precision = 1,
+    Callback = function(v)
+        Flags.FlySpeed = v
+    end
+})
+
+FlySec:AddToggle({
+    Name = "Noclip (Walk Through Rocks/Walls)",
+    Default = false,
+    Callback = function(v)
+        Flags.Noclip = v
+    end
+})
+
+FlySec:AddToggle({
+    Name = "Fullbright (Clear Cave Darkness)",
+    Default = false,
+    Callback = function(v)
+        Flags.Fullbright = v
+    end
+})
+
+FlySec:AddToggle({
+    Name = "Anti-Void & Drill Tether Protection",
+    Default = true,
+    Callback = function(v)
+        Flags.AntiVoid = v
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 7: ESP & Visuals
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local EspSec = VisualsTab:AddSection("ESP Highlights")
+
+EspSec:AddToggle({
+    Name = "Ore ESP (Rarity Color Coded)",
+    Default = false,
+    Callback = function(v)
+        Flags.OreESP = v
+    end
+})
+
+EspSec:AddSlider({
+    Name = "Ore ESP Max Distance (Studs)",
+    Min = 100,
+    Max = 1000,
+    Default = 400,
+    Precision = 10,
+    Callback = function(v)
+        Flags.OreESPMaxDist = v
+    end
+})
+
+EspSec:AddToggle({
+    Name = "Enemy & Boss ESP (Health/Box)",
+    Default = false,
+    Callback = function(v)
+        Flags.NpcESP = v
+    end
+})
+
+EspSec:AddToggle({
+    Name = "Chest & Supply Crate ESP",
+    Default = false,
+    Callback = function(v)
+        Flags.ChestESP = v
+    end
+})
+
+EspSec:AddToggle({
+    Name = "Teammate / Player ESP",
+    Default = false,
+    Callback = function(v)
+        Flags.PlayerESP = v
+    end
+})
+
+local HudSec = VisualsTab:AddSection("Drill HUD Tracker")
+
+HudSec:AddToggle({
+    Name = "Drill Depth & Velocity Tracker",
+    Default = true,
+    Callback = function(v)
+        Flags.DrillTrackerHUD = v
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 8: Teleports & Depth
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local TpSec = TeleportTab:AddSection("Core Locations")
+
+TpSec:AddButton({
+    Name = "Teleport to Drill Cab / Platform",
+    Callback = function()
+        local drill = FindDrillModel()
+        if drill and Root then
+            local pv = drill:GetPivot()
+            Root.CFrame = pv * CFrame.new(0, 10, 0)
+            Notify("Teleported to Drill", 2)
+        else
+            Notify("Drill not found!", 2, Color3.fromRGB(255, 60, 60))
+        end
+    end
+})
+
+TpSec:AddButton({
+    Name = "Teleport to Surface / Lobby",
+    Callback = function()
+        if TeleportManagerService and TeleportManagerService.TeleportToLobby then
+            pcall(function()
+                TeleportManagerService:TeleportToLobby(true)
+                Notify("Teleporting to Lobby...", 2)
+            end)
+        elseif Root then
+            Root.CFrame = CFrame.new(0, 50, 0)
+            Notify("Teleported to Surface", 2)
+        end
+    end
+})
+
+TpSec:AddButton({
+    Name = "Teleport to Nearest High-Value Ore",
+    Callback = function()
+        if not Root then return end
+        local bestOre = nil
+        local bestTier = -1
+        local closestDist = math.huge
+
+        for _, ore in ipairs(CollectionService:GetTagged("Ore")) do
+            if ore:IsDescendantOf(Workspace) then
+                local _, _, tier = GetOreInfo(ore)
+                local pos = ore:IsA("BasePart") and ore.Position or ore:GetPivot().Position
+                local dist = (pos - Root.Position).Magnitude
+                if tier > bestTier or (tier == bestTier and dist < closestDist) then
+                    bestTier = tier
+                    bestOre = ore
+                    closestDist = dist
+                end
+            end
+        end
+
+        if bestOre then
+            local pos = bestOre:IsA("BasePart") and bestOre.Position or bestOre:GetPivot().Position
+            Root.CFrame = CFrame.new(pos + Vector3.new(0, 3, 3), pos)
+            Notify("Teleported to " .. bestOre.Name, 2)
+        else
+            Notify("No high-value ores found nearby", 2, Color3.fromRGB(255, 60, 60))
+        end
+    end
+})
+
+TpSec:AddButton({
+    Name = "Teleport to Nearest Dungeon Door",
+    Callback = function()
+        if not Root then return end
+        local closestDoor = nil
+        local closestDist = math.huge
+
+        for _, tag in ipairs({"DungeonDoor", "DungeonTreasureDoor", "DungeonArenaDoor"}) do
+            for _, door in ipairs(CollectionService:GetTagged(tag)) do
+                if door:IsDescendantOf(Workspace) then
+                    local pos = door:IsA("BasePart") and door.Position or door:GetPivot().Position
+                    local dist = (pos - Root.Position).Magnitude
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestDoor = door
+                    end
+                end
+            end
+        end
+
+        if closestDoor then
+            local pos = closestDoor:IsA("BasePart") and closestDoor.Position or closestDoor:GetPivot().Position
+            Root.CFrame = CFrame.new(pos + Vector3.new(0, 2, 4), pos)
+            Notify("Teleported to Dungeon Door", 2)
+        else
+            Notify("No dungeon doors found nearby", 2, Color3.fromRGB(255, 60, 60))
+        end
+    end
+})
+
+local DepthSec = TeleportTab:AddSection("Depth Layer Presets")
+
+local selectedDepth = "Layer 1: Dirt & Coal (250m)"
+DepthSec:AddDropdown({
+    Name = "Select Depth Layer",
+    Options = {
+        "Surface (0m)",
+        "Layer 1: Dirt & Coal (250m)",
+        "Layer 2: Iron Caverns (750m)",
+        "Layer 3: Gemstone Cavern (1,500m)",
+        "Layer 4: Toxic Zone (2,500m)",
+        "Layer 5: Spider / Vampire Lair (4,000m)",
+        "Layer 6: Magma Core (6,500m)",
+        "Layer 7: The Underground Core (10,000m+)"
+    },
+    Default = "Layer 1: Dirt & Coal (250m)",
+    Callback = function(v)
+        selectedDepth = v
+    end
+})
+
+DepthSec:AddButton({
+    Name = "Teleport to Selected Depth",
+    Callback = function()
+        if not Root then return end
+        local depthMap = {
+            ["Surface (0m)"] = 10,
+            ["Layer 1: Dirt & Coal (250m)"] = -250,
+            ["Layer 2: Iron Caverns (750m)"] = -750,
+            ["Layer 3: Gemstone Cavern (1,500m)"] = -1500,
+            ["Layer 4: Toxic Zone (2,500m)"] = -2500,
+            ["Layer 5: Spider / Vampire Lair (4,000m)"] = -4000,
+            ["Layer 6: Magma Core (6,500m)"] = -6500,
+            ["Layer 7: The Underground Core (10,000m+)"] = -10000
+        }
+        local y = depthMap[selectedDepth] or -250
+        Root.CFrame = CFrame.new(Root.Position.X, y, Root.Position.Z)
+        Notify("Teleported to " .. tostring(selectedDepth), 2)
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 9: Settings & Info
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local SetSec = SettingsTab:AddSection("Preferences & Keybinds")
+
+SetSec:AddKeybind({
+    Name = "Toggle Menu Visibility",
+    Default = Enum.KeyCode.RightControl,
+    Callback = function()
+        if Window and Window.Toggle then
+            Window:Toggle()
+        end
+    end
+})
+
+SetSec:AddButton({
+    Name = "Unload PinatHub Completely",
+    Callback = function()
+        Flags.Unloaded = true
+        if Window and Window.Destroy then
+            pcall(function() Window:Destroy() end)
+        end
+        Notify("PinatHub Unloaded Cleanly", 3)
+    end
+})
+
+local InfoSec = SettingsTab:AddSection("Information")
+InfoSec:AddParagraph({
+    Title = "PinatHub v3.0 (SharedPlanets Edition)",
+    Content = "Advanced automation engine for The Underground: Drill to the Core.\nFull Knit integration for Mining, Combat, Drill Nitro & Dungeons."
+})
+
+
+-- ── Automation Background Engines ─────────────────────────────────────────────────────
+
+-- 1. Auto Mine & Mining Aura Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.AutoMine or Flags.MiningAura then
+            pcall(function()
+                if not Root or not Character then return end
+
+                local targets = {}
+                local taggedOres = CollectionService:GetTagged("Ore")
+                local maxDist = Flags.MiningAura and Flags.MiningAuraRadius or 20
+
+                for _, ore in ipairs(taggedOres) do
+                    if ore:IsDescendantOf(Workspace) then
+                        local rarity = GetOreInfo(ore)
+                        if MatchesOreFilter(rarity) then
+                            local orePos = ore:IsA("BasePart") and ore.Position or ore:GetPivot().Position
+                            local dist = (orePos - Root.Position).Magnitude
+                            if dist <= maxDist then
+                                table.insert(targets, ore)
+                                if not Flags.MiningAura then
+                                    break -- single target
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if #targets > 0 then
+                    -- Execute Pickaxe Swing against targeted ores
+                    local tool = GetActiveTool()
+                    if tool then
+                        if type(tool) == "table" and tool.Execute then
+                            tool.Execute:Fire({ "Swing", targets })
+                        elseif type(tool) == "table" and tool.Swing then
+                            tool:Swing()
+                        elseif tool:IsA("Tool") then
+                            tool:Activate()
+                        end
+                    end
+
+                    -- Auto Tween to nearest ore if enabled
+                    if Flags.AutoTweenOre and targets[1] then
+                        local pos = targets[1]:IsA("BasePart") and targets[1].Position or targets[1]:GetPivot().Position
+                        local targetCF = CFrame.new(pos + Vector3.new(0, 2, 3), pos)
+                        Root.CFrame = Root.CFrame:Lerp(targetCF, 0.35)
+                    end
+                end
+            end)
+        end
+        task.wait(Flags.MiningSpeedDelay or 0.15)
+    end
+end)
+
+-- 2. Rock Wall Breaker Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.InstantBreakWalls then
+            pcall(function()
+                if not Root then return end
+                local walls = CollectionService:GetTagged("RockWall")
+                local nearbyWalls = {}
+
+                for _, wall in ipairs(walls) do
+                    if wall:IsDescendantOf(Workspace) then
+                        local pos = wall:IsA("BasePart") and wall.Position or wall:GetPivot().Position
+                        if (pos - Root.Position).Magnitude <= 25 then
+                            table.insert(nearbyWalls, wall)
+                        end
+                    end
+                end
+
+                if #nearbyWalls > 0 then
+                    ExecuteToolAction("Swing", nearbyWalls)
+                end
+            end)
+        end
+        task.wait(0.2)
+    end
+end)
+
+-- 3. Auto Drill Nitro Boost Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.AutoDrillBoost then
+            pcall(function()
+                -- Triggers Drill Boost Tool / Basic Drill Boost
+                local tool = GetActiveTool()
+                if tool and (type(tool) == "table" or tool:IsA("Tool")) then
+                    ExecuteToolAction("Use")
+                end
+            end)
+        end
+        task.wait(Flags.DrillBoostInterval or 1.0)
+    end
+end)
+
+-- 4. Auto Drill Upgrades & Card Management
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.AutoUpgradeDrill and DrillService then
+            pcall(function()
+                if DrillService.FetchOptions then
+                    local options, version = DrillService:FetchOptions()
+                    if type(options) == "table" and #options > 0 then
+                        local bestOption = options[1]
+                        -- Check priority preference
+                        for _, opt in ipairs(options) do
+                            local name = tostring(opt.Name or opt.UpgradeName or ""):lower()
+                            if Flags.UpgradePriority == "Drill Speed" and name:find("speed") then
+                                bestOption = opt
+                                break
+                            elseif Flags.UpgradePriority == "Drill Health & Shield" and (name:find("health") or name:find("shield") or name:find("armor")) then
+                                bestOption = opt
+                                break
+                            elseif Flags.UpgradePriority == "Fuel Leech & Efficiency" and (name:find("fuel") or name:find("leech")) then
+                                bestOption = opt
+                                break
+                            end
+                        end
+
+                        -- Check reroll threshold if enabled
+                        if Flags.AutoReroll and DrillService.Reroll then
+                            local rarity = tostring(bestOption.Rarity or "Common")
+                            if rarity == "Common" or (rarity == "Uncommon" and Flags.RerollThreshold == "Rare") then
+                                DrillService:Reroll(version)
+                                task.wait(0.5)
+                                return
+                            end
+                        end
+
+                        -- Upgrade Drill with chosen card
+                        if DrillService.UpgradeDrill and bestOption then
+                            local upgName = bestOption.Name or bestOption.UpgradeName
+                            if upgName then
+                                DrillService:UpgradeDrill(upgName, version)
+                            end
+                        end
+                    end
+                end
+
+                -- Auto Claim Class Rewards
+                if Flags.AutoClassRewards and DrillService and DrillService.ChooseClassReward then
+                    pcall(function()
+                        DrillService:ChooseClassReward(1, "Boost")
+                    end)
+                end
+            end)
+        end
+        task.wait(2.5)
+    end
+end)
+
+-- 5. Auto Unstuck & Defense Turret Monitor
+task.spawn(function()
+    while not Flags.Unloaded do
+        -- Auto Vote Unstuck
+        if Flags.AutoVoteUnstuck and TeleportManagerService and TeleportManagerService.VoteUnstuck then
+            pcall(function()
+                TeleportManagerService:VoteUnstuck(true)
+            end)
+        end
+
+        -- Auto Defend Turrets
+        if Flags.AutoTurretDefense and BulletService then
+            pcall(function()
+                local npcs = Workspace:FindFirstChild("Npc")
+                if npcs and #npcs:GetChildren() > 0 then
+                    local targetNpc = npcs:GetChildren()[1]
+                    local tPart = targetNpc:FindFirstChild("HumanoidRootPart") or targetNpc.PrimaryPart
+                    if tPart and Root then
+                        local dist = (tPart.Position - Root.Position).Magnitude
+                        if dist <= 80 then
+                            ExecuteToolAction("Shoot", tPart, false, Root.Position, tPart.Position, dist)
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(1.5)
+    end
+end)
+
+-- 6. Combat Kill Aura & Silent Aim Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.KillAura or Flags.GiantWormFarm or Flags.MimicKiller then
+            pcall(function()
+                if not Root then return end
+                local npcs = Workspace:FindFirstChild("Npc")
+                local hitTargets = {}
+
+                if npcs then
+                    for _, npc in ipairs(npcs:GetChildren()) do
+                        if npc:IsA("Model") then
+                            local h = npc:FindFirstChildOfClass("Humanoid")
+                            local part = npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+                            local isWorm = CollectionService:HasTag(npc, "Worm") or npc.Name:lower():find("worm")
+                            local isMimic = npc.Name:lower():find("mimic")
+
+                            if (not h or h.Health > 0) and part then
+                                local dist = (part.Position - Root.Position).Magnitude
+
+                                -- Worm farm specific
+                                if Flags.GiantWormFarm and isWorm and dist <= 50 then
+                                    table.insert(hitTargets, npc)
+                                -- Mimic killer specific
+                                elseif Flags.MimicKiller and isMimic and dist <= 30 then
+                                    table.insert(hitTargets, npc)
+                                -- General Kill Aura
+                                elseif Flags.KillAura and dist <= (Flags.KillAuraRange or 25) then
+                                    table.insert(hitTargets, npc)
+                                end
+                            end
+                        end
+                    end
+                end
+
+                -- Worm Tagged objects anywhere in workspace
+                if Flags.GiantWormFarm and #hitTargets == 0 then
+                    for _, w in ipairs(CollectionService:GetTagged("Worm")) do
+                        if w:IsDescendantOf(Workspace) then
+                            local wp = w:IsA("BasePart") and w or w:FindFirstChild("HumanoidRootPart") or w.PrimaryPart
+                            if wp and (wp.Position - Root.Position).Magnitude <= 50 then
+                                table.insert(hitTargets, w)
+                            end
+                        end
+                    end
+                end
+
+                if #hitTargets > 0 then
+                    ExecuteToolAction("Swing", hitTargets)
+                end
+            end)
+        end
+        task.wait(0.12)
+    end
+end)
+
+-- 7. Auto Fast Reload Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.AutoReload then
+            pcall(function()
+                local tool = GetActiveTool()
+                if tool and type(tool) == "table" and tool.DisplayTool then
+                    local ammo = tool.DisplayTool:GetAttribute("Ammo") or 0
+                    if ammo <= 0 then
+                        ExecuteToolAction("Reload")
+                    end
+                end
+            end)
+        end
+        task.wait(0.25)
+    end
+end)
+
+-- 8. Dungeon Doors & Chest Loot Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.AutoUnlockDoors and InteractionService then
+            pcall(function()
+                for _, tag in ipairs({"DungeonDoor", "DungeonTreasureDoor", "DungeonArenaDoor", "OneWayDoor"}) do
+                    for _, door in ipairs(CollectionService:GetTagged(tag)) do
+                        if door:IsDescendantOf(Workspace) and Root then
+                            local pos = door:IsA("BasePart") and door.Position or door:GetPivot().Position
+                            if (pos - Root.Position).Magnitude <= 30 then
+                                InteractionService:Interact(door)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+
+        if Flags.AutoLootChests and InteractionService then
+            pcall(function()
+                for _, chest in ipairs(CollectionService:GetTagged("DungeonLootHighlightTarget")) do
+                    if chest:IsDescendantOf(Workspace) and Root then
+                        local pos = chest:IsA("BasePart") and chest.Position or chest:GetPivot().Position
+                        if (pos - Root.Position).Magnitude <= 25 then
+                            InteractionService:Interact(chest)
+                        end
+                    end
+                end
+                for _, crate in ipairs(CollectionService:GetTagged("SupplyCrate")) do
+                    if crate:IsDescendantOf(Workspace) and Root then
+                        local pos = crate:IsA("BasePart") and crate.Position or crate:GetPivot().Position
+                        if (pos - Root.Position).Magnitude <= 20 then
+                            InteractionService:Interact(crate)
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(0.4)
+    end
+end)
+
+-- 9. Auto Heal, Speed Potion & Survival Engine
+task.spawn(function()
+    while not Flags.Unloaded do
+        -- Auto Heal via Medkit
+        if Flags.AutoHeal and Humanoid and Humanoid.Health > 0 then
+            pcall(function()
+                local hpPct = (Humanoid.Health / Humanoid.MaxHealth) * 100
+                if hpPct <= (Flags.HealThreshold or 50) then
+                    ExecuteToolAction("Consume")
+                end
+            end)
+        end
+
+        -- Auto Speed Potion
+        if Flags.AutoSpeedPotion then
+            pcall(function()
+                ExecuteToolAction("Consume")
+            end)
+        end
+
+        -- Auto Save Gear
+        if Flags.AutoSaveGear and PlayerService and PlayerService.SaveGear then
+            pcall(function()
+                PlayerService:SaveGear()
+            end)
+        end
+
+        -- Auto Death Chests
+        if Flags.AutoDeathChests and CrateController and CrateController.OpenDeathChest then
+            pcall(function()
+                for _, crate in ipairs(CollectionService:GetTagged("SupplyCrate")) do
+                    if crate:GetAttribute("DeathChest") == true and Root then
+                        local pos = crate:IsA("BasePart") and crate.Position or crate:GetPivot().Position
+                        if (pos - Root.Position).Magnitude <= 25 then
+                            CrateController:OpenDeathChest(crate)
+                        end
+                    end
+                end
+            end)
+        end
+
+        task.wait(1.5)
+    end
+end)
+
+-- 10. Instant Self Revive Handler
+if LocalPlayer then
+    local function bindRevive(char)
+        local hum = char and char:WaitForChild("Humanoid", 5)
+        if hum then
+            hum.Died:Connect(function()
+                if Flags.InstantSelfRevive and PlayerService then
+                    task.wait(0.2)
+                    pcall(function()
+                        if PlayerService.SelfRevive then
+                            PlayerService:SelfRevive()
+                        elseif PlayerService.CanUseTutorialFreeRevive then
+                            PlayerService:CanUseTutorialFreeRevive()
+                        end
+                        Notify("Self Revive Triggered!", 2)
+                    end)
+                end
+            end)
+        end
+    end
+    if LocalPlayer.Character then bindRevive(LocalPlayer.Character) end
+    LocalPlayer.CharacterAdded:Connect(bindRevive)
+end
+
+-- 11. Player Movement Modifications (WalkSpeed, JumpPower, Fly, Noclip)
+RunService.Stepped:Connect(function()
+    if Flags.Unloaded then return end
+
+    -- Noclip
+    if Flags.Noclip and Character then
+        for _, part in ipairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+
+    -- WalkSpeed & JumpPower
+    if Humanoid then
+        if Flags.WalkSpeedEnabled and Humanoid.WalkSpeed ~= Flags.WalkSpeedValue then
+            Humanoid.WalkSpeed = Flags.WalkSpeedValue
+        end
+        if Flags.JumpPowerEnabled and Humanoid.JumpPower ~= Flags.JumpPowerValue then
+            Humanoid.JumpPower = Flags.JumpPowerValue
+        end
+    end
+
+    -- Anti-Void & Tether to Drill
+    if Flags.AntiVoid and Root then
+        if Root.Position.Y < -15000 then
+            local drill = FindDrillModel()
+            if drill then
+                Root.CFrame = drill:GetPivot() * CFrame.new(0, 10, 0)
+                Root.AssemblyLinearVelocity = Vector3.zero
+                Notify("Rescued from Void!", 2)
+            else
+                Root.CFrame = CFrame.new(0, 50, 0)
+                Root.AssemblyLinearVelocity = Vector3.zero
+            end
+        end
+    end
+end)
+
+-- Infinite Jump Listener
+UserInputService.JumpRequest:Connect(function()
+    if Flags.InfiniteJump and Humanoid and not Flags.Unloaded then
+        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- Fullbright Engine
+task.spawn(function()
+    local origAmbient = Lighting.Ambient
+    local origBrightness = Lighting.Brightness
+    local origFogEnd = Lighting.FogEnd
+
+    while not Flags.Unloaded do
+        if Flags.Fullbright then
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 3
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+        end
+        task.wait(1.0)
+    end
+
+    Lighting.Ambient = origAmbient
+    Lighting.Brightness = origBrightness
+    Lighting.FogEnd = origFogEnd
+    Lighting.GlobalShadows = true
+end)
+
+
+-- ── ESP Visuals System & Drill Tracker HUD ─────────────────────────────────────────────
+local EspFolder = Instance.new("Folder")
+EspFolder.Name = "PinatHub_SharedPlanets_ESP"
+EspFolder.Parent = Workspace
+
+local ActiveESPs = {}
+
+local function CreateESP(adornee, text, color, offset)
+    if not adornee or ActiveESPs[adornee] then return end
+    offset = offset or Vector3.new(0, 2.5, 0)
+
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "PinatESP"
+    bb.Adornee = adornee
+    bb.Size = UDim2.new(0, 140, 0, 36)
+    bb.StudsOffset = offset
+    bb.AlwaysOnTop = true
+    bb.Parent = EspFolder
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+    label.TextStrokeTransparency = 0.2
+    label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 12
+    label.Text = text or ""
+    label.Parent = bb
+
+    local hl = Instance.new("Highlight")
+    hl.Name = "PinatHighlight"
+    hl.Adornee = adornee
+    hl.FillColor = color or Color3.fromRGB(255, 255, 255)
+    hl.FillTransparency = 0.75
+    hl.OutlineColor = color or Color3.fromRGB(255, 255, 255)
+    hl.OutlineTransparency = 0.2
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent = bb
+
+    ActiveESPs[adornee] = { Gui = bb, Label = label, Highlight = hl }
+end
+
+local function ClearESP(adornee)
+    if ActiveESPs[adornee] then
+        if ActiveESPs[adornee].Gui then ActiveESPs[adornee].Gui:Destroy() end
+        ActiveESPs[adornee] = nil
+    end
+end
+
+-- ESP Heartbeat Refresh Loop
+RunService.Heartbeat:Connect(function()
+    if Flags.Unloaded then
+        for adornee, _ in pairs(ActiveESPs) do ClearESP(adornee) end
+        return
+    end
+
+    if not Root then return end
+
+    -- 1. Ore ESP
+    if Flags.OreESP then
+        local ores = CollectionService:GetTagged("Ore")
+        local maxDist = Flags.OreESPMaxDist or 400
+
+        for _, ore in ipairs(ores) do
+            if ore:IsDescendantOf(Workspace) then
+                local pos = ore:IsA("BasePart") and ore.Position or ore:GetPivot().Position
+                local dist = math.floor((pos - Root.Position).Magnitude)
+
+                if dist <= maxDist then
+                    local rarity, color = GetOreInfo(ore)
+                    local hp = ore:FindFirstChild("Health") and ore.Health.Value or "Ore"
+                    local text = string.format("[%s]\n%s HP | %dm", rarity, tostring(hp), dist)
+
+                    if not ActiveESPs[ore] then
+                        CreateESP(ore, text, color)
+                    else
+                        ActiveESPs[ore].Label.Text = text
+                    end
+                else
+                    ClearESP(ore)
+                end
+            else
+                ClearESP(ore)
+            end
+        end
+    else
+        for _, ore in ipairs(CollectionService:GetTagged("Ore")) do
+            if ActiveESPs[ore] then ClearESP(ore) end
+        end
+    end
+
+    -- 2. NPC & Boss ESP
+    if Flags.NpcESP then
+        local npcs = Workspace:FindFirstChild("Npc")
+        if npcs then
+            for _, npc in ipairs(npcs:GetChildren()) do
+                if npc:IsA("Model") and npc:IsDescendantOf(Workspace) then
+                    local hum = npc:FindFirstChildOfClass("Humanoid")
+                    local root = npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+
+                    if root and (not hum or hum.Health > 0) then
+                        local dist = math.floor((root.Position - Root.Position).Magnitude)
+                        local hpText = hum and string.format("%d/%d HP", math.floor(hum.Health), math.floor(hum.MaxHealth)) or "Enemy"
+                        local name = npc.Name
+                        local text = string.format("[NPC: %s]\n%s | %dm", name, hpText, dist)
+
+                        local isWorm = CollectionService:HasTag(npc, "Worm") or name:lower():find("worm")
+                        local color = isWorm and Color3.fromRGB(255, 30, 30) or Color3.fromRGB(255, 120, 40)
+
+                        if not ActiveESPs[npc] then
+                            CreateESP(npc, text, color, Vector3.new(0, 3.5, 0))
+                        else
+                            ActiveESPs[npc].Label.Text = text
+                        end
+                    else
+                        ClearESP(npc)
+                    end
+                end
+            end
+        end
+    end
+
+    -- 3. Chest & Supply Crate ESP
+    if Flags.ChestESP then
+        for _, chest in ipairs(CollectionService:GetTagged("DungeonLootHighlightTarget")) do
+            if chest:IsDescendantOf(Workspace) then
+                local pos = chest:IsA("BasePart") and chest.Position or chest:GetPivot().Position
+                local dist = math.floor((pos - Root.Position).Magnitude)
+                local text = string.format("[Treasure Chest]\n%dm", dist)
+
+                if not ActiveESPs[chest] then
+                    CreateESP(chest, text, Color3.fromRGB(255, 215, 0))
+                else
+                    ActiveESPs[chest].Label.Text = text
+                end
+            else
+                ClearESP(chest)
+            end
+        end
+        for _, crate in ipairs(CollectionService:GetTagged("SupplyCrate")) do
+            if crate:IsDescendantOf(Workspace) then
+                local pos = crate:IsA("BasePart") and crate.Position or crate:GetPivot().Position
+                local dist = math.floor((pos - Root.Position).Magnitude)
+                local isDeath = crate:GetAttribute("DeathChest") == true
+                local text = isDeath and string.format("[Death Chest]\n%dm", dist) or string.format("[Supply Crate]\n%dm", dist)
+                local color = isDeath and Color3.fromRGB(255, 70, 70) or Color3.fromRGB(70, 180, 255)
+
+                if not ActiveESPs[crate] then
+                    CreateESP(crate, text, color)
+                else
+                    ActiveESPs[crate].Label.Text = text
+                end
+            else
+                ClearESP(crate)
+            end
+        end
+    end
+end)
+
+-- ── Drill Tracker Real-Time HUD ───────────────────────────────────────────────────────
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PinatHub_DrillTracker"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+
+local HudFrame = Instance.new("Frame")
+HudFrame.Name = "TrackerCard"
+HudFrame.Size = UDim2.new(0, 210, 0, 75)
+HudFrame.Position = UDim2.new(0.015, 0, 0.45, 0)
+HudFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 24)
+HudFrame.BackgroundTransparency = 0.25
+HudFrame.BorderSizePixel = 0
+HudFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner", HudFrame)
+UICorner.CornerRadius = UDim.new(0, 8)
+
+local UIStroke = Instance.new("UIStroke", HudFrame)
+UIStroke.Color = Color3.fromRGB(0, 255, 170)
+UIStroke.Thickness = 1.2
+
+local TitleLabel = Instance.new("TextLabel", HudFrame)
+TitleLabel.Size = UDim2.new(1, -12, 0, 20)
+TitleLabel.Position = UDim2.new(0, 6, 0, 4)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "PINATHUB - DRILL STATUS"
+TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
+TitleLabel.TextSize = 11
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local DepthLabel = Instance.new("TextLabel", HudFrame)
+DepthLabel.Size = UDim2.new(1, -12, 0, 18)
+DepthLabel.Position = UDim2.new(0, 6, 0, 26)
+DepthLabel.BackgroundTransparency = 1
+DepthLabel.Font = Enum.Font.GothamMedium
+DepthLabel.Text = "Depth: Calculating..."
+DepthLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
+DepthLabel.TextSize = 11
+DepthLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local SpeedLabel = Instance.new("TextLabel", HudFrame)
+SpeedLabel.Size = UDim2.new(1, -12, 0, 18)
+SpeedLabel.Position = UDim2.new(0, 6, 0, 46)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Font = Enum.Font.GothamMedium
+SpeedLabel.Text = "Velocity: Syncing..."
+SpeedLabel.TextColor3 = Color3.fromRGB(170, 180, 200)
+SpeedLabel.TextSize = 11
+SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Update HUD loop
+task.spawn(function()
+    while not Flags.Unloaded do
+        if Flags.DrillTrackerHUD then
+            HudFrame.Visible = true
+            pcall(function()
+                local drill = FindDrillModel()
+                if drill then
+                    local pv = drill:GetPivot()
+                    local y = pv.Position.Y
+                    local depthMeters = math.floor(math.abs(y))
+                    DepthLabel.Text = string.format("Current Depth: -%dm", depthMeters)
+
+                    local primary = drill.PrimaryPart or drill:FindFirstChildWhichIsA("BasePart")
+                    if primary then
+                        local vel = math.floor(primary.AssemblyLinearVelocity.Magnitude)
+                        SpeedLabel.Text = string.format("Drill Speed: %d studs/s", vel)
+                    else
+                        SpeedLabel.Text = "Status: Active"
+                    end
+                elseif Root then
+                    local depthMeters = math.floor(math.abs(Root.Position.Y))
+                    DepthLabel.Text = string.format("Player Depth: -%dm", depthMeters)
+                    SpeedLabel.Text = "Drill: Searching..."
+                end
+            end)
+        else
+            HudFrame.Visible = false
+        end
+        task.wait(0.5)
+    end
+    ScreenGui:Destroy()
+end)
+
+-- ── Mobile Floating Logo Toggle Button ────────────────────────────────────────────────
+local MobileToggleGui = Instance.new("ScreenGui")
+MobileToggleGui.Name = "PinatHub_MobileToggle"
+MobileToggleGui.ResetOnSpawn = false
+MobileToggleGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+
+local ToggleBtn = Instance.new("ImageButton", MobileToggleGui)
+ToggleBtn.Name = "PinatMobileBtn"
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Position = UDim2.new(0.015, 0, 0.25, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(18, 22, 30)
+ToggleBtn.Image = "rbxassetid://10723415903"
+ToggleBtn.ImageColor3 = Color3.fromRGB(0, 255, 170)
+
+local BtnCorner = Instance.new("UICorner", ToggleBtn)
+BtnCorner.CornerRadius = UDim.new(0, 23)
+
+local BtnStroke = Instance.new("UIStroke", ToggleBtn)
+BtnStroke.Color = Color3.fromRGB(0, 255, 170)
+BtnStroke.Thickness = 1.5
+
+-- Draggable implementation for Mobile Button
+local dragging, dragStart, startPos
+ToggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleBtn.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+ToggleBtn.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        ToggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    if Window and Window.Toggle then
+        Window:Toggle()
+    end
+end)
+
+-- Cleanup on unload
+task.spawn(function()
+    while not Flags.Unloaded do
+        task.wait(1)
+    end
+    MobileToggleGui:Destroy()
+    ScreenGui:Destroy()
+    EspFolder:Destroy()
+end)
+
+Notify("PinatHub SharedPlanets loaded successfully!", 4)
+
+end -- end of __PinatHub_SharedPlanets_Init__
+
+__PinatHub_SharedPlanets_Init__()
