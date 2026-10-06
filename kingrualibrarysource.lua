@@ -78,10 +78,10 @@ local TabIcons = {
 	["lightning"] = "rbxassetid://7733920644",
 	["automation"] = "rbxassetid://7733920644",
 	["bolt"] = "rbxassetid://7733920644",
-	["sparkles"] = "rbxassetid://10734973351",
-	["star"] = "rbxassetid://10734973351",
-	["box"] = "rbxassetid://10734954201",
-	["package"] = "rbxassetid://10734954201",
+	["sparkles"] = "rbxassetid://10747372167", -- Trophy / Sparkles
+	["star"] = "rbxassetid://10723387847",     -- Gem
+	["box"] = "rbxassetid://10709769841",      -- Backpack / Equipment
+	["package"] = "rbxassetid://10709769841",  -- Backpack / Equipment
 	["compass"] = "rbxassetid://7733924216",
 	["teleport"] = "rbxassetid://7733992789",
 	["map-pin"] = "rbxassetid://7733992789",
@@ -104,6 +104,24 @@ local TabIcons = {
 	["check"] = "rbxassetid://10709782497",
 	["info"] = "rbxassetid://10723415903",
 	["alert"] = "rbxassetid://10709752906",
+
+	-- Tab Category Direct Name Mappings
+	["Equipment"] = "rbxassetid://10709769841",     -- Backpack
+	["equipment"] = "rbxassetid://10709769841",
+	["Forge"] = "rbxassetid://10747383470",         -- Wrench
+	["forge"] = "rbxassetid://10747383470",
+	["Class & Titles"] = "rbxassetid://10747372167",-- Trophy
+	["Class"] = "rbxassetid://10747372167",
+	["class"] = "rbxassetid://10747372167",
+	["Titles"] = "rbxassetid://10747372167",
+	["titles"] = "rbxassetid://10747372167",
+	["Gifts & Codes"] = "rbxassetid://10709811110", -- Coins
+	["Gifts"] = "rbxassetid://10709811110",
+	["gift"] = "rbxassetid://10709811110",
+	["Codes"] = "rbxassetid://10709811110",
+	["codes"] = "rbxassetid://10709811110",
+	["Stage"] = "rbxassetid://10747372167",         -- Trophy
+	["Stages & Ores"] = "rbxassetid://10747372167", -- Trophy
 
 	-- Navigation & Category Icons
 	["movement"] = "rbxassetid://10747373176",

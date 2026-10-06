@@ -581,6 +581,101 @@ task.spawn(function()
     end
 end)
 
+-- ── Prompt & Drop Tracking System ───────────────────────────────────────────────────
+local TrackedPrompts = {}
+local function registerPrompt(p)
+    if p:IsA("ProximityPrompt") then
+        TrackedPrompts[p] = true
+    end
+end
+for _, d in ipairs(Workspace:GetDescendants()) do
+    if d:IsA("ProximityPrompt") then registerPrompt(d) end
+end
+Workspace.DescendantAdded:Connect(registerPrompt)
+Workspace.DescendantRemoving:Connect(function(d)
+    if TrackedPrompts[d] then TrackedPrompts[d] = nil end
+end)
+
+if ProximityPromptService then
+    ProximityPromptService.PromptShown:Connect(function(prompt)
+        if PH.AutoCollectOre then
+            pcall(function()
+                if fireproximityprompt then
+                    fireproximityprompt(prompt, 0)
+                end
+            end)
+        end
+    end)
+end
+
+-- ── Helper: Stage Auto Progression & Teleport ────────────────────────────────────────
+local lastStageAdvanceTick = 0
+local function AdvanceToNextStage()
+    local now = os.clock()
+    if now - lastStageAdvanceTick < 1.2 then return false end
+    lastStageAdvanceTick = now
+
+    refreshChar()
+    if not Root then return false end
+
+    local curStage = LocalPlayer:GetAttribute("StageID") or PH.SelectedStage or "Stage_1"
+    local curNum = tonumber(string.match(tostring(curStage), "%d+")) or 1
+    local nextNum = curNum + 1
+    if nextNum > 27 then nextNum = 0 end
+    local nextStageName = "Stage_" .. nextNum
+
+    local targetCF = nil
+    local stageMap = (WorldModelFolder and WorldModelFolder:FindFirstChild("StageMap"))
+        or (Workspace:FindFirstChild("StageMap", true))
+
+    if stageMap then
+        local areaPart = stageMap:FindFirstChild("AreaPart")
+        if areaPart then
+            local p = areaPart:FindFirstChild(nextStageName)
+            if p and p:IsA("BasePart") then
+                targetCF = p.CFrame + Vector3.new(0, 4, 0)
+            end
+        end
+        if not targetCF then
+            local enemyPoint = stageMap:FindFirstChild("EnemyPoint")
+            if enemyPoint and enemyPoint:FindFirstChild(nextStageName) then
+                local folder = enemyPoint[nextStageName]
+                local pt = folder:FindFirstChildWhichIsA("BasePart")
+                if pt then
+                    targetCF = pt.CFrame + Vector3.new(0, 4, 0)
+                end
+            end
+        end
+    end
+
+    -- Teleport directly to the next stage entrance / area
+    if targetCF then
+        Root.CFrame = targetCF
+    end
+
+    -- Claim all ores dropped from the completed stage
+    if ClaimedAllOreRE then
+        pcall(function() ClaimedAllOreRE:FireServer() end)
+    end
+
+    -- Signal stage progression to game server
+    if SetIntoStageRE then
+        pcall(function() SetIntoStageRE:FireServer(nextStageName) end)
+    end
+    if StageFinishedRF then
+        pcall(function() StageFinishedRF:InvokeServer(nextStageName) end)
+        pcall(function() StageFinishedRF:InvokeServer(curNum) end)
+    end
+
+    LocalPlayer:SetAttribute("StageID", nextStageName)
+    PH.SelectedStage = nextStageName
+    if UI_Controls and UI_Controls.SelectedStage and UI_Controls.SelectedStage.Set then
+        pcall(function() UI_Controls.SelectedStage:Set(nextStageName) end)
+    end
+
+    return true
+end
+
 -- ── Helper: Mob Finding & Filtering ──────────────────────────────────────────────────
 local function GetTargetMobs()
     local targets = {}
@@ -618,12 +713,14 @@ end
 -- ── Engine 3: Auto Attack & Kill Aura Loop ───────────────────────────────────────────
 task.spawn(function()
     local comboIndex = 1
+    local noTargetsStreak = 0
     while true do
-        if PH.AutoAttack or PH.KillAura then
+        if PH.AutoAttack or PH.KillAura or PH.AutoFarmStage then
             refreshChar()
             local targets = GetTargetMobs()
 
             if #targets > 0 and Root then
+                noTargetsStreak = 0
                 local primary = targets[1]
                 local mRoot = primary:FindFirstChild("HumanoidRootPart") or primary:FindFirstChildWhichIsA("BasePart")
 
@@ -673,8 +770,22 @@ task.spawn(function()
                         end
                     end
                 end
+                task.wait(PH.AttackRate or 0.1)
+            else
+                -- No alive mobs in current stage
+                if (PH.AutoAdvanceStage or PH.AutoProgressStage or PH.AutoFarmStage) and not PH.FlyEnabled then
+                    noTargetsStreak = noTargetsStreak + 1
+                    if noTargetsStreak >= 3 then
+                        noTargetsStreak = 0
+                        AdvanceToNextStage()
+                        task.wait(0.7)
+                    else
+                        task.wait(0.2)
+                    end
+                else
+                    task.wait(0.2)
+                end
             end
-            task.wait(PH.AttackRate or 0.1)
         else
             task.wait(0.2)
         end
@@ -699,11 +810,11 @@ task.spawn(function()
     end
 end)
 
--- ── Engine 5: Stage Progression, Mining & Auto Sell Loop ─────────────────────────────
+-- ── Engine 5: Stage Progression, Mining & Auto Collect Loop ──────────────────────────
 task.spawn(function()
     while true do
-        -- Stage Progress
-        if PH.AutoProgressStage and StageFinishedRF then
+        -- Stage Progression check
+        if (PH.AutoProgressStage or PH.AutoAdvanceStage) and StageFinishedRF then
             pcall(function()
                 local curStage = LocalPlayer:GetAttribute("StageID") or PH.SelectedStage
                 local num = tonumber(string.match(tostring(curStage), "%d+")) or 1
@@ -711,24 +822,89 @@ task.spawn(function()
             end)
         end
 
-        -- Claim All Ores
-        if PH.AutoClaimAllOre and ClaimedAllOreRE then
-            pcall(function() ClaimedAllOreRE:FireServer() end)
+        -- Auto Collect Ores (Ruby, Silver, Quartz, Coins, Stones)
+        if PH.AutoCollectOre or PH.AutoClaimAllOre then
+            -- 1. Server-level claim for all stage ores
+            if ClaimedAllOreRE then
+                pcall(function() ClaimedAllOreRE:FireServer() end)
+            end
+
+            -- 2. Native game module cleaners
+            if OreDropUtils and OreDropUtils.CleanOres then
+                pcall(function() OreDropUtils.CleanOres() end)
+            end
+            if StageManager and StageManager.OreUtils and StageManager.OreUtils.CleanOres then
+                pcall(function() StageManager.OreUtils.CleanOres() end)
+            end
+
+            -- 3. ProximityPrompt triggers for dropped ores
+            for prompt in pairs(TrackedPrompts) do
+                if prompt.Parent then
+                    pcall(function()
+                        if fireproximityprompt then
+                            fireproximityprompt(prompt, 0)
+                        end
+                    end)
+                else
+                    TrackedPrompts[prompt] = nil
+                end
+            end
+
+            -- 4. Magnet & Touch Interest for dropped physical parts (Ruby, Silver, Ores, Drops)
+            refreshChar()
+            if Root then
+                local myPos = Root.Position
+                local searchContainers = { Workspace, WorldModelFolder, TouchedFolder }
+                for _, container in ipairs(searchContainers) do
+                    if container then
+                        for _, item in ipairs(container:GetChildren()) do
+                            local n = item.Name
+                            if string.find(n, "Ore") or string.find(n, "Ruby")
+                                or string.find(n, "Silver") or string.find(n, "Coin")
+                                or string.find(n, "Drop") or string.find(n, "Stone")
+                                or string.find(n, "Mineral") then
+
+                                local pPart = (item:IsA("BasePart") and item)
+                                    or (item:IsA("Model") and (item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")))
+
+                                if pPart and (pPart.Position - myPos).Magnitude < 150 then
+                                    if firetouchinterest then
+                                        pcall(function()
+                                            firetouchinterest(Root, pPart, 0)
+                                            firetouchinterest(Root, pPart, 1)
+                                        end)
+                                    end
+                                    if PH.AutoOreMagnet and not pPart.Anchored then
+                                        pcall(function()
+                                            pPart.CFrame = Root.CFrame
+                                        end)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
+            -- 5. Auto Sell All Ores / Prevent Full Pack
+            if PH.AutoSellAllOres and BackpackData and BackpackData.SellAll then
+                pcall(function() BackpackData.SellAll() end)
+            end
         end
 
-        -- Auto Sell All Ores
-        if PH.AutoSellAllOres and BackpackData and BackpackData.SellAll then
+        -- Standalone Auto Sell
+        if PH.AutoSellAllOres and not (PH.AutoCollectOre or PH.AutoClaimAllOre) and BackpackData and BackpackData.SellAll then
             pcall(function() BackpackData.SellAll() end)
         end
 
-        -- Super Loot
+        -- Super Loot Box destruction
         if PH.AutoSuperLoot and SuperLootFolder and KillSuperLootRE then
             for _, box in ipairs(SuperLootFolder:GetChildren()) do
                 pcall(function() KillSuperLootRE:FireServer(box.Name) end)
             end
         end
 
-        task.wait(1.5)
+        task.wait(0.35)
     end
 end)
 

@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService      = game:GetService("TweenService")
 local HttpService       = game:GetService("HttpService")
 local Lighting          = game:GetService("Lighting")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local Camera      = Workspace.CurrentCamera or Workspace:WaitForChild("Camera", 5)
 local LocalPlayer = Players.LocalPlayer
@@ -69,6 +70,8 @@ local StatsData          = getGameModule("LocalData", "StatsData")
 local DungeonData        = getGameModule("LocalData", "DungeonData")
 local OnlineData         = getGameModule("LocalData", "OnlineData")
 local IndexData          = getGameModule("LocalData", "IndexData")
+local OreDropUtils       = getGameModule("Utils", "OreDropUtils")
+local StageManager       = getGameModule("Manager", "StageManager")
 
 -- Safe Remote Resolution Helpers
 local function GetRemoteEvent(category, name)
@@ -184,8 +187,10 @@ local PH = {
     SelectedStage        = "Stage_1",
     AutoFarmStage        = false,
     AutoProgressStage    = false,
+    AutoAdvanceStage     = true,
     AutoCollectOre       = false,
     AutoClaimAllOre      = false,
+    AutoOreMagnet        = true,
     AutoEnchantStone     = false,
     AutoSuperLoot        = false,
     AutoSellAllOres      = false,
