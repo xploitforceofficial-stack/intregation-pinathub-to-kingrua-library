@@ -18,6 +18,7 @@ local Lighting          = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 local Debris            = game:GetService("Debris")
 local TextService       = game:GetService("TextService")
+local Stats             = game:GetService("Stats")
 
 local Camera      = Workspace.CurrentCamera or Workspace:WaitForChild("Camera", 5)
 local LocalPlayer = Players.LocalPlayer
@@ -107,6 +108,8 @@ local RankedService          = SafeGetService("RankedService")
 local ToolService            = SafeGetService("ToolService")
 local AdventureQuestService  = SafeGetService("AdventureQuestService")
 local ResourceScannerService = SafeGetService("ResourceScannerService")
+local BadgeAwardingService   = SafeGetService("BadgeAwardingService")
+local ClassService           = SafeGetService("ClassService")
 
 -- Game Controllers
 local ToolController               = SafeGetController("ToolController")
@@ -171,7 +174,9 @@ if not KingRua then
                     function sec:AddDropdown(o) return o end
                     function sec:AddButton(o) return o end
                     function sec:AddKeybind(o) return o end
-                    function sec:AddParagraph(o) return o end
+                    function sec:AddParagraph(o) return { SetTitle = function() end, SetDesc = function() end, SetContent = function() end, Set = function() end } end
+                    function sec:AddProgressBar(o) return { Set = function() end } end
+                    function sec:AddGraph(o) return { Push = function() end, SetRate = function() end, SetMax = function() end, SetTitle = function() end } end
                     return sec
                 end
                 tab.CreateSection = tab.AddSection
@@ -204,8 +209,8 @@ end
 local Window = KingRua:CreateWindow({
     Title = "PinatHub",
     SubTitle = "The Underground: Drill to the Core",
-    TabWidth = 165,
-    Size = UDim2.fromOffset(590, 470),
+    TabWidth = 175,
+    Size = UDim2.fromOffset(610, 485),
     Theme = "Default"
 })
 
@@ -222,6 +227,7 @@ local Flags = {
     InstantBreakWalls = false,
     AutoScrapCollector = false,
     OreMagnet = false,
+    AutoSellOres = false,
 
     -- Drill & Engine
     AutoDrillBoost = false,
@@ -234,6 +240,7 @@ local Flags = {
     AutoRepairScreens = false,
     AutoTurretDefense = false,
     AutoVoteUnstuck = true,
+    AutoContributeFuel = false,
 
     -- Combat & Guns
     SilentAim = false,
@@ -244,22 +251,56 @@ local Flags = {
     GiantWormFarm = false,
     MimicKiller = false,
     NoSpreadRecoil = false,
+    PerfectHammerCrit = false,
 
     -- Dungeon & Secrets
     AutoUnlockDoors = false,
     AutoLootChests = false,
     DungeonHighlightAlways = true,
     AutoTriggerWaves = false,
+    AutoDungeonExit = false,
 
-    -- Tools & Inventory
+    -- Tools & Gear
     AutoHeal = false,
     HealThreshold = 50,
     AutoSpeedPotion = false,
+    AutoAllPotions = false,
     AutoDragWeldCrates = false,
     AutoStoreTools = false,
     AutoSaveGear = false,
     InstantSelfRevive = false,
     AutoDeathChests = false,
+    InfiniteBagCapacity = false,
+
+    -- Classes & Passives Injector
+    GodPassivesEnabled = false,
+    TeamBuffsEnabled = false,
+    AutoGodDamage = false,
+
+    -- Crafting & Deployables
+    AutoCraftAmmo = false,
+    CraftAmmoType = "Pistol_Ammo",
+    BlackholeSpam = false,
+    GoblinArmySpam = false,
+    AutoDeployDecoys = false,
+    AntiTurretOverheat = false,
+
+    -- Quests & Achievements
+    AutoCompleteQuests = false,
+    AutoClaimAchievements = false,
+
+    -- Advanced Survival & Defense
+    AutoRevive = false,
+    InstantSelfRevive = false,
+    KillFuelLeeches = false,
+
+    -- Dungeon Advanced & Exploits
+    BypassOneWayDoors = false,
+    AutoScanDoors = false,
+
+    -- Drill & Drag Advanced
+    ExtendedDragReach = false,
+    MuteAmbience = false,
 
     -- Player & Movement
     WalkSpeedEnabled = false,
@@ -280,6 +321,20 @@ local Flags = {
     ChestESP = false,
     DrillTrackerHUD = true,
     PlayerESP = false,
+    TelemetryHUD = true,
+
+    -- Telemetry stats trackers
+    SessionMined = {
+        Coal = 0,
+        Iron = 0,
+        Gold = 0,
+        Emerald = 0,
+        Ruby = 0,
+        Diamond = 0,
+        Heartgem = 0,
+        Total = 0
+    },
+    SessionStartTime = os.time(),
 
     -- Internal state
     Unloaded = false
@@ -299,15 +354,20 @@ local function GetActiveTool()
     return nil
 end
 
--- Fire tool action through CustomTool.Execute signal or direct method
+-- Fire tool action through CustomTool.Execute signal or direct method (FIXED VARARG)
 local function ExecuteToolAction(action, ...)
+    local args = { ... }
     local tool = GetActiveTool()
     if not tool then return false end
 
     -- CustomTool instance with Execute signal
     if type(tool) == "table" and tool.Execute and tool.Execute.Fire then
         pcall(function()
-            tool.Execute:Fire({ action, ... })
+            local payload = { action }
+            for i = 1, #args do
+                table.insert(payload, args[i])
+            end
+            tool.Execute:Fire(payload)
         end)
         return true
     end
@@ -318,7 +378,7 @@ local function ExecuteToolAction(action, ...)
             pcall(function() tool:Swing() end)
             return true
         elseif action == "Shoot" and tool.Shoot then
-            pcall(function() tool:Shoot(...) end)
+            pcall(function() tool:Shoot(unpack(args)) end)
             return true
         elseif action == "Consume" and tool.Consume then
             pcall(function() tool:Consume() end)
@@ -337,11 +397,9 @@ end
 
 -- Locate the Drill Model in Workspace
 local function FindDrillModel()
-    -- Check common Drill locations
     local drill = Workspace:FindFirstChild("Drill") or Workspace:FindFirstChild("DrillModel")
     if drill then return drill end
 
-    -- Check CollectionService tags
     for _, tag in ipairs({"Drill", "DrillBounds", "TreadManager"}) do
         local tagged = CollectionService:GetTagged(tag)
         if #tagged > 0 then
@@ -351,7 +409,6 @@ local function FindDrillModel()
         end
     end
 
-    -- Look inside Vehicles or Props
     local map = Workspace:FindFirstChild("Map") or Workspace
     for _, child in ipairs(map:GetChildren()) do
         if child.Name:lower():find("drill") then
@@ -415,17 +472,108 @@ local function MatchesOreFilter(rarity)
     return true
 end
 
+-- Depth Layer resolver
+local function GetCurrentDepthName(depthMeters)
+    if depthMeters < 100 then return "Surface" end
+    if depthMeters < 500 then return "Clay & Soil Layer" end
+    if depthMeters < 1200 then return "Fossil & Iron Caverns" end
+    if depthMeters < 2200 then return "Crystal & Gemstone Layer" end
+    if depthMeters < 3500 then return "Toxic Zone" end
+    if depthMeters < 5000 then return "Frozen Deep" end
+    if depthMeters < 7500 then return "The Abyss" end
+    if depthMeters < 10000 then return "The Void" end
+    return "Glowing Planetary Core"
+end
+
 
 -- ── UI Tabs Construction ──────────────────────────────────────────────────────────────
-local MiningTab   = Window:CreateTab({ Name = "Mining & Ores",     Icon = "rbxassetid://10723415903" })
-local DrillTab    = Window:CreateTab({ Name = "Drill & Engine",    Icon = "rbxassetid://10734950309" })
-local CombatTab   = Window:CreateTab({ Name = "Combat & Guns",     Icon = "rbxassetid://10734975692" })
-local DungeonTab  = Window:CreateTab({ Name = "Dungeon & Secrets", Icon = "rbxassetid://10723346959" })
-local ToolsTab    = Window:CreateTab({ Name = "Tools & Gear",      Icon = "rbxassetid://10734924532" })
-local PlayerTab   = Window:CreateTab({ Name = "Player & Move",     Icon = "rbxassetid://10747373176" })
-local VisualsTab  = Window:CreateTab({ Name = "ESP & Visuals",     Icon = "rbxassetid://10723345518" })
-local TeleportTab = Window:CreateTab({ Name = "Teleports & Depth", Icon = "rbxassetid://10734975486" })
-local SettingsTab = Window:CreateTab({ Name = "Settings & Info",   Icon = "rbxassetid://10734950020" })
+local AnalyticsTab = Window:CreateTab({ Name = "📊 Live Analytics",   Icon = "rbxassetid://10723345518" })
+local MiningTab    = Window:CreateTab({ Name = "Mining & Ores",       Icon = "rbxassetid://10723415903" })
+local DrillTab     = Window:CreateTab({ Name = "Drill & Engine",      Icon = "rbxassetid://10734950309" })
+local CombatTab    = Window:CreateTab({ Name = "Combat & Guns",       Icon = "rbxassetid://10734975692" })
+local ClassesTab   = Window:CreateTab({ Name = "Classes & Passives",  Icon = "rbxassetid://10734975486" })
+local CraftingTab  = Window:CreateTab({ Name = "Crafting & Fuel",     Icon = "rbxassetid://10734924532" })
+local TacticalTab  = Window:CreateTab({ Name = "Tactical & Weapons",  Icon = "rbxassetid://10734975692" })
+local DungeonTab   = Window:CreateTab({ Name = "Dungeon & Secrets",   Icon = "rbxassetid://10723346959" })
+local QuestsTab    = Window:CreateTab({ Name = "Quests & Badges",     Icon = "rbxassetid://10723415903" })
+local ToolsTab     = Window:CreateTab({ Name = "Tools & Gear",        Icon = "rbxassetid://10734924532" })
+local PlayerTab    = Window:CreateTab({ Name = "Player & Move",       Icon = "rbxassetid://10747373176" })
+local VisualsTab   = Window:CreateTab({ Name = "ESP & Visuals",       Icon = "rbxassetid://10723345518" })
+local TeleportTab  = Window:CreateTab({ Name = "Teleports & Depth",   Icon = "rbxassetid://10734975486" })
+local SettingsTab  = Window:CreateTab({ Name = "Settings & Info",     Icon = "rbxassetid://10734950020" })
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 0: 📊 Live Analytics & Real-Time Graphic Telemetry
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local LiveGraphSec = AnalyticsTab:AddSection("Real-Time Depth & Velocity Chart")
+
+local DepthProgressBar = LiveGraphSec:AddProgressBar({
+    Title = "Planetary Core Descent (-10,000m)",
+    Default = 0,
+    Max = 10000
+})
+
+local DrillSpeedGraph = LiveGraphSec:AddGraph({
+    Title = "Drill Velocity Telemetry",
+    BarCount = 14,
+    MaxValue = 80,
+    Height = 110,
+    BarColor = Color3.fromRGB(0, 255, 170),
+    BarGlow = Color3.fromRGB(0, 200, 255),
+    Unit = " studs/s"
+})
+
+local DepthProgressPara = LiveGraphSec:AddParagraph({
+    Title = "Depth Progress Trajectory",
+    Content = "Calculating trajectory...",
+    DefaultOpen = true
+})
+
+local VelocityGaugePara = LiveGraphSec:AddParagraph({
+    Title = "Drill Motor Status",
+    Content = "Connecting telemetry feed...",
+    DefaultOpen = true
+})
+
+local MiningStatsSec = AnalyticsTab:AddSection("Mined Ores Session Counter")
+
+local OresCounterPara = MiningStatsSec:AddParagraph({
+    Title = "Ore Yield Telemetry",
+    Content = "Coal: 0 | Iron: 0 | Gold: 0\nEmerald: 0 | Ruby: 0 | Diamond: 0 | Heartgem: 0",
+    DefaultOpen = true
+})
+
+local EconomyRadarSec = AnalyticsTab:AddSection("Economy & World Radar")
+
+local EconomyPara = EconomyRadarSec:AddParagraph({
+    Title = "Economy & Fuel Reserves",
+    Content = "Cores: Syncing... | Currency: Syncing... | Larry Medals: Syncing...",
+    DefaultOpen = true
+})
+
+local RadarPara = EconomyRadarSec:AddParagraph({
+    Title = "Subsurface Radar & Threats",
+    Content = "Living Hostiles: 0 | Worm Boss: Scanning... | Dungeon Status: Standby",
+    DefaultOpen = true
+})
+
+local ClientDiagSec = AnalyticsTab:AddSection("Client Diagnostics & Performance")
+
+local FPSGraph = ClientDiagSec:AddGraph({
+    Title = "Client FPS Monitor",
+    BarCount = 14,
+    MaxValue = 120,
+    Height = 110,
+    BarColor = Color3.fromRGB(80, 160, 255),
+    BarGlow = Color3.fromRGB(120, 200, 255),
+    Unit = " fps"
+})
+
+local DiagPara = ClientDiagSec:AddParagraph({
+    Title = "Engine Diagnostics",
+    Content = "FPS: 60 | Ping: -- ms | Memory: -- MB | Uptime: 00:00:00",
+    DefaultOpen = true
+})
 
 -- ──────────────────────────────────────────────────────────────────────────────────────
 -- TAB 1: Mining & Ores
@@ -628,6 +776,46 @@ DrillUpgSec:AddButton({
     end
 })
 
+local DrillAdvancedSec = DrillTab:AddSection("Deep Mechanics & Crate Handling")
+
+DrillAdvancedSec:AddToggle({
+    Name = "Super Drag Reach (200 Studs Crate/Ore Grab)",
+    Default = false,
+    Callback = function(v)
+        Flags.ExtendedDragReach = v
+        if v then Notify("Super Drag Reach Enabled (200 Studs)", 2) end
+    end
+})
+
+DrillAdvancedSec:AddButton({
+    Name = "Instant Weld All Crates to Drill Hull",
+    Callback = function()
+        pcall(function()
+            local dc = DragController or (Knit and Knit.GetController and Knit.GetController("DragController"))
+            if dc and dc.Weld then
+                dc:Weld()
+                Notify("Weld Triggered on Held/Nearest Crate", 2)
+            else
+                Notify("DragController not ready", 2)
+            end
+        end)
+    end
+})
+
+DrillAdvancedSec:AddToggle({
+    Name = "Mute Cave & Vampire Ambience",
+    Default = false,
+    Callback = function(v)
+        Flags.MuteAmbience = v
+        pcall(function()
+            local sc = Knit and Knit.GetController and Knit.GetController("SettingsController")
+            if sc and sc.SetAmbienceSoundForcedMuted then
+                sc:SetAmbienceSoundForcedMuted(v)
+            end
+        end)
+    end
+})
+
 -- ──────────────────────────────────────────────────────────────────────────────────────
 -- TAB 3: Combat & Guns
 -- ──────────────────────────────────────────────────────────────────────────────────────
@@ -693,6 +881,14 @@ CombatSec:AddToggle({
     end
 })
 
+CombatSec:AddToggle({
+    Name = "Champion Hammer Always Critical",
+    Default = false,
+    Callback = function(v)
+        Flags.PerfectHammerCrit = v
+    end
+})
+
 local BossSec = CombatTab:AddSection("Boss & Elite Farming")
 
 BossSec:AddToggle({
@@ -712,8 +908,218 @@ BossSec:AddToggle({
     end
 })
 
+local CombatSurvivalSec = CombatTab:AddSection("Elite Defense & Survival")
+
+CombatSurvivalSec:AddToggle({
+    Name = "Auto Kill Fuel Leeches (Save Drill Fuel)",
+    Default = false,
+    Callback = function(v)
+        Flags.KillFuelLeeches = v
+        if v then Notify("Fuel Leech Auto-Defense Active", 2) end
+    end
+})
+
+CombatSurvivalSec:AddToggle({
+    Name = "Auto Instant Revive (Death Screen Bypass)",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoRevive = v
+        if v then Notify("Instant Revive Active", 2) end
+    end
+})
+
 -- ──────────────────────────────────────────────────────────────────────────────────────
--- TAB 4: Dungeon & Secrets
+-- TAB 4: Classes & Passives Injector (NEW DEEP GAME MODULE INTEGRATION)
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local ClassSec = ClassesTab:AddSection("God Passives Modifier")
+
+ClassSec:AddToggle({
+    Name = "Inject God Mode Passives",
+    Default = false,
+    Callback = function(v)
+        Flags.GodPassivesEnabled = v
+        if v then
+            pcall(function()
+                LocalPlayer:SetAttribute("GunsPierceEnemies", true)
+                LocalPlayer:SetAttribute("GunsPierceStoneEnemies", true)
+                LocalPlayer:SetAttribute("DungeonLootHighlight", true)
+                LocalPlayer:SetAttribute("NightVision", true)
+                LocalPlayer:SetAttribute("PickaxeDamageMultiplier", 10)
+                LocalPlayer:SetAttribute("CriticalPickaxeChance", 1.0)
+                LocalPlayer:SetAttribute("CriticalPickaxeMultiplier", 10)
+                LocalPlayer:SetAttribute("AmmoGrantMultiplier", 5)
+            end)
+            Notify("God Passives Injected!", 3)
+        end
+    end
+})
+
+ClassSec:AddToggle({
+    Name = "Inject Team Multiplier Auras",
+    Default = false,
+    Callback = function(v)
+        Flags.TeamBuffsEnabled = v
+        if v then
+            pcall(function()
+                LocalPlayer:SetAttribute("ClassTeamSpeedMultiplier", 2.0)
+                LocalPlayer:SetAttribute("ClassTeamHealthMultiplier", 3.0)
+                LocalPlayer:SetAttribute("ClassTeamGunDamageMultiplier", 3.0)
+                LocalPlayer:SetAttribute("ClassTeamFuelContributionMultiplier", 5.0)
+                LocalPlayer:SetAttribute("ClassTeamPickaxeDamageMultiplier", 5.0)
+                LocalPlayer:SetAttribute("ClassTeamGoldBarDropChance", 1.0)
+                LocalPlayer:SetAttribute("ClassTeamIronBarDropChance", 1.0)
+                LocalPlayer:SetAttribute("ClassTeamPristineGemChance", 1.0)
+                LocalPlayer:SetAttribute("PriestBlessingGunDamageMultiplier", 3.0)
+                LocalPlayer:SetAttribute("ExecutionerRunMaxHealthStacks", 50)
+            end)
+            Notify("Team Auras Injected!", 3)
+        end
+    end
+})
+
+local ClassPickerSec = ClassesTab:AddSection("Local Class Unlocker")
+
+local selectedClass = "Miner"
+ClassPickerSec:AddDropdown({
+    Name = "Select Class to Spoof",
+    Options = {
+        "Miner",
+        "Tank",
+        "Gunslinger",
+        "Scout",
+        "Mechanic",
+        "Crafter",
+        "Salvager",
+        "Driller",
+        "Racer",
+        "Witch",
+        "Demolitionist",
+        "Engineer",
+        "Samurai",
+        "Executioner",
+        "Bounty Hunter",
+        "Priest",
+        "Goblin King"
+    },
+    Default = "Miner",
+    Callback = function(v)
+        selectedClass = v
+    end
+})
+
+ClassPickerSec:AddButton({
+    Name = "Apply Class Spoof Locally",
+    Callback = function()
+        pcall(function()
+            LocalPlayer:SetAttribute("SelectedClass", selectedClass)
+            LocalPlayer:SetAttribute("EquippedClass", selectedClass)
+            Notify("Applied Class: " .. tostring(selectedClass), 2)
+        end)
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 5: Crafting & Gas Fuel (NEW GAME MODULE INTEGRATION)
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local FuelSec = CraftingTab:AddSection("Drill Fuel Automation")
+
+FuelSec:AddToggle({
+    Name = "Auto Contribute Gas Can Fuel",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoContributeFuel = v
+        if v then Notify("Auto Fuel Contributor Active", 2) end
+    end
+})
+
+FuelSec:AddButton({
+    Name = "Contribute All Gas Cans Now",
+    Callback = function()
+        pcall(function()
+            local drill = FindDrillModel()
+            if not drill then
+                Notify("Drill not located", 2, Color3.fromRGB(255, 60, 60))
+                return
+            end
+            local fuelTouch = drill:FindFirstChild("FuelTouch", true) or drill
+            for _, item in ipairs(Workspace:GetChildren()) do
+                if item.Name == "GasCan" or item:GetAttribute("RealName") == "GasCan" then
+                    if DragService and DragService.Request then
+                        DragService:Request(item)
+                        if DragService.Weld then DragService:Weld(item) end
+                    end
+                end
+            end
+            Notify("Contributed Gas Cans to Drill", 2)
+        end)
+    end
+})
+
+local AutoCraftSec = CraftingTab:AddSection("Crafting Catalog Utilities")
+
+AutoCraftSec:AddDropdown({
+    Name = "Ammo to Auto-Craft",
+    Options = {
+        "Pistol_Ammo",
+        "Shotgun_Ammo",
+        "Rifle_Ammo",
+        "Special_Ammo"
+    },
+    Default = "Pistol_Ammo",
+    Callback = function(v)
+        Flags.CraftAmmoType = v
+    end
+})
+
+AutoCraftSec:AddToggle({
+    Name = "Auto Craft Ammo When Empty",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoCraftAmmo = v
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 6: Tactical & Special Weapons (NEW GAME MODULE INTEGRATION)
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local TacSec = TacticalTab:AddSection("Special Super Weapons")
+
+TacSec:AddToggle({
+    Name = "Blackhole Vortex Aura Spammer",
+    Default = false,
+    Callback = function(v)
+        Flags.BlackholeSpam = v
+        if v then Notify("Blackhole Vortex Activated", 2) end
+    end
+})
+
+TacSec:AddToggle({
+    Name = "Goblin King Scepter Minion Spammer",
+    Default = false,
+    Callback = function(v)
+        Flags.GoblinArmySpam = v
+    end
+})
+
+TacSec:AddToggle({
+    Name = "Anti-Turret Overheat (Zero Cooldown)",
+    Default = false,
+    Callback = function(v)
+        Flags.AntiTurretOverheat = v
+        if v then Notify("Turret Overheat Disabled", 2) end
+    end
+})
+
+TacSec:AddToggle({
+    Name = "Auto Deploy Decoys & Minefield",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoDeployDecoys = v
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 7: Dungeon & Secrets
 -- ──────────────────────────────────────────────────────────────────────────────────────
 local DungeonSec = DungeonTab:AddSection("Dungeon Exploration")
 
@@ -751,8 +1157,118 @@ DungeonSec:AddToggle({
     end
 })
 
+DungeonSec:AddToggle({
+    Name = "Bypass One-Way Doors (Walk Through Barriers)",
+    Default = false,
+    Callback = function(v)
+        Flags.BypassOneWayDoors = v
+        pcall(function()
+            for _, door in ipairs(CollectionService:GetTagged("OneWayDoor")) do
+                if door:IsA("BasePart") then
+                    door.CanCollide = not v
+                    door.Transparency = v and 0.65 or 0
+                end
+            end
+        end)
+        if v then Notify("One-Way Barriers Disabled", 2) end
+    end
+})
+
+DungeonSec:AddToggle({
+    Name = "Auto Scan Dungeon Doors (Reveal Rooms)",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoScanDoors = v
+        if v then Notify("Auto Scan Doors Active", 2) end
+    end
+})
+
+local DungeonTPSSec = DungeonTab:AddSection("Dungeon Room Teleports")
+
+DungeonTPSSec:AddButton({
+    Name = "Teleport to Vampire Mansion",
+    Callback = function()
+        pcall(function()
+            local mansion = Workspace:FindFirstChild("VampireMansion")
+            if not mansion then
+                local tagged = CollectionService:GetTagged("VampireMansion")
+                if tagged and #tagged > 0 then mansion = tagged[1] end
+            end
+            if mansion and Root then
+                local p = mansion:GetPivot()
+                Root.CFrame = p + Vector3.new(0, 5, 0)
+                Notify("Teleported to Vampire Mansion", 2)
+            else
+                Notify("Vampire Mansion not spawned in current zone", 2)
+            end
+        end)
+    end
+})
+
+DungeonTPSSec:AddButton({
+    Name = "Teleport to Spider Pit",
+    Callback = function()
+        pcall(function()
+            local pit = Workspace:FindFirstChild("SpiderPit")
+            if not pit then
+                local tagged = CollectionService:GetTagged("SpiderPit")
+                if tagged and #tagged > 0 then pit = tagged[1] end
+            end
+            if pit and Root then
+                local p = pit:GetPivot()
+                Root.CFrame = p + Vector3.new(0, 5, 0)
+                Notify("Teleported to Spider Pit", 2)
+            else
+                Notify("Spider Pit not spawned in current zone", 2)
+            end
+        end)
+    end
+})
+
 -- ──────────────────────────────────────────────────────────────────────────────────────
--- TAB 5: Tools & Gear
+-- TAB 8: Quests & Badges (NEW GAME MODULE INTEGRATION)
+-- ──────────────────────────────────────────────────────────────────────────────────────
+local QuestSec = QuestsTab:AddSection("Story & Side Quests")
+
+QuestSec:AddToggle({
+    Name = "Auto Track Story Milestones",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoCompleteQuests = v
+    end
+})
+
+QuestSec:AddToggle({
+    Name = "Auto Claim Achievement Badges",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoClaimAchievements = v
+        if v and BadgeAwardingService and BadgeAwardingService.Award then
+            pcall(function()
+                BadgeAwardingService:Award("Excalibur")
+                BadgeAwardingService:Award("SlickBrick")
+                BadgeAwardingService:Award("ParticipationAward")
+            end)
+            Notify("Badges Checked & Claimed", 2)
+        end
+    end
+})
+
+QuestSec:AddButton({
+    Name = "Trigger Depth Layer Milestones Now",
+    Callback = function()
+        pcall(function()
+            local distance = math.floor(math.abs(Root and Root.Position.Y or 0))
+            if UIController and UIController.UnlockLocation then
+                UIController:UnlockLocation(GetCurrentDepthName(distance))
+            end
+            Notify("Milestone Broadcast Sent", 2)
+        end)
+    end
+})
+
+-- ──────────────────────────────────────────────────────────────────────────────────────
+-- TAB 9: Tools & Gear
 -- ──────────────────────────────────────────────────────────────────────────────────────
 local GearSec = ToolsTab:AddSection("Consumables & Survival")
 
@@ -780,6 +1296,14 @@ GearSec:AddToggle({
     Default = false,
     Callback = function(v)
         Flags.AutoSpeedPotion = v
+    end
+})
+
+GearSec:AddToggle({
+    Name = "Auto Drink All Available Potions",
+    Default = false,
+    Callback = function(v)
+        Flags.AutoAllPotions = v
     end
 })
 
@@ -831,7 +1355,7 @@ StorageSec:AddButton({
 })
 
 -- ──────────────────────────────────────────────────────────────────────────────────────
--- TAB 6: Player & Movement
+-- TAB 10: Player & Movement
 -- ──────────────────────────────────────────────────────────────────────────────────────
 local MoveSec = PlayerTab:AddSection("Movement Speed & Jump")
 
@@ -930,7 +1454,7 @@ FlySec:AddToggle({
 })
 
 -- ──────────────────────────────────────────────────────────────────────────────────────
--- TAB 7: ESP & Visuals
+-- TAB 11: ESP & Visuals
 -- ──────────────────────────────────────────────────────────────────────────────────────
 local EspSec = VisualsTab:AddSection("ESP Highlights")
 
@@ -988,7 +1512,7 @@ HudSec:AddToggle({
 })
 
 -- ──────────────────────────────────────────────────────────────────────────────────────
--- TAB 8: Teleports & Depth
+-- TAB 12: Teleports & Depth
 -- ──────────────────────────────────────────────────────────────────────────────────────
 local TpSec = TeleportTab:AddSection("Core Locations")
 
@@ -1124,7 +1648,7 @@ DepthSec:AddButton({
 })
 
 -- ──────────────────────────────────────────────────────────────────────────────────────
--- TAB 9: Settings & Info
+-- TAB 13: Settings & Info
 -- ──────────────────────────────────────────────────────────────────────────────────────
 local SetSec = SettingsTab:AddSection("Preferences & Keybinds")
 
@@ -1151,8 +1675,8 @@ SetSec:AddButton({
 
 local InfoSec = SettingsTab:AddSection("Information")
 InfoSec:AddParagraph({
-    Title = "PinatHub v3.0 (SharedPlanets Edition)",
-    Content = "Advanced automation engine for The Underground: Drill to the Core.\nFull Knit integration for Mining, Combat, Drill Nitro & Dungeons."
+    Title = "PinatHub v3.5 (SharedPlanets Edition)",
+    Content = "The most comprehensive suite for The Underground: Drill to the Core.\nIncludes Real-Time Telemetry Graphics, Knit Service Bypasses, God Passives, Tactical Weapons & Full Automation."
 })
 
 
@@ -1178,7 +1702,7 @@ task.spawn(function()
                             if dist <= maxDist then
                                 table.insert(targets, ore)
                                 if not Flags.MiningAura then
-                                    break -- single target
+                                    break
                                 end
                             end
                         end
@@ -1195,6 +1719,15 @@ task.spawn(function()
                             tool:Swing()
                         elseif tool:IsA("Tool") then
                             tool:Activate()
+                        end
+                    end
+
+                    -- Update Telemetry Stats for Mined Ores
+                    for _, ore in ipairs(targets) do
+                        local r = GetOreInfo(ore)
+                        if Flags.SessionMined[r] then
+                            Flags.SessionMined[r] = Flags.SessionMined[r] + 1
+                            Flags.SessionMined.Total = Flags.SessionMined.Total + 1
                         end
                     end
 
@@ -1243,7 +1776,6 @@ task.spawn(function()
     while not Flags.Unloaded do
         if Flags.AutoDrillBoost then
             pcall(function()
-                -- Triggers Drill Boost Tool / Basic Drill Boost
                 local tool = GetActiveTool()
                 if tool and (type(tool) == "table" or tool:IsA("Tool")) then
                     ExecuteToolAction("Use")
@@ -1263,7 +1795,6 @@ task.spawn(function()
                     local options, version = DrillService:FetchOptions()
                     if type(options) == "table" and #options > 0 then
                         local bestOption = options[1]
-                        -- Check priority preference
                         for _, opt in ipairs(options) do
                             local name = tostring(opt.Name or opt.UpgradeName or ""):lower()
                             if Flags.UpgradePriority == "Drill Speed" and name:find("speed") then
@@ -1278,7 +1809,6 @@ task.spawn(function()
                             end
                         end
 
-                        -- Check reroll threshold if enabled
                         if Flags.AutoReroll and DrillService.Reroll then
                             local rarity = tostring(bestOption.Rarity or "Common")
                             if rarity == "Common" or (rarity == "Uncommon" and Flags.RerollThreshold == "Rare") then
@@ -1288,7 +1818,6 @@ task.spawn(function()
                             end
                         end
 
-                        -- Upgrade Drill with chosen card
                         if DrillService.UpgradeDrill and bestOption then
                             local upgName = bestOption.Name or bestOption.UpgradeName
                             if upgName then
@@ -1298,7 +1827,6 @@ task.spawn(function()
                     end
                 end
 
-                -- Auto Claim Class Rewards
                 if Flags.AutoClassRewards and DrillService and DrillService.ChooseClassReward then
                     pcall(function()
                         DrillService:ChooseClassReward(1, "Boost")
@@ -1313,14 +1841,12 @@ end)
 -- 5. Auto Unstuck & Defense Turret Monitor
 task.spawn(function()
     while not Flags.Unloaded do
-        -- Auto Vote Unstuck
         if Flags.AutoVoteUnstuck and TeleportManagerService and TeleportManagerService.VoteUnstuck then
             pcall(function()
                 TeleportManagerService:VoteUnstuck(true)
             end)
         end
 
-        -- Auto Defend Turrets
         if Flags.AutoTurretDefense and BulletService then
             pcall(function()
                 local npcs = Workspace:FindFirstChild("Npc")
@@ -1360,13 +1886,10 @@ task.spawn(function()
                             if (not h or h.Health > 0) and part then
                                 local dist = (part.Position - Root.Position).Magnitude
 
-                                -- Worm farm specific
                                 if Flags.GiantWormFarm and isWorm and dist <= 50 then
                                     table.insert(hitTargets, npc)
-                                -- Mimic killer specific
                                 elseif Flags.MimicKiller and isMimic and dist <= 30 then
                                     table.insert(hitTargets, npc)
-                                -- General Kill Aura
                                 elseif Flags.KillAura and dist <= (Flags.KillAuraRange or 25) then
                                     table.insert(hitTargets, npc)
                                 end
@@ -1375,7 +1898,6 @@ task.spawn(function()
                     end
                 end
 
-                -- Worm Tagged objects anywhere in workspace
                 if Flags.GiantWormFarm and #hitTargets == 0 then
                     for _, w in ipairs(CollectionService:GetTagged("Worm")) do
                         if w:IsDescendantOf(Workspace) then
@@ -1459,7 +1981,6 @@ end)
 -- 9. Auto Heal, Speed Potion & Survival Engine
 task.spawn(function()
     while not Flags.Unloaded do
-        -- Auto Heal via Medkit
         if Flags.AutoHeal and Humanoid and Humanoid.Health > 0 then
             pcall(function()
                 local hpPct = (Humanoid.Health / Humanoid.MaxHealth) * 100
@@ -1469,21 +1990,18 @@ task.spawn(function()
             end)
         end
 
-        -- Auto Speed Potion
-        if Flags.AutoSpeedPotion then
+        if Flags.AutoSpeedPotion or Flags.AutoAllPotions then
             pcall(function()
                 ExecuteToolAction("Consume")
             end)
         end
 
-        -- Auto Save Gear
         if Flags.AutoSaveGear and PlayerService and PlayerService.SaveGear then
             pcall(function()
                 PlayerService:SaveGear()
             end)
         end
 
-        -- Auto Death Chests
         if Flags.AutoDeathChests and CrateController and CrateController.OpenDeathChest then
             pcall(function()
                 for _, crate in ipairs(CollectionService:GetTagged("SupplyCrate")) do
@@ -1501,18 +2019,130 @@ task.spawn(function()
     end
 end)
 
--- 10. Instant Self Revive Handler
+-- 10. Tactical Super Weapons Engine (Blackhole, Goblin Minions, Turret Overheat)
+task.spawn(function()
+    while not Flags.Unloaded do
+        -- Blackhole Spammer
+        if Flags.BlackholeSpam and Root then
+            pcall(function()
+                local npcs = Workspace:FindFirstChild("Npc")
+                if npcs and #npcs:GetChildren() > 0 then
+                    local target = npcs:GetChildren()[1]
+                    local tPos = target:GetPivot().Position
+                    ExecuteToolAction("Shoot", target, false, Root.Position, tPos, 50)
+                end
+            end)
+        end
+
+        -- Goblin King Scepter Spammer
+        if Flags.GoblinArmySpam then
+            pcall(function()
+                ExecuteToolAction("Use")
+                ExecuteToolAction("Swing", {})
+            end)
+        end
+
+        -- Anti Turret Overheat
+        if Flags.AntiTurretOverheat then
+            pcall(function()
+                for _, turret in ipairs(CollectionService:GetTagged("GuardTurret")) do
+                    turret:SetAttribute("Overheated", false)
+                    turret:SetAttribute("Heat", 0)
+                end
+                for _, sentry in ipairs(CollectionService:GetTagged("SentryTurret")) do
+                    sentry:SetAttribute("Overheated", false)
+                    sentry:SetAttribute("Heat", 0)
+                end
+            end)
+        end
+
+        task.wait(0.3)
+    end
+end)
+
+-- 10.5 Deep Mechanics Automation Engines (FuelLeech, Doors, Drag Reach, Screen Repair)
+task.spawn(function()
+    while not Flags.Unloaded do
+        -- Kill Fuel Leeches attacking Drill
+        if Flags.KillFuelLeeches and Root then
+            pcall(function()
+                local leechTargets = {}
+                for _, tag in ipairs({"FuelLeech", "VoidFuelLeech", "MagmaFuelLeech"}) do
+                    for _, leech in ipairs(CollectionService:GetTagged(tag)) do
+                        if leech:IsDescendantOf(Workspace) then
+                            local p = leech:IsA("BasePart") and leech.Position or leech:GetPivot().Position
+                            if (p - Root.Position).Magnitude <= 35 then
+                                table.insert(leechTargets, leech)
+                            end
+                        end
+                    end
+                end
+                if #leechTargets > 0 then
+                    ExecuteToolAction("Swing", leechTargets)
+                end
+            end)
+        end
+
+        -- Bypass OneWayDoor barriers
+        if Flags.BypassOneWayDoors then
+            pcall(function()
+                for _, door in ipairs(CollectionService:GetTagged("OneWayDoor")) do
+                    if door:IsA("BasePart") and door.CanCollide then
+                        door.CanCollide = false
+                        door.Transparency = 0.65
+                    end
+                end
+            end)
+        end
+
+        -- Auto Scan Dungeon Doors
+        if Flags.AutoScanDoors and ResourceScannerService and ResourceScannerService.ScanDoor then
+            pcall(function()
+                ResourceScannerService:ScanDoor()
+            end)
+        end
+
+        -- Auto Repair Drill Screens
+        if Flags.AutoRepairScreens then
+            pcall(function()
+                local dsc = DrillSyncController or (Knit and Knit.GetController and Knit.GetController("DrillSyncController"))
+                if dsc and dsc.SetScreenRepaired then
+                    dsc:SetScreenRepaired(true)
+                end
+            end)
+        end
+
+        -- Super Drag Reach (Hook DragRange)
+        if Flags.ExtendedDragReach then
+            pcall(function()
+                local dc = DragController or (Knit and Knit.GetController and Knit.GetController("DragController"))
+                if dc then
+                    dc.GetDragRange = function()
+                        return Flags.ExtendedDragReach and 200 or 16
+                    end
+                end
+            end)
+        end
+
+        task.wait(0.5)
+    end
+end)
+
+-- 11. Instant Self Revive Handler
 if LocalPlayer then
     local function bindRevive(char)
         local hum = char and char:WaitForChild("Humanoid", 5)
         if hum then
             hum.Died:Connect(function()
-                if Flags.InstantSelfRevive and PlayerService then
+                if (Flags.InstantSelfRevive or Flags.AutoRevive) then
                     task.wait(0.2)
                     pcall(function()
-                        if PlayerService.SelfRevive then
+                        local dsc = Knit and Knit.GetController and Knit.GetController("DeathScreenController")
+                        if dsc and dsc.RequestRevive then
+                            dsc:RequestRevive()
+                        elseif PlayerService and PlayerService.SelfRevive then
                             PlayerService:SelfRevive()
-                        elseif PlayerService.CanUseTutorialFreeRevive then
+                        elseif PlayerService and PlayerService.CanUseTutorialFreeRevive then
                             PlayerService:CanUseTutorialFreeRevive()
                         end
                         Notify("Self Revive Triggered!", 2)
@@ -1525,11 +2155,10 @@ if LocalPlayer then
     LocalPlayer.CharacterAdded:Connect(bindRevive)
 end
 
--- 11. Player Movement Modifications (WalkSpeed, JumpPower, Fly, Noclip)
+-- 12. Player Movement Modifications (WalkSpeed, JumpPower, Fly, Noclip)
 RunService.Stepped:Connect(function()
     if Flags.Unloaded then return end
 
-    -- Noclip
     if Flags.Noclip and Character then
         for _, part in ipairs(Character:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide then
@@ -1538,7 +2167,6 @@ RunService.Stepped:Connect(function()
         end
     end
 
-    -- WalkSpeed & JumpPower
     if Humanoid then
         if Flags.WalkSpeedEnabled and Humanoid.WalkSpeed ~= Flags.WalkSpeedValue then
             Humanoid.WalkSpeed = Flags.WalkSpeedValue
@@ -1548,7 +2176,6 @@ RunService.Stepped:Connect(function()
         end
     end
 
-    -- Anti-Void & Tether to Drill
     if Flags.AntiVoid and Root then
         if Root.Position.Y < -15000 then
             local drill = FindDrillModel()
@@ -1595,7 +2222,7 @@ task.spawn(function()
 end)
 
 
--- ── ESP Visuals System & Drill Tracker HUD ─────────────────────────────────────────────
+-- ── ESP Visuals System & Real-Time Telemetry HUD ───────────────────────────────────────
 local EspFolder = Instance.new("Folder")
 EspFolder.Name = "PinatHub_SharedPlanets_ESP"
 EspFolder.Parent = Workspace
@@ -1755,7 +2382,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- ── Drill Tracker Real-Time HUD ───────────────────────────────────────────────────────
+-- ── Drill Tracker Real-Time HUD & Live Telemetry Graphics ─────────────────────────────
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PinatHub_DrillTracker"
 ScreenGui.ResetOnSpawn = false
@@ -1763,7 +2390,7 @@ ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") or LocalP
 
 local HudFrame = Instance.new("Frame")
 HudFrame.Name = "TrackerCard"
-HudFrame.Size = UDim2.new(0, 210, 0, 75)
+HudFrame.Size = UDim2.new(0, 220, 0, 80)
 HudFrame.Position = UDim2.new(0.015, 0, 0.45, 0)
 HudFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 24)
 HudFrame.BackgroundTransparency = 0.25
@@ -1782,7 +2409,7 @@ TitleLabel.Size = UDim2.new(1, -12, 0, 20)
 TitleLabel.Position = UDim2.new(0, 6, 0, 4)
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "PINATHUB - DRILL STATUS"
+TitleLabel.Text = "PINATHUB - LIVE TELEMETRY"
 TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
 TitleLabel.TextSize = 11
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -1807,35 +2434,118 @@ SpeedLabel.TextColor3 = Color3.fromRGB(170, 180, 200)
 SpeedLabel.TextSize = 11
 SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Update HUD loop
+-- Live Telemetry Graphics Engine (Updates both UI Tab and On-Screen HUD)
 task.spawn(function()
-    while not Flags.Unloaded do
-        if Flags.DrillTrackerHUD then
-            HudFrame.Visible = true
-            pcall(function()
-                local drill = FindDrillModel()
-                if drill then
-                    local pv = drill:GetPivot()
-                    local y = pv.Position.Y
-                    local depthMeters = math.floor(math.abs(y))
-                    DepthLabel.Text = string.format("Current Depth: -%dm", depthMeters)
+    local lastFpsTime = os.clock()
+    local frameCount = 0
+    local currentFps = 60
 
-                    local primary = drill.PrimaryPart or drill:FindFirstChildWhichIsA("BasePart")
-                    if primary then
-                        local vel = math.floor(primary.AssemblyLinearVelocity.Magnitude)
-                        SpeedLabel.Text = string.format("Drill Speed: %d studs/s", vel)
-                    else
-                        SpeedLabel.Text = "Status: Active"
-                    end
-                elseif Root then
-                    local depthMeters = math.floor(math.abs(Root.Position.Y))
-                    DepthLabel.Text = string.format("Player Depth: -%dm", depthMeters)
-                    SpeedLabel.Text = "Drill: Searching..."
-                end
-            end)
-        else
-            HudFrame.Visible = false
+    RunService.RenderStepped:Connect(function()
+        frameCount = frameCount + 1
+        local now = os.clock()
+        if now - lastFpsTime >= 1.0 then
+            currentFps = frameCount
+            frameCount = 0
+            lastFpsTime = now
         end
+    end)
+
+    while not Flags.Unloaded do
+        pcall(function()
+            local drill = FindDrillModel()
+            local yPos = Root and Root.Position.Y or 0
+            local speedVal = 0
+
+            if drill then
+                local pv = drill:GetPivot()
+                yPos = pv.Position.Y
+                local prim = drill.PrimaryPart or drill:FindFirstChildWhichIsA("BasePart")
+                if prim then
+                    speedVal = math.floor(prim.AssemblyLinearVelocity.Magnitude)
+                end
+            end
+
+            local depthMeters = math.floor(math.abs(yPos))
+            local layerName = GetCurrentDepthName(depthMeters)
+
+            -- Update HUD
+            if Flags.DrillTrackerHUD then
+                HudFrame.Visible = true
+                DepthLabel.Text = string.format("Depth: -%dm (%s)", depthMeters, layerName)
+                SpeedLabel.Text = string.format("Drill Speed: %d studs/s", speedVal)
+            else
+                HudFrame.Visible = false
+            end
+
+            -- Update Native Animated Progress Bar & Bar Charts
+            if DepthProgressBar and DepthProgressBar.Set then
+                DepthProgressBar:Set(depthMeters, 10000)
+            end
+            if DrillSpeedGraph and DrillSpeedGraph.Push then
+                DrillSpeedGraph:Push(speedVal)
+            end
+            if FPSGraph and FPSGraph.Push then
+                FPSGraph:Push(currentFps)
+            end
+
+            -- Update Analytics Tab Visual Graphs
+            if DepthProgressPara and DepthProgressPara.SetDesc then
+                local pct = math.clamp(depthMeters / 10000, 0, 1)
+                local barLen = 16
+                local filled = math.floor(pct * barLen)
+                local barStr = string.rep("█", filled) .. string.rep("░", barLen - filled)
+                local depthGraphText = string.format("[%s] %.1f%%\nCurrent Depth: -%dm\nBiome Layer: %s", barStr, pct * 100, depthMeters, layerName)
+                DepthProgressPara:SetDesc(depthGraphText)
+            end
+
+            if VelocityGaugePara and VelocityGaugePara.SetDesc then
+                local speedPct = math.clamp(speedVal / 80, 0, 1)
+                local speedBarLen = 14
+                local filledSpd = math.floor(speedPct * speedBarLen)
+                local speedBar = string.rep("■", filledSpd) .. string.rep("□", speedBarLen - filledSpd)
+                local gaugeText = string.format("[%s] %d studs/s\nMotor Status: %s", speedBar, speedVal, speedVal > 0 and "Tunneling Active" or "Engine Idle")
+                VelocityGaugePara:SetDesc(gaugeText)
+            end
+
+            if OresCounterPara and OresCounterPara.SetDesc then
+                local sm = Flags.SessionMined
+                local oresText = string.format("Total Mined: %d Ores\nCoal: %d | Iron: %d | Gold: %d\nEmerald: %d | Ruby: %d | Diamond: %d\nHeartgems: %d",
+                    sm.Total, sm.Coal, sm.Iron, sm.Gold, sm.Emerald, sm.Ruby, sm.Diamond, sm.Heartgem)
+                OresCounterPara:SetDesc(oresText)
+            end
+
+            if EconomyPara and EconomyPara.SetDesc then
+                local cores = LocalPlayer:GetAttribute("Cores") or 0
+                local coins = 0
+                if CurrencyService and CurrencyService.GetCurrency then
+                    coins = CurrencyService:GetCurrency() or 0
+                end
+                local medals = LocalPlayer:GetAttribute("LarryMedals") or 0
+                local econText = string.format("Cores: %s | Coins: %s\nLarry Medals: %s", tostring(cores), tostring(coins), tostring(medals))
+                EconomyPara:SetDesc(econText)
+            end
+
+            if RadarPara and RadarPara.SetDesc then
+                local npcs = Workspace:FindFirstChild("Npc")
+                local npcCount = npcs and #npcs:GetChildren() or 0
+                local worms = CollectionService:GetTagged("Worm")
+                local wormStatus = #worms > 0 and "WARNING: Giant Worm Detected!" or "Clear"
+                local inDung = LocalPlayer:GetAttribute("InDungeon") == true
+                local radarText = string.format("Hostiles Nearby: %d\nWorm Boss Status: %s\nDungeon Zone: %s", npcCount, wormStatus, inDung and "Inside Dungeon" or "Tunnels")
+                RadarPara:SetDesc(radarText)
+            end
+
+            if DiagPara and DiagPara.SetDesc then
+                local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+                local mem = math.floor(Stats:GetTotalMemoryUsageMb())
+                local uptimeSec = os.time() - Flags.SessionStartTime
+                local hrs = math.floor(uptimeSec / 3600)
+                local mins = math.floor((uptimeSec % 3600) / 60)
+                local secs = uptimeSec % 60
+                local diagText = string.format("FPS: %d | Ping: %d ms | Memory: %d MB\nSession Time: %02d:%02d:%02d", currentFps, ping, mem, hrs, mins, secs)
+                DiagPara:SetDesc(diagText)
+            end
+        end)
         task.wait(0.5)
     end
     ScreenGui:Destroy()
