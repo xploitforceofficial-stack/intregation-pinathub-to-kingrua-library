@@ -273,6 +273,15 @@ function Library:MakeConfig(defaults, userConfig)
 		for k, v in pairs(userConfig) do
 			result[k] = v
 		end
+		if userConfig.Name and not userConfig.Title then
+			result.Title = userConfig.Name
+		end
+		if userConfig.Options and not userConfig.Values then
+			result.Values = userConfig.Options
+		end
+		if userConfig.Precise and not userConfig.Increment then
+			result.Increment = 1 / (10 ^ userConfig.Precise)
+		end
 	end
 	return result
 end
@@ -4856,7 +4865,10 @@ end
 				navConfig = self
 			end
 			local categories = navConfig.Categories or navConfig.Tabs or {}
-			local includeAll = (navConfig.IncludeAll ~= false)
+			if type(navConfig) == "table" and navConfig[1] and not navConfig.Categories and not navConfig.Tabs then
+				categories = navConfig
+			end
+			local includeAll = (navConfig.IncludeAll == true)
 			local defaultCat = navConfig.Default or (includeAll and "All") or (categories[1] and (type(categories[1]) == "table" and (categories[1].Name or categories[1].Title or categories[1].Key) or categories[1])) or "All"
 			local onSelectCallback = navConfig.Callback or function() end
 
@@ -5394,6 +5406,16 @@ end
 				SubNavObj:AddCategory(cat)
 			end
 
+			local subTabCache = {}
+			setmetatable(SubNavObj, {
+				__index = function(t, k)
+					if not subTabCache[k] then
+						subTabCache[k] = SubNavObj:GetSubTab(k)
+					end
+					return subTabCache[k]
+				end
+			})
+
 			updatePillStyles()
 			return SubNavObj
 		end
@@ -5415,6 +5437,9 @@ end
 	function Window:AddTab(...)
 		return self:T(...)
 	end
+	function Window:CreateTab(...)
+		return self:T(...)
+	end
 	function Window:Minimize()
 		CloseWindow()
 	end
@@ -5425,7 +5450,7 @@ end
 	end
 
 	Window.AddTab = Window.T
-	Window.AddTab = Window.T
+	Window.CreateTab = Window.T
 	Window.Tab = Window.T
 	Window.NewTab = Window.T
 	Window.CreateWindow = Window.NewWindow

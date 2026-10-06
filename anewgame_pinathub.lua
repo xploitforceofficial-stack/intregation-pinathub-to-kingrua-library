@@ -434,6 +434,173 @@ if PinatHubAdapter then
     })
 end
 
+-- ── PinatHub / KingRua Compatibility Adapter Layer ─────────────────────────────────
+if Window then
+    local origAddTab = Window.AddTab or Window.T or Window.Tab or Window.NewTab
+
+    local function wrapSection(secObj)
+        if not secObj then return nil end
+
+        -- Normalize AddToggle
+        local origToggle = secObj.AddToggle
+        if origToggle then
+            secObj.AddToggle = function(s, cfg)
+                if type(cfg) == "table" then
+                    cfg.Title = cfg.Title or cfg.Name or "Toggle"
+                    if cfg.Default == nil and cfg.Value ~= nil then
+                        cfg.Default = cfg.Value
+                    end
+                end
+                return origToggle(s, cfg)
+            end
+        end
+
+        -- Normalize AddSlider
+        local origSlider = secObj.AddSlider
+        if origSlider then
+            secObj.AddSlider = function(s, cfg)
+                if type(cfg) == "table" then
+                    cfg.Title = cfg.Title or cfg.Name or "Slider"
+                    if cfg.Precise and not cfg.Increment then
+                        cfg.Increment = 1 / (10 ^ cfg.Precise)
+                    end
+                end
+                return origSlider(s, cfg)
+            end
+        end
+
+        -- Normalize AddDropdown
+        local origDropdown = secObj.AddDropdown
+        if origDropdown then
+            secObj.AddDropdown = function(s, cfg)
+                if type(cfg) == "table" then
+                    cfg.Title = cfg.Title or cfg.Name or "Dropdown"
+                    cfg.Values = cfg.Values or cfg.Options or cfg.List or {}
+                end
+                return origDropdown(s, cfg)
+            end
+        end
+
+        -- Normalize AddButton
+        local origButton = secObj.AddButton
+        if origButton then
+            secObj.AddButton = function(s, cfg)
+                if type(cfg) == "table" then
+                    cfg.Title = cfg.Title or cfg.Name or "Button"
+                end
+                return origButton(s, cfg)
+            end
+        end
+
+        -- Normalize AddInput
+        local origInput = secObj.AddInput
+        if origInput then
+            secObj.AddInput = function(s, cfg)
+                if type(cfg) == "table" then
+                    cfg.Title = cfg.Title or cfg.Name or "Input"
+                end
+                return origInput(s, cfg)
+            end
+        end
+
+        -- Normalize AddGraph
+        local origGraph = secObj.AddGraph
+        if origGraph then
+            secObj.AddGraph = function(s, cfg)
+                if type(cfg) == "table" then
+                    cfg.Title = cfg.Title or cfg.Name or "Data Graph"
+                    cfg.MaxValue = cfg.MaxValue or cfg.Max or 100
+                    cfg.Unit = cfg.Unit or cfg.Suffix or ""
+                    local valFn = cfg.Value or cfg.ValueFn
+                    local gObj = origGraph(s, cfg)
+                    if gObj and type(valFn) == "function" then
+                        task.spawn(function()
+                            while task.wait(1) do
+                                pcall(function()
+                                    if gObj.Push then
+                                        gObj:Push(valFn())
+                                    end
+                                end)
+                            end
+                        end)
+                    end
+                    return gObj
+                end
+                return origGraph(s, cfg)
+            end
+        end
+
+        return secObj
+    end
+
+    local function wrapTab(tabObj)
+        if not tabObj then return nil end
+
+        -- 1. AddSubNav
+        local origSubNav = tabObj.AddSubNav or tabObj.AddSubTabs or tabObj.SubNav
+        if origSubNav then
+            tabObj.AddSubNav = function(self, navConfig)
+                local cats = {}
+                if type(navConfig) == "table" then
+                    if navConfig[1] then
+                        for _, c in ipairs(navConfig) do
+                            local name = type(c) == "table" and (c.Name or c.Title or c.Key) or tostring(c)
+                            table.insert(cats, name)
+                        end
+                        navConfig = { Categories = cats, IncludeAll = false, Default = cats[1] }
+                    elseif navConfig.Categories or navConfig.Tabs then
+                        cats = navConfig.Categories or navConfig.Tabs
+                    end
+                end
+
+                local subNav = origSubNav(self, navConfig)
+                local subTabCache = {}
+                return setmetatable({}, {
+                    __index = function(t, k)
+                        if not subTabCache[k] then
+                            if subNav and subNav.GetSubTab then
+                                local rawSub = subNav:GetSubTab(k)
+                                subTabCache[k] = wrapTab(rawSub)
+                            else
+                                subTabCache[k] = tabObj
+                            end
+                        end
+                        return subTabCache[k]
+                    end
+                })
+            end
+            tabObj.AddSubTabs = tabObj.AddSubNav
+            tabObj.SubNav = tabObj.AddSubNav
+            tabObj.SubTabs = tabObj.AddSubNav
+        end
+
+        -- 2. AddSection
+        local origSection = tabObj.AddSection or tabObj.Section
+        if origSection then
+            tabObj.AddSection = function(self, secCfg)
+                local secObj = origSection(self, secCfg)
+                return wrapSection(secObj)
+            end
+            tabObj.Section = tabObj.AddSection
+        end
+
+        return tabObj
+    end
+
+    -- Window Tab Creation Normalization
+    Window.AddTab = function(self, tabCfg, ...)
+        if type(tabCfg) == "table" then
+            tabCfg.Title = tabCfg.Title or tabCfg.Name or "Tab"
+            tabCfg.Desc  = tabCfg.Desc or tabCfg.Description or tabCfg.Title
+        end
+        local t = origAddTab(self, tabCfg, ...)
+        return wrapTab(t)
+    end
+    Window.CreateTab = Window.AddTab
+    Window.Tab = Window.AddTab
+    Window.NewTab = Window.AddTab
+end
+
 -- ═════════════════════════════════════════════════════════════════════════════════════
 -- TAB 1: TRAINING & POWER
 -- ═════════════════════════════════════════════════════════════════════════════════════
@@ -1998,6 +2165,13 @@ if NavSet_Misc then
     })
 end
 
+-- ── Initial Tab Focus ────────────────────────────────────────────────────────────────
+if Window and Window.SelectTab then
+    pcall(function()
+        Window:SelectTab(1)
+    end)
+end
+
 -- ═════════════════════════════════════════════════════════════════════════════════════
 -- BACKGROUND AUTOMATION ENGINES (RUN LOOPS)
 -- ═════════════════════════════════════════════════════════════════════════════════════
@@ -2406,4 +2580,22 @@ print("[PinatHub] Anime Blade Champions Master Edition Initialized Successfully.
 
 end -- End __PinatHub_AnimeBlade_Init__
 
-pcall(__PinatHub_AnimeBlade_Init__)
+local __ok, __err = pcall(__PinatHub_AnimeBlade_Init__)
+if not __ok then
+    warn("[PinatHub Fatal Error]:", __err)
+    if rconsoleprint then
+        pcall(rconsoleprint, "@@RED@@
+[PinatHub Fatal Error]: " .. tostring(__err) .. "
+")
+    end
+    if PinatHubAdapter and PinatHubAdapter.Notify then
+        pcall(function()
+            PinatHubAdapter:Notify({
+                Title = "PinatHub Error",
+                Content = tostring(__err):sub(1, 120),
+                Type = "Danger",
+                Duration = 8
+            })
+        end)
+    end
+end
