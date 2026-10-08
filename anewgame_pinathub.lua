@@ -2210,7 +2210,7 @@ local function CreateHighlight(target, color)
         existing.FillColor = color
         existing.Enabled = true
     end
-end)
+end
 
 task.spawn(function()
     while not Flags.Unloaded do
