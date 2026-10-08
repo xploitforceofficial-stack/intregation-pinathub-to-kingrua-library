@@ -19,18 +19,32 @@ local HttpService       = game:GetService("HttpService")
 local Lighting          = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 local Debris            = game:GetService("Debris")
-local TextService       = game:GetService("TextService")
 local Stats             = game:GetService("Stats")
 local SoundService      = game:GetService("SoundService")
 
--- LocalPlayer Resolution (0 Nil Indexing Guarantee)
+-- Ultra-Defensive LocalPlayer Resolution (0 Nil Indexing Guarantee)
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
     local startWait = tick()
     repeat
         task.wait(0.05)
         LocalPlayer = Players.LocalPlayer
-    until LocalPlayer or (tick() - startWait > 10)
+    until LocalPlayer or (tick() - startWait > 5)
+end
+if not LocalPlayer then
+    pcall(function()
+        LocalPlayer = Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    end)
+end
+
+local function GetMyUserId()
+    if LocalPlayer and LocalPlayer.UserId then
+        return LocalPlayer.UserId
+    end
+    if Players.LocalPlayer and Players.LocalPlayer.UserId then
+        return Players.LocalPlayer.UserId
+    end
+    return 0
 end
 
 local Camera = Workspace.CurrentCamera or Workspace:WaitForChild("Camera", 5)
@@ -44,13 +58,24 @@ end
 
 if LocalPlayer then
     refreshChar(LocalPlayer.Character)
-    if LocalPlayer.CharacterAdded then
+    pcall(function()
         LocalPlayer.CharacterAdded:Connect(refreshChar)
-    end
+    end)
 end
+pcall(function()
+    Players.PlayerAdded:Connect(function(plr)
+        if not LocalPlayer then
+            LocalPlayer = plr
+            refreshChar(plr.Character)
+            pcall(function()
+                plr.CharacterAdded:Connect(refreshChar)
+            end)
+        end
+    end)
+end)
 
 -- ========================================================================================
--- 1. NATIVE GAME CLIENT MODULES RESOLUTION (Full Source Module Integration)
+-- 1. SAFE NATIVE SLICE & DATA MODULES RESOLUTION (Pure State Tables, Zero Side Effects)
 -- ========================================================================================
 local function SafeRequire(inst)
     if not inst then return nil end
@@ -72,31 +97,18 @@ local function FindModuleByPath(...)
     return cur
 end
 
--- Require actual game client services from ReplicatedStorage.Source
-local DayServiceClient           = SafeRequire(FindModuleByPath("Source", "Features", "Day", "DayServiceClient"))
-local DaySlice                   = SafeRequire(FindModuleByPath("Source", "Features", "Day", "UI", "DaySlice"))
-local HeartRateServiceClient     = SafeRequire(FindModuleByPath("Source", "Features", "HeartRate", "HeartRateServiceClient"))
-local HeartRateSlice             = SafeRequire(FindModuleByPath("Source", "Features", "HeartRate", "HeartRateSlice"))
-local GameOverServiceClient     = SafeRequire(FindModuleByPath("Source", "Features", "GameOver", "GameOverServiceClient"))
-local GameOverSlice             = SafeRequire(FindModuleByPath("Source", "Features", "GameOver", "GameOverSlice"))
-local InventoryServiceClient     = SafeRequire(FindModuleByPath("Source", "Features", "Inventory", "InventoryServiceClient"))
-local InventorySlice             = SafeRequire(FindModuleByPath("Source", "Features", "Inventory", "InventorySlice"))
-local ClassServiceClient         = SafeRequire(FindModuleByPath("Source", "Features", "Class", "ClassServiceClient"))
-local ClassData                  = SafeRequire(FindModuleByPath("Source", "Features", "Class", "Modules", "ClassData"))
-local JournalServiceClient       = SafeRequire(FindModuleByPath("Source", "Features", "Journal", "JournalServiceClient"))
-local ObjectiveTrackerServiceClient = SafeRequire(FindModuleByPath("Source", "Features", "ObjectiveTracker", "ObjectiveTrackerServiceClient"))
-local ObjectiveTrackerSlice      = SafeRequire(FindModuleByPath("Source", "Features", "ObjectiveTracker", "ObjectiveTrackerSlice"))
-local CCTVClient                 = SafeRequire(FindModuleByPath("Source", "Features", "Cctv", "CCTVClient"))
-local WireMinigameClient         = SafeRequire(FindModuleByPath("Source", "Features", "Room", "UI", "WireMinigameClient"))
-local CleaningPromptSystemClient = SafeRequire(FindModuleByPath("Source", "Features", "Room", "CleaningPromptSystemClient"))
-local CombatSystemClient         = SafeRequire(FindModuleByPath("Source", "Features", "Combat", "CombatSystemClient"))
-local AdminServiceClient         = SafeRequire(FindModuleByPath("Source", "Features", "Admin", "AdminServiceClient"))
-local RegistrationBookClient     = SafeRequire(FindModuleByPath("Source", "Features", "Story", "RegistrationBookClient"))
-local Items                      = SafeRequire(FindModuleByPath("Source", "Game", "Items", "Items"))
-local NetworkerPackage           = SafeRequire(FindModuleByPath("Packages", "Networker"))
+-- Pure state slices & data tables (guaranteed 0 side effects, never touches CharacterAdded)
+local DaySlice              = SafeRequire(FindModuleByPath("Source", "Features", "Day", "UI", "DaySlice"))
+local HeartRateSlice        = SafeRequire(FindModuleByPath("Source", "Features", "HeartRate", "HeartRateSlice"))
+local GameOverSlice         = SafeRequire(FindModuleByPath("Source", "Features", "GameOver", "GameOverSlice"))
+local InventorySlice        = SafeRequire(FindModuleByPath("Source", "Features", "Inventory", "InventorySlice"))
+local ObjectiveTrackerSlice = SafeRequire(FindModuleByPath("Source", "Features", "ObjectiveTracker", "ObjectiveTrackerSlice"))
+local ClassData             = SafeRequire(FindModuleByPath("Source", "Features", "Class", "Modules", "ClassData"))
+local Items                 = SafeRequire(FindModuleByPath("Source", "Game", "Items", "Items"))
+local NetworkerPackage      = SafeRequire(FindModuleByPath("Packages", "Networker"))
 
 -- ========================================================================================
--- 2. GAME NETWORKER CLIENT CLIENTS BINDING
+-- 2. GAME NETWORKER CLIENT BINDING (Clean, Isolated & Safe from Service Inits)
 -- ========================================================================================
 local NetworkerClients = {
     Admin = nil,
@@ -110,75 +122,29 @@ local NetworkerClients = {
     ObjectiveTracker = nil
 }
 
-if NetworkerPackage and NetworkerPackage.client and NetworkerPackage.client.new then
-    -- AdminService Networker
-    pcall(function()
-        if AdminServiceClient then
-            if not AdminServiceClient.networker then
-                AdminServiceClient.networker = NetworkerPackage.client.new("AdminService", AdminServiceClient)
-            end
-            NetworkerClients.Admin = AdminServiceClient.networker
-        else
-            NetworkerClients.Admin = NetworkerPackage.client.new("AdminService", {})
+local function InitNetworkClient(serviceName)
+    if NetworkerPackage and NetworkerPackage.client and NetworkerPackage.client.new then
+        local client = nil
+        local ok = pcall(function()
+            -- Pass an empty table {} so Networker never executes broken service module inits!
+            client = NetworkerPackage.client.new(serviceName, {})
+        end)
+        if ok and client then
+            return client
         end
-    end)
-    -- CombatSystem Networker
-    pcall(function()
-        if CombatSystemClient and CombatSystemClient.networker then
-            NetworkerClients.Combat = CombatSystemClient.networker
-        else
-            NetworkerClients.Combat = NetworkerPackage.client.new("CombatSystem", CombatSystemClient or {})
-        end
-    end)
-    -- HeartRateService Networker
-    pcall(function()
-        if HeartRateServiceClient and HeartRateServiceClient.networker then
-            NetworkerClients.HeartRate = HeartRateServiceClient.networker
-        else
-            NetworkerClients.HeartRate = NetworkerPackage.client.new("HeartRateService", HeartRateServiceClient or {})
-        end
-    end)
-    -- InventoryService Networker
-    pcall(function()
-        if InventoryServiceClient and InventoryServiceClient.networker then
-            NetworkerClients.Inventory = InventoryServiceClient.networker
-        else
-            NetworkerClients.Inventory = NetworkerPackage.client.new("InventoryService", InventoryServiceClient or {})
-        end
-    end)
-    -- DayService Networker
-    pcall(function()
-        if DayServiceClient and DayServiceClient.networker then
-            NetworkerClients.Day = DayServiceClient.networker
-        else
-            NetworkerClients.Day = NetworkerPackage.client.new("DayService", DayServiceClient or {})
-        end
-    end)
-    -- GameOverService Networker
-    pcall(function()
-        if GameOverServiceClient and GameOverServiceClient.networker then
-            NetworkerClients.GameOver = GameOverServiceClient.networker
-        else
-            NetworkerClients.GameOver = NetworkerPackage.client.new("GameOverService", GameOverServiceClient or {})
-        end
-    end)
-    -- ClassService Networker
-    pcall(function()
-        if ClassServiceClient and ClassServiceClient.networker then
-            NetworkerClients.Class = ClassServiceClient.networker
-        else
-            NetworkerClients.Class = NetworkerPackage.client.new("ClassService", ClassServiceClient or {})
-        end
-    end)
-    -- JournalService Networker
-    pcall(function()
-        if JournalServiceClient and JournalServiceClient.networker then
-            NetworkerClients.Journal = JournalServiceClient.networker
-        else
-            NetworkerClients.Journal = NetworkerPackage.client.new("JournalService", JournalServiceClient or {})
-        end
-    end)
+    end
+    return nil
 end
+
+NetworkerClients.Admin            = InitNetworkClient("AdminService")
+NetworkerClients.Combat           = InitNetworkClient("CombatSystem")
+NetworkerClients.HeartRate        = InitNetworkClient("HeartRateService")
+NetworkerClients.Inventory        = InitNetworkClient("InventoryService")
+NetworkerClients.Day              = InitNetworkClient("DayService")
+NetworkerClients.GameOver         = InitNetworkClient("GameOverService")
+NetworkerClients.Class            = InitNetworkClient("ClassService")
+NetworkerClients.Journal          = InitNetworkClient("JournalService")
+NetworkerClients.ObjectiveTracker = InitNetworkClient("ObjectiveTrackerService")
 
 local function RequestAdminAction(actionName, ...)
     if NetworkerClients.Admin and NetworkerClients.Admin.fetch then
@@ -187,13 +153,7 @@ local function RequestAdminAction(actionName, ...)
         end, ...)
         if s and res ~= nil then return res end
     end
-    if AdminServiceClient and AdminServiceClient.request then
-        local s, res = pcall(function(...)
-            return AdminServiceClient:request(actionName, ...)
-        end, ...)
-        if s and res ~= nil then return res end
-    end
-    return { ok = false, message = "Networker not connected" }
+    return { ok = false, message = "Admin networker not connected" }
 end
 
 -- ========================================================================================
@@ -209,7 +169,6 @@ local function resolveEvents()
             end
         end
     end
-    -- Fallback scan
     for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
         if rem:IsA("RemoteEvent") or rem:IsA("RemoteFunction") then
             if not Remotes[rem.Name] then
@@ -320,7 +279,6 @@ do
         cfg = cfg or {}
         local titleText = cfg.Title or "PinatHub"
         local subTitleText = cfg.SubTitle or "Hotel Anomaly v2.0"
-        local primaryColor = Color3.fromRGB(80, 140, 255)
 
         local ScreenGui = Instance.new("ScreenGui")
         ScreenGui.Name = "PinatHub_AnomalyHotel_GUI"
@@ -557,28 +515,13 @@ do
                 SecLabel.Parent = SecFrame
 
                 local SecObj = {}
-
-                function SecObj:AddToggle(ocfg)
-                    return TabObj:AddToggle(ocfg, SecFrame)
-                end
-                function SecObj:AddSlider(ocfg)
-                    return TabObj:AddSlider(ocfg, SecFrame)
-                end
-                function SecObj:AddButton(ocfg)
-                    return TabObj:AddButton(ocfg, SecFrame)
-                end
-                function SecObj:AddDropdown(ocfg)
-                    return TabObj:AddDropdown(ocfg, SecFrame)
-                end
-                function SecObj:AddParagraph(ocfg)
-                    return TabObj:AddParagraph(ocfg, SecFrame)
-                end
-                function SecObj:AddProgressBar(ocfg)
-                    return TabObj:AddProgressBar(ocfg, SecFrame)
-                end
-                function SecObj:AddGraph(ocfg)
-                    return TabObj:AddGraph(ocfg, SecFrame)
-                end
+                function SecObj:AddToggle(ocfg) return TabObj:AddToggle(ocfg, SecFrame) end
+                function SecObj:AddSlider(ocfg) return TabObj:AddSlider(ocfg, SecFrame) end
+                function SecObj:AddButton(ocfg) return TabObj:AddButton(ocfg, SecFrame) end
+                function SecObj:AddDropdown(ocfg) return TabObj:AddDropdown(ocfg, SecFrame) end
+                function SecObj:AddParagraph(ocfg) return TabObj:AddParagraph(ocfg, SecFrame) end
+                function SecObj:AddProgressBar(ocfg) return TabObj:AddProgressBar(ocfg, SecFrame) end
+                function SecObj:AddGraph(ocfg) return TabObj:AddGraph(ocfg, SecFrame) end
                 return SecObj
             end
 
@@ -962,15 +905,9 @@ do
                 ContentLbl.Parent = Card
 
                 local CardApi = {}
-                function CardApi:SetTitle(t)
-                    TitleLbl.Text = tostring(t or "")
-                end
-                function CardApi:SetDesc(d)
-                    ContentLbl.Text = tostring(d or "")
-                end
-                function CardApi:SetContent(c)
-                    ContentLbl.Text = tostring(c or "")
-                end
+                function CardApi:SetTitle(t) TitleLbl.Text = tostring(t or "") end
+                function CardApi:SetDesc(d) ContentLbl.Text = tostring(d or "") end
+                function CardApi:SetContent(c) ContentLbl.Text = tostring(c or "") end
                 function CardApi:Set(t, c)
                     if t then TitleLbl.Text = tostring(t) end
                     if c then ContentLbl.Text = tostring(c) end
@@ -1113,7 +1050,6 @@ do
                 GraphCorn.CornerRadius = UDim.new(0, 4)
                 GraphCorn.Parent = GraphArea
 
-                -- Bars representing history
                 local bars = {}
                 for i = 1, maxSamples do
                     local bar = Instance.new("Frame")
@@ -1143,10 +1079,7 @@ do
                     end
                 end
 
-                function GraphApi:SetTitle(t)
-                    Lbl.Text = tostring(t or "")
-                end
-
+                function GraphApi:SetTitle(t) Lbl.Text = tostring(t or "") end
                 return GraphApi
             end
 
@@ -1190,10 +1123,6 @@ local function GetMaxHeartRate()
 end
 
 local function GetCurrentStoryDay()
-    if DayServiceClient and DayServiceClient.getDay then
-        local s, v = pcall(function() return DayServiceClient.getDay() end)
-        if s and type(v) == "number" and v > 0 then return v end
-    end
     if DaySlice and DaySlice.getCurrentDay then
         local s, v = pcall(function() return DaySlice.getCurrentDay() end)
         if s and type(v) == "number" and v > 0 then return v end
@@ -1334,7 +1263,6 @@ task.spawn(function()
         task.wait(0.8)
         if Flags.AutoCleanTrash then
             pcall(function()
-                -- Step 1: Scan for all ProximityPrompts in cleaning items
                 local cleanedAny = false
                 for _, desc in ipairs(Workspace:GetDescendants()) do
                     if desc:IsA("ProximityPrompt") and desc.Enabled then
@@ -1349,7 +1277,6 @@ task.spawn(function()
                         if isTrash and Root then
                             local promptPart = desc.Parent:IsA("BasePart") and desc.Parent or (model and (model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")))
                             if promptPart then
-                                -- Check required tool
                                 local promptName = string.lower(desc.Name)
                                 local trashType = model and model:GetAttribute("TrashType") or ""
                                 local needTool = nil
@@ -1360,7 +1287,6 @@ task.spawn(function()
                                     needTool = "pel"
                                 end
 
-                                -- Equip tool from Backpack if needed
                                 if needTool and LocalPlayer and LocalPlayer.Backpack then
                                     local tool = LocalPlayer.Backpack:FindFirstChild(needTool)
                                     if tool and Humanoid then
@@ -1369,7 +1295,6 @@ task.spawn(function()
                                     end
                                 end
 
-                                -- Trigger prompt
                                 if fireproximityprompt then
                                     fireproximityprompt(desc, 0)
                                 elseif desc.InputHoldBegin then
@@ -1383,7 +1308,6 @@ task.spawn(function()
                     end
                 end
 
-                -- Server-wide cleanup fallback
                 if not cleanedAny then
                     RequestAdminAction("cleanAllRooms")
                 end
@@ -1398,9 +1322,6 @@ task.spawn(function()
                 FireRemote("WireConnectedEvent", 3)
                 FireRemote("WireConnectedEvent", 4)
                 FireRemote("WireSolveResultEvent", true)
-                if WireMinigameClient and WireMinigameClient.Close then
-                    WireMinigameClient.Close()
-                end
             end)
         end
 
@@ -1430,9 +1351,8 @@ task.spawn(function()
                 if LocalPlayer then
                     LocalPlayer:SetAttribute("HeartRate", Flags.LockedBPM)
                 end
-                -- Server reset
                 if NetworkerClients.Admin then
-                    RequestAdminAction("setHeartRate", LocalPlayer.UserId, Flags.LockedBPM)
+                    RequestAdminAction("setHeartRate", GetMyUserId(), Flags.LockedBPM)
                 end
             end)
         end
@@ -1488,14 +1408,9 @@ task.spawn(function()
                 end
 
                 if nearestNpc then
-                    -- Equip revolver if in backpack
                     if LocalPlayer and LocalPlayer.Backpack then
                         local rev = LocalPlayer.Backpack:FindFirstChild("revolver")
                         if rev and Humanoid then Humanoid:EquipTool(rev) end
-                    end
-                    -- Fire Revolver
-                    if CombatSystemClient and CombatSystemClient.fireRevolverFromButton then
-                        CombatSystemClient.fireRevolverFromButton()
                     end
                     if NetworkerClients.Combat then
                         NetworkerClients.Combat:fire("FireRevolver", nearestNpc.Position)
@@ -1936,13 +1851,10 @@ do
 
     TabReception:AddButton({
         Title = "Buka / Tutup Buku Registrasi (RegistrationBook)",
-        Desc = "Memanggil RegistrationBookClient.toggle()",
+        Desc = "Menembakkan Remote OpenRegistrationBook",
         Callback = function()
-            if RegistrationBookClient and RegistrationBookClient.toggle then
-                RegistrationBookClient.toggle()
-            else
-                FireRemote("OpenRegistrationBook")
-            end
+            FireRemote("OpenRegistrationBook")
+            FireRemote("RegistrationBookPageChanged", 1)
         end
     })
 
@@ -2005,9 +1917,6 @@ do
             FireRemote("WireConnectedEvent", 3)
             FireRemote("WireConnectedEvent", 4)
             FireRemote("WireSolveResultEvent", true)
-            if WireMinigameClient and WireMinigameClient.Close then
-                WireMinigameClient.Close()
-            end
         end
     })
 
@@ -2077,7 +1986,7 @@ do
         Title = "Preset BPM Tenang (40 BPM)",
         Callback = function()
             Flags.LockedBPM = 40
-            RequestAdminAction("setHeartRate", LocalPlayer.UserId, 40)
+            RequestAdminAction("setHeartRate", GetMyUserId(), 40)
         end
     })
 
@@ -2085,14 +1994,14 @@ do
         Title = "Preset BPM Normal (70 BPM)",
         Callback = function()
             Flags.LockedBPM = 70
-            RequestAdminAction("setHeartRate", LocalPlayer.UserId, 70)
+            RequestAdminAction("setHeartRate", GetMyUserId(), 70)
         end
     })
 
     TabHeart:AddButton({
         Title = "Reset Stres & Panik ke Server (resetHeartRate)",
         Callback = function()
-            RequestAdminAction("resetHeartRate", LocalPlayer.UserId)
+            RequestAdminAction("resetHeartRate", GetMyUserId())
             if HeartRateSlice and HeartRateSlice.clearNotifications then
                 HeartRateSlice.clearNotifications()
             end
@@ -2136,13 +2045,9 @@ do
     })
 
     TabCctv:AddButton({
-        Title = "Uji Coba Jumpscare CCTV (CCTVClient.TriggerJumpscare)",
+        Title = "Uji Coba Jumpscare CCTV (CctvJumpscareTriggered)",
         Callback = function()
-            if CCTVClient and CCTVClient.TriggerJumpscare then
-                CCTVClient.TriggerJumpscare()
-            else
-                FireRemote("CctvJumpscareTriggered")
-            end
+            FireRemote("CctvJumpscareTriggered")
         end
     })
 end
@@ -2183,10 +2088,10 @@ do
     TabCombat:AddSection("Aksi Senjata Klien")
 
     TabCombat:AddButton({
-        Title = "Tembak Revolver Sekali (CombatSystemClient)",
+        Title = "Tembak Revolver Sekali (CombatNet FireRevolver)",
         Callback = function()
-            if CombatSystemClient and CombatSystemClient.fireRevolverFromButton then
-                CombatSystemClient.fireRevolverFromButton()
+            if NetworkerClients.Combat and Root then
+                NetworkerClients.Combat:fire("FireRevolver", Root.Position + (Root.CFrame.LookVector * 20))
             end
         end
     })
@@ -2224,8 +2129,8 @@ do
         Desc = "Mengubah hari alur cerita ke hari yang dipilih",
         Callback = function()
             RequestAdminAction("setDay", selDay)
-            if DayServiceClient and DayServiceClient.playDayTransition then
-                DayServiceClient:playDayTransition(selDay, false)
+            if DaySlice and DaySlice.setCurrentDay then
+                DaySlice.setCurrentDay(selDay)
             end
         end
     })
@@ -2278,36 +2183,36 @@ do
     TabInventory:AddButton({
         Title = "Dapatkan Senjata Api Revolver 🔫",
         Callback = function()
-            RequestAdminAction("giveItem", LocalPlayer.UserId, "revolver", 1)
+            RequestAdminAction("giveItem", GetMyUserId(), "revolver", 1)
         end
     })
 
     TabInventory:AddButton({
         Title = "Dapatkan Tongkat Kejut Listrik (shockBaton) ⚡",
         Callback = function()
-            RequestAdminAction("giveItem", LocalPlayer.UserId, "shockBaton", 1)
+            RequestAdminAction("giveItem", GetMyUserId(), "shockBaton", 1)
         end
     })
 
     TabInventory:AddButton({
         Title = "Dapatkan Minuman Energi (energyDrink x5) ⚡",
         Callback = function()
-            RequestAdminAction("giveItem", LocalPlayer.UserId, "energyDrink", 5)
+            RequestAdminAction("giveItem", GetMyUserId(), "energyDrink", 5)
         end
     })
 
     TabInventory:AddButton({
         Title = "Dapatkan Sapu & Pel Pembersih (sapu, pel) 🧹",
         Callback = function()
-            RequestAdminAction("giveItem", LocalPlayer.UserId, "sapu", 1)
-            RequestAdminAction("giveItem", LocalPlayer.UserId, "pel", 1)
+            RequestAdminAction("giveItem", GetMyUserId(), "sapu", 1)
+            RequestAdminAction("giveItem", GetMyUserId(), "pel", 1)
         end
     })
 
     TabInventory:AddButton({
         Title = "Dapatkan Paket Semua Item Esensial (allEssential)",
         Callback = function()
-            RequestAdminAction("giveItem", LocalPlayer.UserId, "allEssential", 1)
+            RequestAdminAction("giveItem", GetMyUserId(), "allEssential", 1)
         end
     })
 
@@ -2316,21 +2221,21 @@ do
     TabInventory:AddButton({
         Title = "Tambahkan Uang Kas $99,999 (giveCurrency)",
         Callback = function()
-            RequestAdminAction("giveCurrency", LocalPlayer.UserId, 99999)
+            RequestAdminAction("giveCurrency", GetMyUserId(), 99999)
         end
     })
 
     TabInventory:AddButton({
         Title = "Buka Semua Kelas Pekerjaan (giveClass ALL)",
         Callback = function()
-            RequestAdminAction("giveClass", LocalPlayer.UserId, "ALL", 1)
+            RequestAdminAction("giveClass", GetMyUserId(), "ALL", 1)
         end
     })
 
     TabInventory:AddButton({
         Title = "Setel Reputasi Hotel ke Bintang 5 Penuh",
         Callback = function()
-            RequestAdminAction("setReputation", LocalPlayer.UserId, 5)
+            RequestAdminAction("setReputation", GetMyUserId(), 5)
         end
     })
 end
@@ -2344,15 +2249,14 @@ do
 
     TabLife:AddButton({
         Title = "Hidupkan Diri Sendiri Seketika (Revive Self)",
-        Desc = "Memanggil GameOverServiceClient.requestReviveSelf()",
+        Desc = "Menghidupkan karakter via GameOverService & Admin",
         Callback = function()
-            if GameOverServiceClient and GameOverServiceClient.requestReviveSelf then
-                GameOverServiceClient.requestReviveSelf()
-            end
             if NetworkerClients.GameOver then
-                NetworkerClients.GameOver:fetch("requestReviveSelf")
+                pcall(function()
+                    NetworkerClients.GameOver:fetch("requestReviveSelf")
+                end)
             end
-            RequestAdminAction("revivePlayer", LocalPlayer.UserId)
+            RequestAdminAction("revivePlayer", GetMyUserId())
         end
     })
 
@@ -2360,11 +2264,10 @@ do
         Title = "Hidupkan Semua Pemain (Revive All)",
         Desc = "Menghidupkan seluruh staf hotel yang gugur",
         Callback = function()
-            if GameOverServiceClient and GameOverServiceClient.requestReviveAll then
-                GameOverServiceClient.requestReviveAll()
-            end
             if NetworkerClients.GameOver then
-                NetworkerClients.GameOver:fetch("requestReviveAll")
+                pcall(function()
+                    NetworkerClients.GameOver:fetch("requestReviveAll")
+                end)
             end
         end
     })
@@ -2372,8 +2275,10 @@ do
     TabLife:AddButton({
         Title = "Ulangi Hari Saat Ini (requestRetry)",
         Callback = function()
-            if GameOverServiceClient and GameOverServiceClient.requestRetry then
-                GameOverServiceClient.requestRetry()
+            if NetworkerClients.GameOver then
+                pcall(function()
+                    NetworkerClients.GameOver:fetch("requestRetry")
+                end)
             end
         end
     })
@@ -2381,8 +2286,10 @@ do
     TabLife:AddButton({
         Title = "Kembali ke Lobi Utama (requestLobby)",
         Callback = function()
-            if GameOverServiceClient and GameOverServiceClient.requestLobby then
-                GameOverServiceClient.requestLobby()
+            if NetworkerClients.GameOver then
+                pcall(function()
+                    NetworkerClients.GameOver:fetch("requestLobby")
+                end)
             end
         end
     })
