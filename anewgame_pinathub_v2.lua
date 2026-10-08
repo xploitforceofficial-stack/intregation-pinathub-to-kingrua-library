@@ -1,4 +1,4 @@
--- [[
+--[[
     PinatHub - Anomaly Hotel & Night Shift Simulator
     Comprehensive Automation, Telemetry, Security & Admin Suite
     Engineered with KingRua UI Library & Native Game Remotes

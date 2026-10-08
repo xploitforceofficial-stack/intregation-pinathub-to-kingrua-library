@@ -612,7 +612,7 @@ function Library:NewWindow(ConfigWindow)
 	end)
 
 	-- Resolve top-level parent container (gethui / CoreGui / PlayerGui)
-	local targetParent = LocalPlayer:WaitForChild("PlayerGui")
+	local targetParent = nil
 	pcall(function()
 		if gethui then
 			targetParent = gethui()
@@ -620,15 +620,27 @@ function Library:NewWindow(ConfigWindow)
 			local cg = game:GetService("CoreGui")
 			syn.protect_gui(ScreenGui)
 			targetParent = cg
-		elseif game:GetService("CoreGui") then
-			local cg = game:GetService("CoreGui")
-			local s = pcall(function()
-				local t = Instance.new("Folder", cg)
-				t:Destroy()
-			end)
-			if s then targetParent = cg end
 		end
 	end)
+	if not targetParent then
+		pcall(function()
+			local cg = game:GetService("CoreGui")
+			-- Verify full read/write capabilities without Plugin capability restriction
+			local t = Instance.new("Folder")
+			t.Parent = cg
+			local _ = t.AbsolutePosition -- test capability access
+			t:Destroy()
+			targetParent = cg
+		end)
+	end
+	if not targetParent then
+		pcall(function()
+			targetParent = LocalPlayer:WaitForChild("PlayerGui", 5)
+		end)
+	end
+	if not targetParent and LocalPlayer then
+		targetParent = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	end
 
 	-- 1. ScreenGui with full overlay capabilities (Menembus Roblox topbar menu)
 	local ScreenGui = Instance.new("ScreenGui")
@@ -3488,8 +3500,16 @@ function Library:NewWindow(ConfigWindow)
 				SliderRail.InputBegan:Connect(function(input)
 					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 						dragging = true
-						local scale = math.clamp((input.Position.X - SliderRail.AbsolutePosition.X) / SliderRail.AbsoluteSize.X, 0, 1)
-						SliderState:Set(cfg.Min + ((cfg.Max - cfg.Min) * scale))
+						pcall(function()
+							if SliderRail and SliderRail.Parent then
+								local absPos = SliderRail.AbsolutePosition
+								local absSize = SliderRail.AbsoluteSize
+								if absSize and absSize.X > 0 then
+									local scale = math.clamp((input.Position.X - absPos.X) / absSize.X, 0, 1)
+									SliderState:Set(cfg.Min + ((cfg.Max - cfg.Min) * scale))
+								end
+							end
+						end)
 					end
 				end)
 
@@ -3501,8 +3521,16 @@ function Library:NewWindow(ConfigWindow)
 
 				UserInputService.InputChanged:Connect(function(input)
 					if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-						local scale = math.clamp((input.Position.X - SliderRail.AbsolutePosition.X) / SliderRail.AbsoluteSize.X, 0, 1)
-						SliderState:Set(cfg.Min + ((cfg.Max - cfg.Min) * scale))
+						pcall(function()
+							if SliderRail and SliderRail.Parent then
+								local absPos = SliderRail.AbsolutePosition
+								local absSize = SliderRail.AbsoluteSize
+								if absSize and absSize.X > 0 then
+									local scale = math.clamp((input.Position.X - absPos.X) / absSize.X, 0, 1)
+									SliderState:Set(cfg.Min + ((cfg.Max - cfg.Min) * scale))
+								end
+							end
+						end)
 					end
 				end)
 
