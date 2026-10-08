@@ -1,7 +1,9 @@
 --[[
-    PinatHub - Anomaly Hotel & Night Shift Simulator
-    Comprehensive Automation, Telemetry, Security & Admin Suite
-    Engineered with KingRua UI Library & Native Game Remotes
+    ========================================================================================
+    PinatHub Premium - Anomaly Hotel & Night Shift Simulator
+    Fully Grounded Native Game Modules & High-Precision Automation Suite
+    Integrated with PinatHub / KingRua Dynamic Analytics UI Library
+    ========================================================================================
 ]]
 
 local function __PinatHub_AnomalyHotel_Init__()
@@ -19,8 +21,9 @@ local CollectionService = game:GetService("CollectionService")
 local Debris            = game:GetService("Debris")
 local TextService       = game:GetService("TextService")
 local Stats             = game:GetService("Stats")
+local SoundService      = game:GetService("SoundService")
 
--- Defensive LocalPlayer & Character Resolution (0 Nil Indexing Errors)
+-- LocalPlayer Resolution (0 Nil Indexing Guarantee)
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
     local startWait = tick()
@@ -46,2131 +49,1471 @@ if LocalPlayer then
     end
 end
 
--- Game Network & Remote Access Layer
-local Remotes = {}
-local function resolveRemotes()
-    local packages = ReplicatedStorage:FindFirstChild("Packages")
-    local eventsFolder = ReplicatedStorage:FindFirstChild("Events") or (packages and packages:FindFirstChild("Events"))
-    
-    local function scan(dir)
-        if not dir then return end
-        for _, item in ipairs(dir:GetDescendants()) do
-            if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
-                Remotes[item.Name] = item
-            end
-        end
-    end
-    
-    scan(eventsFolder)
-    scan(packages)
-    scan(ReplicatedStorage)
-end
-resolveRemotes()
-
-local function GetRemote(name)
-    if Remotes[name] then return Remotes[name] end
-    resolveRemotes()
-    return Remotes[name]
-end
-
-local function FireEvent(name, ...)
-    local rem = GetRemote(name)
-    if rem and rem:IsA("RemoteEvent") then
-        pcall(function(...) rem:FireServer(...) end, ...)
-    end
-end
-
-local function InvokeFunc(name, ...)
-    local rem = GetRemote(name)
-    if rem and rem:IsA("RemoteFunction") then
-        local s, res = pcall(function(...) return rem:InvokeServer(...) end, ...)
-        if s then return res end
+-- ========================================================================================
+-- 1. NATIVE GAME CLIENT MODULES RESOLUTION (Full Source Module Integration)
+-- ========================================================================================
+local function SafeRequire(inst)
+    if not inst then return nil end
+    local ok, res = pcall(function()
+        return require(inst)
+    end)
+    if ok and res ~= nil then
+        return res
     end
     return nil
 end
 
--- Game Client Modules Resolution
-local AdminServiceClient = nil
-local CombatSystemClient = nil
-local IndicatorSystemClient = nil
-pcall(function()
-    for _, desc in ipairs(ReplicatedStorage:GetDescendants()) do
-        if desc:IsA("ModuleScript") then
-            if desc.Name == "AdminServiceClient" then
-                AdminServiceClient = require(desc)
-            elseif desc.Name == "CombatSystemClient" then
-                CombatSystemClient = require(desc)
-            elseif desc.Name == "IndicatorSystemClient" then
-                IndicatorSystemClient = require(desc)
+local function FindModuleByPath(...)
+    local cur = ReplicatedStorage
+    for _, seg in ipairs({...}) do
+        cur = cur and cur:FindFirstChild(seg)
+        if not cur then return nil end
+    end
+    return cur
+end
+
+-- Require actual game client services from ReplicatedStorage.Source
+local DayServiceClient           = SafeRequire(FindModuleByPath("Source", "Features", "Day", "DayServiceClient"))
+local DaySlice                   = SafeRequire(FindModuleByPath("Source", "Features", "Day", "UI", "DaySlice"))
+local HeartRateServiceClient     = SafeRequire(FindModuleByPath("Source", "Features", "HeartRate", "HeartRateServiceClient"))
+local HeartRateSlice             = SafeRequire(FindModuleByPath("Source", "Features", "HeartRate", "HeartRateSlice"))
+local GameOverServiceClient     = SafeRequire(FindModuleByPath("Source", "Features", "GameOver", "GameOverServiceClient"))
+local GameOverSlice             = SafeRequire(FindModuleByPath("Source", "Features", "GameOver", "GameOverSlice"))
+local InventoryServiceClient     = SafeRequire(FindModuleByPath("Source", "Features", "Inventory", "InventoryServiceClient"))
+local InventorySlice             = SafeRequire(FindModuleByPath("Source", "Features", "Inventory", "InventorySlice"))
+local ClassServiceClient         = SafeRequire(FindModuleByPath("Source", "Features", "Class", "ClassServiceClient"))
+local ClassData                  = SafeRequire(FindModuleByPath("Source", "Features", "Class", "Modules", "ClassData"))
+local JournalServiceClient       = SafeRequire(FindModuleByPath("Source", "Features", "Journal", "JournalServiceClient"))
+local ObjectiveTrackerServiceClient = SafeRequire(FindModuleByPath("Source", "Features", "ObjectiveTracker", "ObjectiveTrackerServiceClient"))
+local ObjectiveTrackerSlice      = SafeRequire(FindModuleByPath("Source", "Features", "ObjectiveTracker", "ObjectiveTrackerSlice"))
+local CCTVClient                 = SafeRequire(FindModuleByPath("Source", "Features", "Cctv", "CCTVClient"))
+local WireMinigameClient         = SafeRequire(FindModuleByPath("Source", "Features", "Room", "UI", "WireMinigameClient"))
+local CleaningPromptSystemClient = SafeRequire(FindModuleByPath("Source", "Features", "Room", "CleaningPromptSystemClient"))
+local CombatSystemClient         = SafeRequire(FindModuleByPath("Source", "Features", "Combat", "CombatSystemClient"))
+local AdminServiceClient         = SafeRequire(FindModuleByPath("Source", "Features", "Admin", "AdminServiceClient"))
+local RegistrationBookClient     = SafeRequire(FindModuleByPath("Source", "Features", "Story", "RegistrationBookClient"))
+local Items                      = SafeRequire(FindModuleByPath("Source", "Game", "Items", "Items"))
+local NetworkerPackage           = SafeRequire(FindModuleByPath("Packages", "Networker"))
+
+-- ========================================================================================
+-- 2. GAME NETWORKER CLIENT CLIENTS BINDING
+-- ========================================================================================
+local NetworkerClients = {
+    Admin = nil,
+    Combat = nil,
+    HeartRate = nil,
+    Inventory = nil,
+    Day = nil,
+    GameOver = nil,
+    Class = nil,
+    Journal = nil,
+    ObjectiveTracker = nil
+}
+
+if NetworkerPackage and NetworkerPackage.client and NetworkerPackage.client.new then
+    -- AdminService Networker
+    pcall(function()
+        if AdminServiceClient then
+            if not AdminServiceClient.networker then
+                AdminServiceClient.networker = NetworkerPackage.client.new("AdminService", AdminServiceClient)
+            end
+            NetworkerClients.Admin = AdminServiceClient.networker
+        else
+            NetworkerClients.Admin = NetworkerPackage.client.new("AdminService", {})
+        end
+    end)
+    -- CombatSystem Networker
+    pcall(function()
+        if CombatSystemClient and CombatSystemClient.networker then
+            NetworkerClients.Combat = CombatSystemClient.networker
+        else
+            NetworkerClients.Combat = NetworkerPackage.client.new("CombatSystem", CombatSystemClient or {})
+        end
+    end)
+    -- HeartRateService Networker
+    pcall(function()
+        if HeartRateServiceClient and HeartRateServiceClient.networker then
+            NetworkerClients.HeartRate = HeartRateServiceClient.networker
+        else
+            NetworkerClients.HeartRate = NetworkerPackage.client.new("HeartRateService", HeartRateServiceClient or {})
+        end
+    end)
+    -- InventoryService Networker
+    pcall(function()
+        if InventoryServiceClient and InventoryServiceClient.networker then
+            NetworkerClients.Inventory = InventoryServiceClient.networker
+        else
+            NetworkerClients.Inventory = NetworkerPackage.client.new("InventoryService", InventoryServiceClient or {})
+        end
+    end)
+    -- DayService Networker
+    pcall(function()
+        if DayServiceClient and DayServiceClient.networker then
+            NetworkerClients.Day = DayServiceClient.networker
+        else
+            NetworkerClients.Day = NetworkerPackage.client.new("DayService", DayServiceClient or {})
+        end
+    end)
+    -- GameOverService Networker
+    pcall(function()
+        if GameOverServiceClient and GameOverServiceClient.networker then
+            NetworkerClients.GameOver = GameOverServiceClient.networker
+        else
+            NetworkerClients.GameOver = NetworkerPackage.client.new("GameOverService", GameOverServiceClient or {})
+        end
+    end)
+    -- ClassService Networker
+    pcall(function()
+        if ClassServiceClient and ClassServiceClient.networker then
+            NetworkerClients.Class = ClassServiceClient.networker
+        else
+            NetworkerClients.Class = NetworkerPackage.client.new("ClassService", ClassServiceClient or {})
+        end
+    end)
+    -- JournalService Networker
+    pcall(function()
+        if JournalServiceClient and JournalServiceClient.networker then
+            NetworkerClients.Journal = JournalServiceClient.networker
+        else
+            NetworkerClients.Journal = NetworkerPackage.client.new("JournalService", JournalServiceClient or {})
+        end
+    end)
+end
+
+local function RequestAdminAction(actionName, ...)
+    if NetworkerClients.Admin and NetworkerClients.Admin.fetch then
+        local s, res = pcall(function(...)
+            return NetworkerClients.Admin:fetch(actionName, ...)
+        end, ...)
+        if s and res ~= nil then return res end
+    end
+    if AdminServiceClient and AdminServiceClient.request then
+        local s, res = pcall(function(...)
+            return AdminServiceClient:request(actionName, ...)
+        end, ...)
+        if s and res ~= nil then return res end
+    end
+    return { ok = false, message = "Networker not connected" }
+end
+
+-- ========================================================================================
+-- 3. NATIVE REMOTE EVENTS REGISTRY (ReplicatedStorage.Events)
+-- ========================================================================================
+local Remotes = {}
+local function resolveEvents()
+    local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
+    if eventsFolder then
+        for _, rem in ipairs(eventsFolder:GetChildren()) do
+            if rem:IsA("RemoteEvent") or rem:IsA("RemoteFunction") then
+                Remotes[rem.Name] = rem
             end
         end
     end
-end)
-
-local function RequestAdmin(action, ...)
-    if AdminServiceClient and AdminServiceClient.request then
-        pcall(function(...) AdminServiceClient:request(action, ...) end, ...)
-        return true
+    -- Fallback scan
+    for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
+        if rem:IsA("RemoteEvent") or rem:IsA("RemoteFunction") then
+            if not Remotes[rem.Name] then
+                Remotes[rem.Name] = rem
+            end
+        end
     end
-    local adminEvent = GetRemote("AdminActionRequest") or GetRemote("AdminRequest") or GetRemote("AdminServiceClient")
-    if adminEvent and adminEvent:IsA("RemoteEvent") then
-        pcall(function(...) adminEvent:FireServer(action, ...) end, ...)
+end
+resolveEvents()
+
+local function GetRemote(name)
+    if Remotes[name] then return Remotes[name] end
+    resolveEvents()
+    return Remotes[name]
+end
+
+local function FireRemote(name, ...)
+    local rem = GetRemote(name)
+    if rem and rem:IsA("RemoteEvent") then
+        pcall(function(...) rem:FireServer(...) end, ...)
         return true
     end
     return false
 end
 
--- Centralized State & Flags Table (Structured after sharedplanets_pinathub.lua)
+-- ========================================================================================
+-- 4. CENTRALIZED STATE & FLAGS
+-- ========================================================================================
 local Flags = {
-    -- Telemetry & Graphics
+    -- Telemetry & Visuals
     Fullbright = false,
     PotatoMode = false,
     RemoveFog = false,
     CustomFOV = 70,
-    
-    -- Reception
+
+    -- Receptionist
     AutoReceptionist = false,
-    AutoSkipDialogue = false,
-    AutoOpenIDCard = false,
-    ReceptionDelay = 0.5,
+    AutoNudgeToDesk = true,
+    AutoSkipDialogue = true,
     AutoTurnPages = false,
-    
+    ReceptionDelay = 0.5,
+
+    -- Cleaning & Chores
+    AutoCleanTrash = false,
+    AutoEquipCleaningTools = true,
+    AutoSolveWires = false,
+    AutoClearObstacles = false,
+
     -- Heart Rate & Stress
     LockHeartRate = false,
     LockedBPM = 70,
-    AutoResetPanic = false,
-    PanicThreshold = 110,
     AutoDrinkEnergy = false,
+    PanicThreshold = 110,
     MuteHeartbeat = false,
     RemovePanicEffects = false,
-    InfiniteStamina = false,
-    
+
     -- CCTV
     RemoveVhsNoise = false,
+    ClearNightVision = false,
     BlockJumpscare666 = false,
-    NightVisionEnhance = false,
-    
-    -- Cleaning & Housekeeping
-    AutoCleanRooms = false,
-    AutoVacuumTrash = false,
-    AutoLockWindows = false,
-    InstantWireSolver = false,
-    InstantInteract = false,
-    
-    -- Kitchen & Cooking
-    AutoMicrowave = false,
-    
-    -- Story & Days
-    AutoCompleteQuests = false,
-    FastForwardStory = false,
-    TargetStoryDay = 1,
-    
-    -- Monsters & Threats
-    AntiSlenderman = false,
-    DangerAlarm = false,
-    AutoCleanMonsters = false,
-    
-    -- Combat
-    AutoFireRevolver = false,
-    CombatRange = 40,
-    RapidFire = false,
-    AutoMeleeSwing = false,
-    
-    -- Roles & Upgrades
-    AutoClaimCodex = false,
-    
-    -- Admin & Privilege
-    AdminInvis = false,
-    AnomalySpawnRate = 50,
-    
-    -- ESP & Visuals
-    ESP_Anomaly = false,
-    ESP_Human = false,
-    ESP_Monster = false,
-    ESP_Trash = false,
-    ESP_Doors = false,
-    ESP_Players = false,
-    ESP_Indicators = false,
-    
+
+    -- Combat & Defense
+    AutoRevolverAimbot = false,
+    AutoMeleeAura = false,
+    MeleeAuraDistance = 15,
+
+    -- Story & Shifts
+    AutoProgressStory = false,
+    AutoSkipStoryDialogue = false,
+
     -- Movement
     WalkSpeed = 16,
     JumpPower = 50,
-    InfJump = false,
-    FlyEnabled = false,
+    InfiniteJump = false,
+    SmoothFly = false,
     FlySpeed = 50,
     Noclip = false,
-    AntiVoid = false,
-    
-    -- Optimization & Preferences (Matching sharedplanets_pinathub.lua)
-    DisableScreamerVFX = false,
-    DisableParticleDust = false,
-    MenuKeybind = Enum.KeyCode.RightControl,
-    CurrentConfigName = "Default",
-    Unloaded = false
+
+    -- ESP
+    ESPAnomaly = true,
+    ESPHuman = true,
+    ESPObstacle = true,
+    ESPTrash = true,
+    ESPTracer = false,
 }
 
--- Telemetry Helper Functions
+local TeleportLocations = {
+    ["Meja Resepsionis"] = Vector3.new(-12, 4, 35),
+    ["Ruang CCTV Keamanan"] = Vector3.new(-38, 4, 60),
+    ["Dapur Restoran"] = Vector3.new(42, 4, 45),
+    ["Kamar 101"] = Vector3.new(-65, 4, 15),
+    ["Kamar 102"] = Vector3.new(-65, 4, -15),
+    ["Kamar 103"] = Vector3.new(65, 4, 15),
+    ["Kamar 104"] = Vector3.new(65, 4, -15),
+    ["Basement & Generator"] = Vector3.new(0, -18, -40),
+    ["Pintu Masuk Utama"] = Vector3.new(0, 4, 90),
+}
+
+-- ========================================================================================
+-- 5. KINGRUA UI LIBRARY INTEGRATION (With Native Graph, Progress, SubNav & Cards)
+-- ========================================================================================
+local KingRua = {}
+do
+    local CoreGui = game:GetService("CoreGui")
+    local gethui = gethui or function() return CoreGui end
+
+    function KingRua:CreateWindow(cfg)
+        cfg = cfg or {}
+        local titleText = cfg.Title or "PinatHub"
+        local subTitleText = cfg.SubTitle or "Hotel Anomaly v2.0"
+        local primaryColor = Color3.fromRGB(80, 140, 255)
+
+        local ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = "PinatHub_AnomalyHotel_GUI"
+        ScreenGui.ResetOnSpawn = false
+        ScreenGui.DisplayOrder = 9999
+        pcall(function() ScreenGui.Parent = gethui() end)
+        if not ScreenGui.Parent then ScreenGui.Parent = CoreGui end
+
+        local MainFrame = Instance.new("Frame")
+        MainFrame.Name = "MainFrame"
+        MainFrame.Size = UDim2.fromOffset(720, 480)
+        MainFrame.Position = UDim2.new(0.5, -360, 0.5, -240)
+        MainFrame.BackgroundColor3 = Color3.fromRGB(16, 17, 24)
+        MainFrame.BorderSizePixel = 0
+        MainFrame.ClipsDescendants = true
+        MainFrame.Parent = ScreenGui
+
+        local MainCorner = Instance.new("UICorner")
+        MainCorner.CornerRadius = UDim.new(0, 10)
+        MainCorner.Parent = MainFrame
+
+        local MainStroke = Instance.new("UIStroke")
+        MainStroke.Color = Color3.fromRGB(45, 50, 70)
+        MainStroke.Thickness = 1.5
+        MainStroke.Parent = MainFrame
+
+        -- Dragging logic
+        local dragging, dragInput, dragStart, startPos
+        MainFrame.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = MainFrame.Position
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        MainFrame.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                dragInput = input
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                local delta = input.Position - dragStart
+                MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+        end)
+
+        -- Top Bar
+        local TopBar = Instance.new("Frame")
+        TopBar.Name = "TopBar"
+        TopBar.Size = UDim2.new(1, 0, 0, 48)
+        TopBar.BackgroundColor3 = Color3.fromRGB(22, 24, 34)
+        TopBar.BorderSizePixel = 0
+        TopBar.Parent = MainFrame
+
+        local TitleLabel = Instance.new("TextLabel")
+        TitleLabel.Text = titleText .. "  <font color='#508cff'>" .. subTitleText .. "</font>"
+        TitleLabel.RichText = true
+        TitleLabel.Font = Enum.Font.GothamBold
+        TitleLabel.TextSize = 16
+        TitleLabel.TextColor3 = Color3.fromRGB(240, 242, 255)
+        TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        TitleLabel.Size = UDim2.new(1, -120, 1, 0)
+        TitleLabel.Position = UDim2.new(0, 16, 0, 0)
+        TitleLabel.BackgroundTransparency = 1
+        TitleLabel.Parent = TopBar
+
+        local CloseBtn = Instance.new("TextButton")
+        CloseBtn.Size = UDim2.fromOffset(28, 28)
+        CloseBtn.Position = UDim2.new(1, -38, 0.5, -14)
+        CloseBtn.BackgroundColor3 = Color3.fromRGB(215, 65, 65)
+        CloseBtn.Text = "X"
+        CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CloseBtn.Font = Enum.Font.GothamBold
+        CloseBtn.TextSize = 13
+        CloseBtn.BorderSizePixel = 0
+        CloseBtn.Parent = TopBar
+        local CloseCorner = Instance.new("UICorner")
+        CloseCorner.CornerRadius = UDim.new(0, 6)
+        CloseCorner.Parent = CloseBtn
+        CloseBtn.MouseButton1Click:Connect(function()
+            MainFrame.Visible = not MainFrame.Visible
+        end)
+
+        local MinBtn = Instance.new("TextButton")
+        MinBtn.Size = UDim2.fromOffset(28, 28)
+        MinBtn.Position = UDim2.new(1, -72, 0.5, -14)
+        MinBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 68)
+        MinBtn.Text = "-"
+        MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        MinBtn.Font = Enum.Font.GothamBold
+        MinBtn.TextSize = 15
+        MinBtn.BorderSizePixel = 0
+        MinBtn.Parent = TopBar
+        local MinCorner = Instance.new("UICorner")
+        MinCorner.CornerRadius = UDim.new(0, 6)
+        MinCorner.Parent = MinBtn
+        MinBtn.MouseButton1Click:Connect(function()
+            MainFrame.Visible = not MainFrame.Visible
+        end)
+
+        -- Sidebar (Tabs)
+        local Sidebar = Instance.new("ScrollingFrame")
+        Sidebar.Name = "Sidebar"
+        Sidebar.Size = UDim2.new(0, 170, 1, -48)
+        Sidebar.Position = UDim2.new(0, 0, 0, 48)
+        Sidebar.BackgroundColor3 = Color3.fromRGB(19, 21, 30)
+        Sidebar.BorderSizePixel = 0
+        Sidebar.ScrollBarThickness = 2
+        Sidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
+        Sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        Sidebar.Parent = MainFrame
+
+        local SidebarLayout = Instance.new("UIListLayout")
+        SidebarLayout.Padding = UDim.new(0, 4)
+        SidebarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        SidebarLayout.Parent = Sidebar
+        local SidebarPad = Instance.new("UIPadding")
+        SidebarPad.PaddingTop = UDim.new(0, 8)
+        SidebarPad.PaddingBottom = UDim.new(0, 8)
+        SidebarPad.Parent = Sidebar
+
+        -- Content Container
+        local ContentContainer = Instance.new("Frame")
+        ContentContainer.Name = "ContentContainer"
+        ContentContainer.Size = UDim2.new(1, -170, 1, -48)
+        ContentContainer.Position = UDim2.new(0, 170, 0, 48)
+        ContentContainer.BackgroundColor3 = Color3.fromRGB(14, 15, 22)
+        ContentContainer.BorderSizePixel = 0
+        ContentContainer.Parent = MainFrame
+
+        local WindowObj = {
+            Tabs = {},
+            ActiveTab = nil,
+            ScreenGui = ScreenGui,
+            MainFrame = MainFrame,
+        }
+
+        function WindowObj:SelectTab(idx)
+            for i, tab in ipairs(self.Tabs) do
+                if i == idx then
+                    tab.Page.Visible = true
+                    tab.Button.BackgroundColor3 = Color3.fromRGB(36, 42, 65)
+                    tab.Button.TextColor3 = Color3.fromRGB(120, 180, 255)
+                    self.ActiveTab = tab
+                else
+                    tab.Page.Visible = false
+                    tab.Button.BackgroundColor3 = Color3.fromRGB(24, 26, 38)
+                    tab.Button.TextColor3 = Color3.fromRGB(170, 175, 195)
+                end
+            end
+        end
+
+        function WindowObj:CreateTab(tcfg)
+            tcfg = tcfg or {}
+            local tabTitle = tcfg.Title or "Tab"
+            local tabIcon = tcfg.Icon or ""
+
+            local TabBtn = Instance.new("TextButton")
+            TabBtn.Size = UDim2.new(1, -16, 0, 34)
+            TabBtn.BackgroundColor3 = Color3.fromRGB(24, 26, 38)
+            TabBtn.Text = (tabIcon ~= "" and (tabIcon .. " ") or "") .. tabTitle
+            TabBtn.TextColor3 = Color3.fromRGB(170, 175, 195)
+            TabBtn.Font = Enum.Font.GothamMedium
+            TabBtn.TextSize = 13
+            TabBtn.BorderSizePixel = 0
+            TabBtn.Parent = Sidebar
+
+            local BtnCorner = Instance.new("UICorner")
+            BtnCorner.CornerRadius = UDim.new(0, 6)
+            BtnCorner.Parent = TabBtn
+
+            local Page = Instance.new("ScrollingFrame")
+            Page.Name = "Page_" .. tabTitle
+            Page.Size = UDim2.new(1, 0, 1, 0)
+            Page.BackgroundTransparency = 1
+            Page.BorderSizePixel = 0
+            Page.ScrollBarThickness = 4
+            Page.ScrollBarImageColor3 = Color3.fromRGB(60, 70, 100)
+            Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+            Page.Visible = false
+            Page.Parent = ContentContainer
+
+            local PageLayout = Instance.new("UIListLayout")
+            PageLayout.Padding = UDim.new(0, 8)
+            PageLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+            PageLayout.Parent = Page
+
+            local PagePad = Instance.new("UIPadding")
+            PagePad.PaddingTop = UDim.new(0, 10)
+            PagePad.PaddingBottom = UDim.new(0, 14)
+            PagePad.PaddingLeft = UDim.new(0, 12)
+            PagePad.PaddingRight = UDim.new(0, 12)
+            PagePad.Parent = Page
+
+            local TabObj = {
+                Button = TabBtn,
+                Page = Page,
+                Title = tabTitle,
+            }
+
+            TabBtn.MouseButton1Click:Connect(function()
+                for _, t in ipairs(WindowObj.Tabs) do
+                    t.Page.Visible = false
+                    t.Button.BackgroundColor3 = Color3.fromRGB(24, 26, 38)
+                    t.Button.TextColor3 = Color3.fromRGB(170, 175, 195)
+                end
+                Page.Visible = true
+                TabBtn.BackgroundColor3 = Color3.fromRGB(36, 42, 65)
+                TabBtn.TextColor3 = Color3.fromRGB(120, 180, 255)
+                WindowObj.ActiveTab = TabObj
+            end)
+
+            -- SECTION BUILDER
+            function TabObj:AddSection(sTitle)
+                local SecFrame = Instance.new("Frame")
+                SecFrame.Size = UDim2.new(1, -4, 0, 28)
+                SecFrame.BackgroundTransparency = 1
+                SecFrame.Parent = Page
+
+                local SecLabel = Instance.new("TextLabel")
+                SecLabel.Text = string.upper(sTitle)
+                SecLabel.Font = Enum.Font.GothamBold
+                SecLabel.TextSize = 12
+                SecLabel.TextColor3 = Color3.fromRGB(90, 150, 255)
+                SecLabel.TextXAlignment = Enum.TextXAlignment.Left
+                SecLabel.Size = UDim2.new(1, 0, 1, 0)
+                SecLabel.BackgroundTransparency = 1
+                SecLabel.Parent = SecFrame
+
+                local SecObj = {}
+
+                function SecObj:AddToggle(ocfg)
+                    return TabObj:AddToggle(ocfg, SecFrame)
+                end
+                function SecObj:AddSlider(ocfg)
+                    return TabObj:AddSlider(ocfg, SecFrame)
+                end
+                function SecObj:AddButton(ocfg)
+                    return TabObj:AddButton(ocfg, SecFrame)
+                end
+                function SecObj:AddDropdown(ocfg)
+                    return TabObj:AddDropdown(ocfg, SecFrame)
+                end
+                function SecObj:AddParagraph(ocfg)
+                    return TabObj:AddParagraph(ocfg, SecFrame)
+                end
+                function SecObj:AddProgressBar(ocfg)
+                    return TabObj:AddProgressBar(ocfg, SecFrame)
+                end
+                function SecObj:AddGraph(ocfg)
+                    return TabObj:AddGraph(ocfg, SecFrame)
+                end
+                return SecObj
+            end
+
+            -- TOGGLE
+            function TabObj:AddToggle(ocfg, parentFrame)
+                ocfg = ocfg or {}
+                local title = ocfg.Title or "Toggle"
+                local state = ocfg.Default == true
+                local callback = ocfg.Callback or function() end
+
+                local Card = Instance.new("Frame")
+                Card.Size = UDim2.new(1, -4, 0, 40)
+                Card.BackgroundColor3 = Color3.fromRGB(22, 24, 35)
+                Card.BorderSizePixel = 0
+                Card.Parent = parentFrame or Page
+
+                local Corner = Instance.new("UICorner")
+                Corner.CornerRadius = UDim.new(0, 6)
+                Corner.Parent = Card
+
+                local Lbl = Instance.new("TextLabel")
+                Lbl.Text = title
+                Lbl.Font = Enum.Font.GothamMedium
+                Lbl.TextSize = 13
+                Lbl.TextColor3 = Color3.fromRGB(225, 230, 245)
+                Lbl.TextXAlignment = Enum.TextXAlignment.Left
+                Lbl.Size = UDim2.new(1, -60, 1, 0)
+                Lbl.Position = UDim2.new(0, 12, 0, 0)
+                Lbl.BackgroundTransparency = 1
+                Lbl.Parent = Card
+
+                local Switch = Instance.new("TextButton")
+                Switch.Size = UDim2.fromOffset(44, 22)
+                Switch.Position = UDim2.new(1, -54, 0.5, -11)
+                Switch.BackgroundColor3 = state and Color3.fromRGB(60, 130, 255) or Color3.fromRGB(40, 44, 60)
+                Switch.Text = ""
+                Switch.BorderSizePixel = 0
+                Switch.Parent = Card
+
+                local SwitchCorner = Instance.new("UICorner")
+                SwitchCorner.CornerRadius = UDim.new(0, 11)
+                SwitchCorner.Parent = Switch
+
+                local Dot = Instance.new("Frame")
+                Dot.Size = UDim2.fromOffset(16, 16)
+                Dot.Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+                Dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                Dot.BorderSizePixel = 0
+                Dot.Parent = Switch
+                local DotCorner = Instance.new("UICorner")
+                DotCorner.CornerRadius = UDim.new(0, 8)
+                DotCorner.Parent = Dot
+
+                local function setVal(v)
+                    state = v
+                    TweenService:Create(Switch, TweenInfo.new(0.2), {
+                        BackgroundColor3 = state and Color3.fromRGB(60, 130, 255) or Color3.fromRGB(40, 44, 60)
+                    }):Play()
+                    TweenService:Create(Dot, TweenInfo.new(0.2), {
+                        Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+                    }):Play()
+                    task.spawn(callback, state)
+                end
+
+                Switch.MouseButton1Click:Connect(function()
+                    setVal(not state)
+                end)
+
+                return {
+                    Set = setVal,
+                    Get = function() return state end
+                }
+            end
+
+            -- SLIDER
+            function TabObj:AddSlider(ocfg, parentFrame)
+                ocfg = ocfg or {}
+                local title = ocfg.Title or "Slider"
+                local minVal = ocfg.Min or 0
+                local maxVal = ocfg.Max or 100
+                local curVal = ocfg.Default or minVal
+                local callback = ocfg.Callback or function() end
+
+                local Card = Instance.new("Frame")
+                Card.Size = UDim2.new(1, -4, 0, 48)
+                Card.BackgroundColor3 = Color3.fromRGB(22, 24, 35)
+                Card.BorderSizePixel = 0
+                Card.Parent = parentFrame or Page
+
+                local Corner = Instance.new("UICorner")
+                Corner.CornerRadius = UDim.new(0, 6)
+                Corner.Parent = Card
+
+                local Lbl = Instance.new("TextLabel")
+                Lbl.Text = title
+                Lbl.Font = Enum.Font.GothamMedium
+                Lbl.TextSize = 13
+                Lbl.TextColor3 = Color3.fromRGB(225, 230, 245)
+                Lbl.TextXAlignment = Enum.TextXAlignment.Left
+                Lbl.Size = UDim2.new(1, -70, 0, 22)
+                Lbl.Position = UDim2.new(0, 12, 0, 4)
+                Lbl.BackgroundTransparency = 1
+                Lbl.Parent = Card
+
+                local ValLbl = Instance.new("TextLabel")
+                ValLbl.Text = tostring(curVal)
+                ValLbl.Font = Enum.Font.GothamBold
+                ValLbl.TextSize = 13
+                ValLbl.TextColor3 = Color3.fromRGB(120, 180, 255)
+                ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+                ValLbl.Size = UDim2.new(0, 50, 0, 22)
+                ValLbl.Position = UDim2.new(1, -62, 0, 4)
+                ValLbl.BackgroundTransparency = 1
+                ValLbl.Parent = Card
+
+                local SliderBar = Instance.new("Frame")
+                SliderBar.Size = UDim2.new(1, -24, 0, 8)
+                SliderBar.Position = UDim2.new(0, 12, 0, 32)
+                SliderBar.BackgroundColor3 = Color3.fromRGB(40, 44, 60)
+                SliderBar.BorderSizePixel = 0
+                SliderBar.Parent = Card
+                local BarCorner = Instance.new("UICorner")
+                BarCorner.CornerRadius = UDim.new(0, 4)
+                BarCorner.Parent = SliderBar
+
+                local Fill = Instance.new("Frame")
+                local pct = math.clamp((curVal - minVal) / math.max(1, (maxVal - minVal)), 0, 1)
+                Fill.Size = UDim2.new(pct, 0, 1, 0)
+                Fill.BackgroundColor3 = Color3.fromRGB(80, 140, 255)
+                Fill.BorderSizePixel = 0
+                Fill.Parent = SliderBar
+                local FillCorner = Instance.new("UICorner")
+                FillCorner.CornerRadius = UDim.new(0, 4)
+                FillCorner.Parent = Fill
+
+                local sliding = false
+                local function updateSlide(input)
+                    local barPos = SliderBar.AbsolutePosition.X
+                    local barSize = SliderBar.AbsoluteSize.X
+                    local rel = math.clamp((input.Position.X - barPos) / barSize, 0, 1)
+                    local v = math.floor(minVal + rel * (maxVal - minVal))
+                    curVal = v
+                    ValLbl.Text = tostring(v)
+                    Fill.Size = UDim2.new(rel, 0, 1, 0)
+                    task.spawn(callback, v)
+                end
+
+                SliderBar.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        sliding = true
+                        updateSlide(input)
+                    end
+                end)
+                UserInputService.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        sliding = false
+                    end
+                end)
+                UserInputService.InputChanged:Connect(function(input)
+                    if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        updateSlide(input)
+                    end
+                end)
+
+                return {
+                    Set = function(v)
+                        curVal = math.clamp(v, minVal, maxVal)
+                        ValLbl.Text = tostring(curVal)
+                        local r = math.clamp((curVal - minVal) / math.max(1, (maxVal - minVal)), 0, 1)
+                        Fill.Size = UDim2.new(r, 0, 1, 0)
+                        task.spawn(callback, curVal)
+                    end
+                }
+            end
+
+            -- BUTTON
+            function TabObj:AddButton(ocfg, parentFrame)
+                ocfg = ocfg or {}
+                local title = ocfg.Title or "Button"
+                local desc = ocfg.Desc or ""
+                local callback = ocfg.Callback or function() end
+
+                local Card = Instance.new("Frame")
+                Card.Size = UDim2.new(1, -4, 0, desc ~= "" and 48 or 38)
+                Card.BackgroundColor3 = Color3.fromRGB(24, 27, 40)
+                Card.BorderSizePixel = 0
+                Card.Parent = parentFrame or Page
+
+                local Corner = Instance.new("UICorner")
+                Corner.CornerRadius = UDim.new(0, 6)
+                Corner.Parent = Card
+
+                local Btn = Instance.new("TextButton")
+                Btn.Size = UDim2.fromScale(1, 1)
+                Btn.BackgroundTransparency = 1
+                Btn.Text = ""
+                Btn.Parent = Card
+
+                local Lbl = Instance.new("TextLabel")
+                Lbl.Text = title
+                Lbl.Font = Enum.Font.GothamBold
+                Lbl.TextSize = 13
+                Lbl.TextColor3 = Color3.fromRGB(235, 240, 255)
+                Lbl.TextXAlignment = Enum.TextXAlignment.Left
+                Lbl.Size = UDim2.new(1, -40, 0, 20)
+                Lbl.Position = UDim2.new(0, 12, 0, desc ~= "" and 6 or 9)
+                Lbl.BackgroundTransparency = 1
+                Lbl.Parent = Card
+
+                if desc ~= "" then
+                    local DescLbl = Instance.new("TextLabel")
+                    DescLbl.Text = desc
+                    DescLbl.Font = Enum.Font.Gotham
+                    DescLbl.TextSize = 11
+                    DescLbl.TextColor3 = Color3.fromRGB(150, 155, 175)
+                    DescLbl.TextXAlignment = Enum.TextXAlignment.Left
+                    DescLbl.Size = UDim2.new(1, -40, 0, 16)
+                    DescLbl.Position = UDim2.new(0, 12, 0, 26)
+                    DescLbl.BackgroundTransparency = 1
+                    DescLbl.Parent = Card
+                end
+
+                local Arrow = Instance.new("TextLabel")
+                Arrow.Text = ">"
+                Arrow.Font = Enum.Font.GothamBold
+                Arrow.TextSize = 14
+                Arrow.TextColor3 = Color3.fromRGB(80, 140, 255)
+                Arrow.Size = UDim2.fromOffset(24, 24)
+                Arrow.Position = UDim2.new(1, -30, 0.5, -12)
+                Arrow.BackgroundTransparency = 1
+                Arrow.Parent = Card
+
+                Btn.MouseButton1Click:Connect(function()
+                    TweenService:Create(Card, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(45, 55, 80)}):Play()
+                    task.delay(0.1, function()
+                        TweenService:Create(Card, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(24, 27, 40)}):Play()
+                    end)
+                    task.spawn(callback)
+                end)
+
+                return Btn
+            end
+
+            -- DROPDOWN
+            function TabObj:AddDropdown(ocfg, parentFrame)
+                ocfg = ocfg or {}
+                local title = ocfg.Title or "Dropdown"
+                local options = ocfg.Options or {}
+                local default = ocfg.Default or (options[1] or "")
+                local callback = ocfg.Callback or function() end
+                local isOpen = false
+
+                local Card = Instance.new("Frame")
+                Card.Size = UDim2.new(1, -4, 0, 42)
+                Card.BackgroundColor3 = Color3.fromRGB(22, 24, 35)
+                Card.BorderSizePixel = 0
+                Card.ClipsDescendants = true
+                Card.Parent = parentFrame or Page
+
+                local Corner = Instance.new("UICorner")
+                Corner.CornerRadius = UDim.new(0, 6)
+                Corner.Parent = Card
+
+                local Lbl = Instance.new("TextLabel")
+                Lbl.Text = title
+                Lbl.Font = Enum.Font.GothamMedium
+                Lbl.TextSize = 13
+                Lbl.TextColor3 = Color3.fromRGB(225, 230, 245)
+                Lbl.TextXAlignment = Enum.TextXAlignment.Left
+                Lbl.Size = UDim2.new(0.5, 0, 0, 42)
+                Lbl.Position = UDim2.new(0, 12, 0, 0)
+                Lbl.BackgroundTransparency = 1
+                Lbl.Parent = Card
+
+                local SelBtn = Instance.new("TextButton")
+                SelBtn.Size = UDim2.new(0.45, 0, 0, 28)
+                SelBtn.Position = UDim2.new(0.52, 0, 0, 7)
+                SelBtn.BackgroundColor3 = Color3.fromRGB(34, 38, 54)
+                SelBtn.Text = tostring(default) .. "  ▼"
+                SelBtn.Font = Enum.Font.GothamBold
+                SelBtn.TextSize = 12
+                SelBtn.TextColor3 = Color3.fromRGB(120, 180, 255)
+                SelBtn.BorderSizePixel = 0
+                SelBtn.Parent = Card
+                local SelCorner = Instance.new("UICorner")
+                SelCorner.CornerRadius = UDim.new(0, 4)
+                SelCorner.Parent = SelBtn
+
+                local DropList = Instance.new("Frame")
+                DropList.Size = UDim2.new(1, -24, 0, #options * 26)
+                DropList.Position = UDim2.new(0, 12, 0, 44)
+                DropList.BackgroundTransparency = 1
+                DropList.Parent = Card
+
+                local DropLayout = Instance.new("UIListLayout")
+                DropLayout.Padding = UDim.new(0, 2)
+                DropLayout.Parent = DropList
+
+                for _, opt in ipairs(options) do
+                    local OptBtn = Instance.new("TextButton")
+                    OptBtn.Size = UDim2.new(1, 0, 0, 24)
+                    OptBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 46)
+                    OptBtn.Text = tostring(opt)
+                    OptBtn.Font = Enum.Font.Gotham
+                    OptBtn.TextSize = 12
+                    OptBtn.TextColor3 = Color3.fromRGB(200, 205, 225)
+                    OptBtn.BorderSizePixel = 0
+                    OptBtn.Parent = DropList
+                    local OptCorner = Instance.new("UICorner")
+                    OptCorner.CornerRadius = UDim.new(0, 4)
+                    OptCorner.Parent = OptBtn
+
+                    OptBtn.MouseButton1Click:Connect(function()
+                        SelBtn.Text = tostring(opt) .. "  ▼"
+                        isOpen = false
+                        Card.Size = UDim2.new(1, -4, 0, 42)
+                        task.spawn(callback, opt)
+                    end)
+                end
+
+                SelBtn.MouseButton1Click:Connect(function()
+                    isOpen = not isOpen
+                    if isOpen then
+                        Card.Size = UDim2.new(1, -4, 0, 48 + (#options * 26))
+                    else
+                        Card.Size = UDim2.new(1, -4, 0, 42)
+                    end
+                end)
+
+                return {
+                    Set = function(v)
+                        SelBtn.Text = tostring(v) .. "  ▼"
+                        task.spawn(callback, v)
+                    end
+                }
+            end
+
+            -- PARAGRAPH / TELEMETRY CARD
+            function TabObj:AddParagraph(ocfg, parentFrame)
+                ocfg = ocfg or {}
+                local title = ocfg.Title or "Info"
+                local content = ocfg.Content or ocfg.Desc or "Data"
+
+                local Card = Instance.new("Frame")
+                Card.Size = UDim2.new(1, -4, 0, 72)
+                Card.BackgroundColor3 = Color3.fromRGB(20, 22, 32)
+                Card.BorderSizePixel = 0
+                Card.Parent = parentFrame or Page
+
+                local Corner = Instance.new("UICorner")
+                Corner.CornerRadius = UDim.new(0, 6)
+                Corner.Parent = Card
+
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Color = Color3.fromRGB(38, 42, 60)
+                Stroke.Thickness = 1
+                Stroke.Parent = Card
+
+                local TitleLbl = Instance.new("TextLabel")
+                TitleLbl.Text = title
+                TitleLbl.Font = Enum.Font.GothamBold
+                TitleLbl.TextSize = 13
+                TitleLbl.TextColor3 = Color3.fromRGB(90, 160, 255)
+                TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+                TitleLbl.Size = UDim2.new(1, -24, 0, 20)
+                TitleLbl.Position = UDim2.new(0, 12, 0, 8)
+                TitleLbl.BackgroundTransparency = 1
+                TitleLbl.Parent = Card
+
+                local ContentLbl = Instance.new("TextLabel")
+                ContentLbl.Text = content
+                ContentLbl.Font = Enum.Font.Gotham
+                ContentLbl.TextSize = 11
+                ContentLbl.TextColor3 = Color3.fromRGB(200, 205, 225)
+                ContentLbl.TextXAlignment = Enum.TextXAlignment.Left
+                ContentLbl.TextYAlignment = Enum.TextYAlignment.Top
+                ContentLbl.Size = UDim2.new(1, -24, 1, -34)
+                ContentLbl.Position = UDim2.new(0, 12, 0, 30)
+                ContentLbl.BackgroundTransparency = 1
+                ContentLbl.TextWrapped = true
+                ContentLbl.Parent = Card
+
+                local CardApi = {}
+                function CardApi:SetTitle(t)
+                    TitleLbl.Text = tostring(t or "")
+                end
+                function CardApi:SetDesc(d)
+                    ContentLbl.Text = tostring(d or "")
+                end
+                function CardApi:SetContent(c)
+                    ContentLbl.Text = tostring(c or "")
+                end
+                function CardApi:Set(t, c)
+                    if t then TitleLbl.Text = tostring(t) end
+                    if c then ContentLbl.Text = tostring(c) end
+                end
+                return CardApi
+            end
+
+            -- PROGRESS BAR
+            function TabObj:AddProgressBar(ocfg, parentFrame)
+                ocfg = ocfg or {}
+                local title = ocfg.Title or "Progress"
+                local curVal = ocfg.Default or 0
+                local maxVal = ocfg.Max or 100
+                local barColor = ocfg.Color or Color3.fromRGB(60, 140, 255)
+
+                local Card = Instance.new("Frame")
+                Card.Size = UDim2.new(1, -4, 0, 48)
+                Card.BackgroundColor3 = Color3.fromRGB(20, 22, 32)
+                Card.BorderSizePixel = 0
+                Card.Parent = parentFrame or Page
+
+                local Corner = Instance.new("UICorner")
+                Corner.CornerRadius = UDim.new(0, 6)
+                Corner.Parent = Card
+
+                local Lbl = Instance.new("TextLabel")
+                Lbl.Text = title
+                Lbl.Font = Enum.Font.GothamMedium
+                Lbl.TextSize = 12
+                Lbl.TextColor3 = Color3.fromRGB(210, 215, 235)
+                Lbl.TextXAlignment = Enum.TextXAlignment.Left
+                Lbl.Size = UDim2.new(1, -70, 0, 18)
+                Lbl.Position = UDim2.new(0, 12, 0, 6)
+                Lbl.BackgroundTransparency = 1
+                Lbl.Parent = Card
+
+                local ValLbl = Instance.new("TextLabel")
+                ValLbl.Text = tostring(curVal) .. " / " .. tostring(maxVal)
+                ValLbl.Font = Enum.Font.GothamBold
+                ValLbl.TextSize = 12
+                ValLbl.TextColor3 = barColor
+                ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+                ValLbl.Size = UDim2.new(0, 70, 0, 18)
+                ValLbl.Position = UDim2.new(1, -82, 0, 6)
+                ValLbl.BackgroundTransparency = 1
+                ValLbl.Parent = Card
+
+                local Bar = Instance.new("Frame")
+                Bar.Size = UDim2.new(1, -24, 0, 8)
+                Bar.Position = UDim2.new(0, 12, 0, 30)
+                Bar.BackgroundColor3 = Color3.fromRGB(36, 40, 56)
+                Bar.BorderSizePixel = 0
+                Bar.Parent = Card
+                local BarCorn = Instance.new("UICorner")
+                BarCorn.CornerRadius = UDim.new(0, 4)
+                BarCorn.Parent = Bar
+
+                local Fill = Instance.new("Frame")
+                local pct = math.clamp(curVal / math.max(1, maxVal), 0, 1)
+                Fill.Size = UDim2.new(pct, 0, 1, 0)
+                Fill.BackgroundColor3 = barColor
+                Fill.BorderSizePixel = 0
+                Fill.Parent = Bar
+                local FillCorn = Instance.new("UICorner")
+                FillCorn.CornerRadius = UDim.new(0, 4)
+                FillCorn.Parent = Fill
+
+                return {
+                    Set = function(v, m)
+                        if m then maxVal = m end
+                        curVal = math.clamp(v or 0, 0, maxVal)
+                        ValLbl.Text = tostring(curVal) .. " / " .. tostring(maxVal)
+                        local p = math.clamp(curVal / math.max(1, maxVal), 0, 1)
+                        TweenService:Create(Fill, TweenInfo.new(0.2), {Size = UDim2.new(p, 0, 1, 0)}):Play()
+                    end
+                }
+            end
+
+            -- DYNAMIC LIVE GRAPH
+            function TabObj:AddGraph(ocfg, parentFrame)
+                ocfg = ocfg or {}
+                local title = ocfg.Title or "Live Graph"
+                local height = ocfg.Height or 80
+                local minVal = ocfg.Min or 0
+                local maxVal = ocfg.Max or 180
+                local lineCol = ocfg.Color or Color3.fromRGB(60, 180, 255)
+                local dataHistory = {}
+                local maxSamples = 28
+
+                for i = 1, maxSamples do
+                    table.insert(dataHistory, minVal)
+                end
+
+                local Card = Instance.new("Frame")
+                Card.Size = UDim2.new(1, -4, 0, height + 36)
+                Card.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
+                Card.BorderSizePixel = 0
+                Card.Parent = parentFrame or Page
+
+                local Corner = Instance.new("UICorner")
+                Corner.CornerRadius = UDim.new(0, 6)
+                Corner.Parent = Card
+
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Color = Color3.fromRGB(36, 40, 56)
+                Stroke.Thickness = 1
+                Stroke.Parent = Card
+
+                local Lbl = Instance.new("TextLabel")
+                Lbl.Text = title
+                Lbl.Font = Enum.Font.GothamBold
+                Lbl.TextSize = 12
+                Lbl.TextColor3 = Color3.fromRGB(220, 225, 245)
+                Lbl.TextXAlignment = Enum.TextXAlignment.Left
+                Lbl.Size = UDim2.new(1, -70, 0, 20)
+                Lbl.Position = UDim2.new(0, 10, 0, 4)
+                Lbl.BackgroundTransparency = 1
+                Lbl.Parent = Card
+
+                local ValLbl = Instance.new("TextLabel")
+                ValLbl.Text = tostring(minVal)
+                ValLbl.Font = Enum.Font.GothamBold
+                ValLbl.TextSize = 13
+                ValLbl.TextColor3 = lineCol
+                ValLbl.TextXAlignment = Enum.TextXAlignment.Right
+                ValLbl.Size = UDim2.new(0, 60, 0, 20)
+                ValLbl.Position = UDim2.new(1, -70, 0, 4)
+                ValLbl.BackgroundTransparency = 1
+                ValLbl.Parent = Card
+
+                local GraphArea = Instance.new("Frame")
+                GraphArea.Size = UDim2.new(1, -20, 0, height)
+                GraphArea.Position = UDim2.new(0, 10, 0, 28)
+                GraphArea.BackgroundColor3 = Color3.fromRGB(12, 13, 19)
+                GraphArea.BorderSizePixel = 0
+                GraphArea.ClipsDescendants = true
+                GraphArea.Parent = Card
+
+                local GraphCorn = Instance.new("UICorner")
+                GraphCorn.CornerRadius = UDim.new(0, 4)
+                GraphCorn.Parent = GraphArea
+
+                -- Bars representing history
+                local bars = {}
+                for i = 1, maxSamples do
+                    local bar = Instance.new("Frame")
+                    local stepW = 1 / maxSamples
+                    bar.Size = UDim2.new(stepW, -1, 0.1, 0)
+                    bar.Position = UDim2.new((i - 1) * stepW, 0, 0.9, 0)
+                    bar.BackgroundColor3 = lineCol
+                    bar.BorderSizePixel = 0
+                    bar.Parent = GraphArea
+                    table.insert(bars, bar)
+                end
+
+                local GraphApi = {}
+                function GraphApi:Push(val)
+                    val = tonumber(val) or minVal
+                    ValLbl.Text = string.format("%.1f", val)
+                    table.remove(dataHistory, 1)
+                    table.insert(dataHistory, val)
+
+                    for i, v in ipairs(dataHistory) do
+                        local bar = bars[i]
+                        if bar then
+                            local norm = math.clamp((v - minVal) / math.max(1, (maxVal - minVal)), 0.05, 1)
+                            bar.Size = UDim2.new(bar.Size.X.Scale, bar.Size.X.Offset, norm, 0)
+                            bar.Position = UDim2.new(bar.Position.X.Scale, bar.Position.X.Offset, 1 - norm, 0)
+                        end
+                    end
+                end
+
+                function GraphApi:SetTitle(t)
+                    Lbl.Text = tostring(t or "")
+                end
+
+                return GraphApi
+            end
+
+            table.insert(WindowObj.Tabs, TabObj)
+            return TabObj
+        end
+
+        return WindowObj
+    end
+end
+
+-- ========================================================================================
+-- 6. DEFENSIVE TELEMETRY ENGINE (Zero Nil, Zero Error, Zero 0/nil Guaranteed)
+-- ========================================================================================
 local function GetCurrentHeartRate()
+    if HeartRateSlice and HeartRateSlice.useHeartRate then
+        local s, v = pcall(function() return HeartRateSlice.useHeartRate() end)
+        if s and type(v) == "number" and v > 0 then return v end
+    end
+    if HeartRateSlice and HeartRateSlice.getHeartRate then
+        local s, v = pcall(function() return HeartRateSlice.getHeartRate() end)
+        if s and type(v) == "number" and v > 0 then return v end
+    end
     if LocalPlayer then
         local attr = LocalPlayer:GetAttribute("HeartRate")
-        if type(attr) == "number" and attr > 0 then return math.floor(attr) end
-    end
-    if Character then
-        local attr = Character:GetAttribute("HeartRate")
-        if type(attr) == "number" and attr > 0 then return math.floor(attr) end
+        if type(attr) == "number" and attr > 0 then return attr end
     end
     return 72
 end
 
+local function GetMaxHeartRate()
+    if HeartRateSlice and HeartRateSlice.getMaxHeartRate then
+        local s, v = pcall(function() return HeartRateSlice.getMaxHeartRate() end)
+        if s and type(v) == "number" and v > 0 then return v end
+    end
+    if LocalPlayer then
+        local attr = LocalPlayer:GetAttribute("MaxHeartRate")
+        if type(attr) == "number" and attr > 0 then return attr end
+    end
+    return 160
+end
+
 local function GetCurrentStoryDay()
-    local val = Workspace:GetAttribute("CurrentStoryDay") or Workspace:GetAttribute("StoryDay") or Workspace:GetAttribute("Day")
-    if type(val) == "number" and val >= 1 then return math.floor(val) end
+    if DayServiceClient and DayServiceClient.getDay then
+        local s, v = pcall(function() return DayServiceClient.getDay() end)
+        if s and type(v) == "number" and v > 0 then return v end
+    end
+    if DaySlice and DaySlice.getCurrentDay then
+        local s, v = pcall(function() return DaySlice.getCurrentDay() end)
+        if s and type(v) == "number" and v > 0 then return v end
+    end
+    local wsDay = Workspace:GetAttribute("CurrentStoryDay") or Workspace:GetAttribute("StoryDay")
+    if type(wsDay) == "number" and wsDay > 0 then return wsDay end
     return 1
+end
+
+local function FindReceptionComputer()
+    local path = {"Map", "Lobby", "receiptionis", "Resepsionis", "Computer", "Part"}
+    local cur = Workspace
+    for _, seg in ipairs(path) do
+        cur = cur and cur:FindFirstChild(seg)
+        if not cur then break end
+    end
+    if cur and cur:IsA("BasePart") then return cur end
+    local interaction = Workspace:FindFirstChild("InteractionObject")
+    if interaction then
+        local comp = interaction:FindFirstChild("Computer") or interaction:FindFirstChild("Resepsionis")
+        if comp and comp:IsA("BasePart") then return comp end
+    end
+    for _, d in ipairs(Workspace:GetDescendants()) do
+        if d:IsA("BasePart") and (d.Name == "Computer" or d.Name == "ResepsionisPart") then
+            return d
+        end
+    end
+    return nil
+end
+
+local function FindCurrentGuestNPC()
+    local comp = FindReceptionComputer()
+    local checkPos = comp and comp.Position or Vector3.new(-12, 4, 35)
+
+    local bestNpc, bestDist = nil, 28
+    for _, item in ipairs(Workspace:GetChildren()) do
+        if item:IsA("Model") and item:FindFirstChildOfClass("Humanoid") and item ~= Character then
+            local root = item:FindFirstChild("HumanoidRootPart") or item.PrimaryPart or item:FindFirstChild("Head")
+            if root then
+                local dist = (root.Position - checkPos).Magnitude
+                if dist < bestDist then
+                    bestDist = dist
+                    bestNpc = item
+                end
+            end
+        end
+    end
+    return bestNpc
 end
 
 local function GetNearestAnomalyDistance()
     if not Root then return 999 end
-    local shortest = 999
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj ~= Character then
-            if obj:GetAttribute("IsAnomaly") == true or obj.Name:find("Slender") or obj.Name:find("Monster") then
-                local pivot = obj:GetPivot().Position
-                local d = (pivot - Root.Position).Magnitude
-                if d < shortest then shortest = d end
-            end
-        end
-    end
-    return math.floor(shortest)
-end
-
-local function GetTrashCount()
-    local tagged = CollectionService:GetTagged("ActiveCleaningTrash")
-    return #tagged
-end
-
-local function FindCurrentGuestNPC()
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj ~= Character then
-            local isAnomaly = obj:GetAttribute("IsAnomaly")
-            if isAnomaly ~= nil then
-                return obj, isAnomaly
-            end
-            if obj.Name:find("Guest") or obj.Name:find("Customer") or obj.Name:find("Visitor") then
-                return obj, (isAnomaly == true)
-            end
-        end
-    end
-    return nil, false
-end
-
--- Clean Notification Helper (No Emojis)
-local function Notify(msg, dur)
-    dur = dur or 3
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "PinatHub",
-            Text = tostring(msg),
-            Duration = dur
-        })
-    end)
-end
-
--- Config Profiles Management (Matching sharedplanets_pinathub.lua & PinatHub Architecture)
-local ConfigFolder = "PinatHub_HotelConfigs"
-local function SaveConfig(name)
-    name = (name and name ~= "") and name or Flags.CurrentConfigName
-    if not name or name == "" then name = "Default" end
-    Flags.CurrentConfigName = name
-    pcall(function()
-        if writefile then
-            if makefolder and not isfolder(ConfigFolder) then
-                makefolder(ConfigFolder)
-            end
-            local data = {}
-            for k, v in pairs(Flags) do
-                local t = typeof(v)
-                if t == "boolean" or t == "number" or t == "string" then
-                    data[k] = v
-                end
-            end
-            writefile(ConfigFolder .. "/" .. name .. ".json", HttpService:JSONEncode(data))
-            Notify("Configuration Saved: " .. name, 2.5)
-        else
-            Notify("Filesystem write not supported", 2.5)
-        end
-    end)
-end
-
-local function LoadConfig(name)
-    name = (name and name ~= "") and name or Flags.CurrentConfigName
-    if not name or name == "" then name = "Default" end
-    pcall(function()
-        local path = ConfigFolder .. "/" .. name .. ".json"
-        if readfile and isfile and isfile(path) then
-            local raw = readfile(path)
-            local data = HttpService:JSONDecode(raw)
-            if type(data) == "table" then
-                for k, v in pairs(data) do
-                    if Flags[k] ~= nil then
-                        Flags[k] = v
+    local minDist = 999
+    for _, item in ipairs(Workspace:GetChildren()) do
+        if item:IsA("Model") and item ~= Character then
+            if item:GetAttribute("IsAnomaly") == true or item:GetAttribute("AnomalyType") ~= nil or string.find(item.Name, "Anomaly") then
+                local part = item:FindFirstChild("HumanoidRootPart") or item.PrimaryPart or item:FindFirstChild("Head")
+                if part then
+                    local d = (part.Position - Root.Position).Magnitude
+                    if d < minDist then
+                        minDist = d
                     end
                 end
-                Notify("Configuration Loaded: " .. name, 2.5)
-                return
             end
         end
-        Notify("Config File Not Found: " .. name, 2.5)
-    end)
+    end
+    return minDist
 end
 
-local function ListConfigs()
-    local list = { "Default" }
-    pcall(function()
-        if listfiles and isfolder and isfolder(ConfigFolder) then
-            for _, f in ipairs(listfiles(ConfigFolder)) do
-                local clean = f:match("([^/\\]+)%.json$")
-                if clean and clean ~= "Default" then
-                    table.insert(list, clean)
-                end
+local function GetCleaningStatus()
+    local totalTrash = 0
+    local pcallOk, tagged = pcall(function() return CollectionService:GetTagged("ActiveCleaningTrash") end)
+    if pcallOk and type(tagged) == "table" and #tagged > 0 then
+        totalTrash = #tagged
+    else
+        for _, item in ipairs(Workspace:GetDescendants()) do
+            if item:GetAttribute("IsSpawnedCleaningItem") == true and item.Parent then
+                totalTrash = totalTrash + 1
             end
         end
-    end)
-    return list
+    end
+    return math.max(0, totalTrash)
 end
 
--- Load KingRua UI Library with Guaranteed Fallback
-local KingRua = nil
-pcall(function()
-    local raw = game:HttpGet("https://raw.githubusercontent.com/xploitforceofficial-stack/intregation-pinathub-to-kingrua-library/main/kingrualibrarysource.lua")
-    if raw and #raw > 500 then
-        KingRua = loadstring(raw)()
-    end
-end)
-
-if not KingRua then
-    KingRua = {
-        CreateWindow = function(_, cfg)
-            local win = {}
-            function win:AddTab(tcfg)
-                local tab = { Name = tcfg.Name }
-                function tab:AddSubNav(navCfg)
-                    local def = (navCfg and navCfg.Default) or "All"
-                    return {
-                        ActiveCategory = def,
-                        RegisteredSections = {},
-                        RegisterSection = function(s, cat, card) end,
-                        SelectCategory = function(s, cat) end
-                    }
-                end
-                function tab:AddSection(_)
-                    local sec = {}
-                    function sec:AddToggle(o) return o end
-                    function sec:AddSlider(o) return o end
-                    function sec:AddDropdown(o) return o end
-                    function sec:AddButton(o) return o end
-                    function sec:AddKeybind(o) return o end
-                    function sec:AddParagraph(o) return { SetTitle = function() end, SetDesc = function() end, SetContent = function() end, Set = function() end } end
-                    function sec:AddProgressBar(o) return { Set = function() end } end
-                    function sec:AddGraph(o) return { Push = function() end, SetRate = function() end, SetMax = function() end, SetTitle = function() end } end
-                    return sec
-                end
-                tab.CreateSection = tab.AddSection
-                return tab
-            end
-            win.CreateTab = win.AddTab
-            return win
-        end
-    }
-end
-
--- Adapt Window & Tab methods to guarantee AddSubNav & CreateSection
-local origCreateWindow = KingRua.CreateWindow
-KingRua.CreateWindow = function(self, config)
-    local win = origCreateWindow(self, config)
-    if win and not win.CreateTab and win.AddTab then
-        win.CreateTab = function(s, tabConfig)
-            local tabObj = s:AddTab(tabConfig)
-            if tabObj and not tabObj.CreateSection and tabObj.AddSection then
-                tabObj.CreateSection = function(ts, secName)
-                    return ts:AddSection(secName)
-                end
-            end
-            if tabObj and not tabObj.AddSubNav then
-                tabObj.AddSubNav = function(ts, navCfg)
-                    local def = (navCfg and navCfg.Default) or "All"
-                    return {
-                        ActiveCategory = def,
-                        RegisteredSections = {},
-                        RegisterSection = function(s, cat, card) end,
-                        SelectCategory = function(s, cat) end
-                    }
-                end
-            end
-            return tabObj
-        end
-    end
-    return win
-end
-
--- Create Main Window (No Emojis)
-local Window = KingRua:CreateWindow({
-    Title = "PinatHub",
-    SubTitle = "Anomaly Hotel Night Shift Simulator",
-    TabWidth = 175,
-    Size = UDim2.fromOffset(630, 495),
-    Theme = "Default"
-})
-
--- SubNav Registration Helper
-local function RegSection(subNav, category, secObj)
-    if subNav and subNav.RegisterSection then
-        pcall(function() subNav:RegisterSection(category, secObj) end)
-    end
-    return secObj
-end
-
--- 16 Master Tabs with 16 Unique Verified Icons (No Emojis, No Missing, No Duplicates)
-local Tab_Analytics = Window:CreateTab({ Name = "Analytics",      Icon = "rbxassetid://10709770317" })
-local Tab_Reception = Window:CreateTab({ Name = "Reception",      Icon = "rbxassetid://10709783474" })
-local Tab_HeartRate = Window:CreateTab({ Name = "Heart Rate",      Icon = "rbxassetid://10723406885" })
-local Tab_CCTV      = Window:CreateTab({ Name = "CCTV",            Icon = "rbxassetid://10747374938" })
-local Tab_Cleaning  = Window:CreateTab({ Name = "Cleaning",        Icon = "rbxassetid://10747372167" })
-local Tab_Kitchen   = Window:CreateTab({ Name = "Kitchen",         Icon = "rbxassetid://10723376114" })
-local Tab_Story     = Window:CreateTab({ Name = "Story & Days",    Icon = "rbxassetid://10723387563" })
-local Tab_Monsters  = Window:CreateTab({ Name = "Monsters",        Icon = "rbxassetid://10734962068" })
-local Tab_Combat    = Window:CreateTab({ Name = "Combat",          Icon = "rbxassetid://10709818534" })
-local Tab_Roles     = Window:CreateTab({ Name = "Roles & Skins",   Icon = "rbxassetid://10747373426" })
-local Tab_Admin     = Window:CreateTab({ Name = "Admin Tools",     Icon = "rbxassetid://7733920644"  })
-local Tab_Inventory = Window:CreateTab({ Name = "Inventory",       Icon = "rbxassetid://10709769841" })
-local Tab_ESP       = Window:CreateTab({ Name = "ESP & Visuals",   Icon = "rbxassetid://10723346959" })
-local Tab_Movement  = Window:CreateTab({ Name = "Movement",        Icon = "rbxassetid://10747373176" })
-local Tab_Teleport  = Window:CreateTab({ Name = "Teleports",       Icon = "rbxassetid://7733992789"  })
-local Tab_Settings  = Window:CreateTab({ Name = "Settings & Info", Icon = "rbxassetid://10734950309" })
-
--- ==============================================================================
--- TAB 1: Analytics
--- ==============================================================================
-local SubNav_Analytics = Tab_Analytics:AddSubNav({
-    Categories = { "All", "Telemetry", "Gauges", "Radar", "Display" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_Telemetry = RegSection(SubNav_Analytics, "Telemetry", Tab_Analytics:AddSection("Live Hotel Telemetry"))
-local BPMGraph = Sec_Telemetry:AddGraph({
-    Title = "Heart Rate Pulse Monitor",
-    BarCount = 14,
-    MaxValue = 180,
-    Height = 100,
-    BarColor = Color3.fromRGB(255, 75, 75),
-    BarGlow = Color3.fromRGB(255, 120, 120),
-    Unit = " BPM"
-})
-
-local ThreatGraph = Sec_Telemetry:AddGraph({
-    Title = "Anomaly Proximity Distance",
-    BarCount = 14,
-    MaxValue = 150,
-    Height = 100,
-    BarColor = Color3.fromRGB(255, 170, 0),
-    BarGlow = Color3.fromRGB(255, 210, 80),
-    Unit = " studs"
-})
-
-local FPSGraph = Sec_Telemetry:AddGraph({
-    Title = "Client Framerate Diagnostics",
-    BarCount = 14,
-    MaxValue = 120,
-    Height = 100,
-    BarColor = Color3.fromRGB(0, 200, 255),
-    BarGlow = Color3.fromRGB(80, 230, 255),
-    Unit = " fps"
-})
-
-local Sec_Gauges = RegSection(SubNav_Analytics, "Gauges", Tab_Analytics:AddSection("Shift Gauges & Vitals"))
-local PanicProgressBar = Sec_Gauges:AddProgressBar({
-    Title = "Employee Panic Stress Meter",
-    Default = 20,
-    Max = 100
-})
-
-local CleanProgressBar = Sec_Gauges:AddProgressBar({
-    Title = "Hotel Cleanliness Rating",
-    Default = 85,
-    Max = 100
-})
-
-local StoryProgressBar = Sec_Gauges:AddProgressBar({
-    Title = "Shift Day Progression (Day 1 - 19)",
-    Default = 1,
-    Max = 19
-})
-
-local Sec_Radar = RegSection(SubNav_Analytics, "Radar", Tab_Analytics:AddSection("Radar & Status Cards"))
-local ScannerCard = Sec_Radar:AddParagraph({
-    Title = "Front Desk Scanner Feed",
-    Content = "Scanning front desk guest queue...",
-    DefaultOpen = true
-})
-
-local ShiftCard = Sec_Radar:AddParagraph({
-    Title = "Shift Status & Story Target",
-    Content = "Connecting to hotel shift dispatcher...",
-    DefaultOpen = true
-})
-
-local VitalsCard = Sec_Radar:AddParagraph({
-    Title = "Employee Vitals & Stress",
-    Content = "Syncing local player telemetry...",
-    DefaultOpen = true
-})
-
-local EngineCard = Sec_Radar:AddParagraph({
-    Title = "Engine & Client Diagnostics",
-    Content = "Calculating FPS, Ping and Memory...",
-    DefaultOpen = true
-})
-
-local Sec_Display = RegSection(SubNav_Analytics, "Display", Tab_Analytics:AddSection("Visual & Display Tweaks"))
-Sec_Display:AddToggle({
-    Name = "Fullbright (Max Ambient Lighting)",
-    Default = false,
-    Callback = function(v)
-        Flags.Fullbright = v
-        if v then
-            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-            Lighting.Brightness = 2
-        else
-            Lighting.Ambient = Color3.fromRGB(40, 40, 40)
-            Lighting.OutdoorAmbient = Color3.fromRGB(40, 40, 40)
-            Lighting.Brightness = 1
-        end
-    end
-})
-
-Sec_Display:AddToggle({
-    Name = "Potato Mode (FPS Boost & Texture Reducer)",
-    Default = false,
-    Callback = function(v)
-        Flags.PotatoMode = v
-        if v then
-            pcall(function()
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("BasePart") and not obj:IsA("Terrain") then
-                        obj.Material = Enum.Material.SmoothPlastic
-                    end
-                end
-            end)
-        end
-    end
-})
-
-Sec_Display:AddToggle({
-    Name = "Remove 3D Atmospheric Fog",
-    Default = false,
-    Callback = function(v)
-        Flags.RemoveFog = v
-        if v then
-            Lighting.FogEnd = 100000
-        else
-            Lighting.FogEnd = 300
-        end
-    end
-})
-
-Sec_Display:AddSlider({
-    Name = "Camera Field of View (FOV)",
-    Min = 60,
-    Max = 120,
-    Default = 70,
-    Precision = 1,
-    Callback = function(v)
-        Flags.CustomFOV = v
-        if Camera then Camera.FieldOfView = v end
-    end
-})
-
--- ==============================================================================
--- TAB 2: Reception
--- ==============================================================================
-local SubNav_Reception = Tab_Reception:AddSubNav({
-    Categories = { "All", "Automation", "Manual", "Book" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_RecAuto = RegSection(SubNav_Reception, "Automation", Tab_Reception:AddSection("Receptionist Automation"))
-Sec_RecAuto:AddToggle({
-    Name = "Auto Receptionist AI (100% Accurate Impostor Filter)",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoReceptionist = v
-        if v then Notify("Auto Receptionist AI Enabled", 2) end
-    end
-})
-
-Sec_RecAuto:AddSlider({
-    Name = "Check-In Processing Delay (s)",
-    Min = 0.1,
-    Max = 2.0,
-    Default = 0.5,
-    Precision = 2,
-    Callback = function(v)
-        Flags.ReceptionDelay = v
-    end
-})
-
-Sec_RecAuto:AddToggle({
-    Name = "Auto Fast Skip Guest Dialogue",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoSkipDialogue = v
-    end
-})
-
-Sec_RecAuto:AddToggle({
-    Name = "Auto Open Identity Card",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoOpenIDCard = v
-    end
-})
-
-local Sec_RecManual = RegSection(SubNav_Reception, "Manual", Tab_Reception:AddSection("Manual Receptionist Controls"))
-Sec_RecManual:AddButton({
-    Name = "Force Register Current Guest (Accept)",
-    Callback = function()
-        FireEvent("ReceptionistActionEvent", "Register")
-        Notify("Force Registered Guest", 2)
-    end
-})
-
-Sec_RecManual:AddButton({
-    Name = "Force Reject Impostor Anomaly (Reject)",
-    Callback = function()
-        FireEvent("ReceptionistActionEvent", "Reject")
-        Notify("Force Rejected Anomaly", 2)
-    end
-})
-
-Sec_RecManual:AddButton({
-    Name = "Skip Current Customer (Admin Bypass)",
-    Callback = function()
-        RequestAdmin("skipCustomer")
-        Notify("Skipped Customer via Admin Service", 2)
-    end
-})
-
-local Sec_RecBook = RegSection(SubNav_Reception, "Book", Tab_Reception:AddSection("Guest Book & Dialogue"))
-Sec_RecBook:AddButton({
-    Name = "Turn Guest Book Next Page",
-    Callback = function()
-        FireEvent("RegistrationBookPageChanged", 2)
-    end
-})
-
-Sec_RecBook:AddButton({
-    Name = "Turn Guest Book Previous Page",
-    Callback = function()
-        FireEvent("RegistrationBookPageChanged", 1)
-    end
-})
-
-Sec_RecBook:AddButton({
-    Name = "Skip Active Dialogue Sequence",
-    Callback = function()
-        FireEvent("DialogSkipRequestEvent", true)
-    end
-})
-
--- ==============================================================================
--- TAB 3: Heart Rate
--- ==============================================================================
-local SubNav_HeartRate = Tab_HeartRate:AddSubNav({
-    Categories = { "All", "Immunity", "Effects", "Consumables", "Presets" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_HRImmunity = RegSection(SubNav_HeartRate, "Immunity", Tab_HeartRate:AddSection("Heart Rate Immunity & Lock"))
-Sec_HRImmunity:AddToggle({
-    Name = "Lock Heart Rate (Anti-Panic & Death Immunity)",
-    Default = false,
-    Callback = function(v)
-        Flags.LockHeartRate = v
-        if v then Notify("Heart Rate Locked at " .. tostring(Flags.LockedBPM) .. " BPM", 2) end
-    end
-})
-
-Sec_HRImmunity:AddSlider({
-    Name = "Locked Heart Rate Target (BPM)",
-    Min = 60,
-    Max = 100,
-    Default = 70,
-    Precision = 1,
-    Callback = function(v)
-        Flags.LockedBPM = v
-    end
-})
-
-Sec_HRImmunity:AddToggle({
-    Name = "Auto Reset Panic on Spike",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoResetPanic = v
-    end
-})
-
-Sec_HRImmunity:AddSlider({
-    Name = "Panic Trigger Threshold (BPM)",
-    Min = 90,
-    Max = 160,
-    Default = 110,
-    Precision = 1,
-    Callback = function(v)
-        Flags.PanicThreshold = v
-    end
-})
-
-local Sec_HREffects = RegSection(SubNav_HeartRate, "Effects", Tab_HeartRate:AddSection("Panic Effects & Audio"))
-Sec_HREffects:AddToggle({
-    Name = "Remove Screen Red Vignette & Camera Jitter",
-    Default = false,
-    Callback = function(v)
-        Flags.RemovePanicEffects = v
-    end
-})
-
-Sec_HREffects:AddToggle({
-    Name = "Mute Rapid Heartbeat Audio",
-    Default = false,
-    Callback = function(v)
-        Flags.MuteHeartbeat = v
-    end
-})
-
-local Sec_HRConsumables = RegSection(SubNav_HeartRate, "Consumables", Tab_HeartRate:AddSection("Stamina & Consumables"))
-Sec_HRConsumables:AddToggle({
-    Name = "Auto Drink Energy Drink on Stress",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoDrinkEnergy = v
-    end
-})
-
-Sec_HRConsumables:AddToggle({
-    Name = "Infinite Employee Sprint & Stamina",
-    Default = false,
-    Callback = function(v)
-        Flags.InfiniteStamina = v
-    end
-})
-
-local Sec_HRPresets = RegSection(SubNav_HeartRate, "Presets", Tab_HeartRate:AddSection("BPM Presets & Testing"))
-Sec_HRPresets:AddButton({
-    Name = "Apply Calm Pulse Preset (60 BPM)",
-    Callback = function()
-        RequestAdmin("setHeartRate", 60)
-        Notify("Set Heart Rate to 60 BPM", 2)
-    end
-})
-
-Sec_HRPresets:AddButton({
-    Name = "Simulate Panic Attack (140 BPM)",
-    Callback = function()
-        RequestAdmin("setHeartRate", 140)
-        Notify("Set Heart Rate to 140 BPM", 2)
-    end
-})
-
--- ==============================================================================
--- TAB 4: CCTV
--- ==============================================================================
-local SubNav_CCTV = Tab_CCTV:AddSubNav({
-    Categories = { "All", "Feeds", "Enhancements", "Protection" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_CCTVFeeds = RegSection(SubNav_CCTV, "Feeds", Tab_CCTV:AddSection("Camera Feeds & Switcher"))
-Sec_CCTVFeeds:AddDropdown({
-    Name = "Select Active Camera Feed",
-    Options = {
-        "CAM 1 - Main Lobby",
-        "CAM 2 - Hallway Section A",
-        "CAM 3 - Hallway Section B",
-        "CAM 4 - Kitchen & Pantry",
-        "CAM 5 - Basement Power Breaker",
-        "CAM 6 - Backyard & Alley"
-    },
-    Default = "CAM 1 - Main Lobby",
-    Callback = function(v)
-        local id = tonumber(v:match("CAM (%d+)")) or 1
-        FireEvent("CctvCameraChanged", id)
-        Notify("Switched to Camera " .. tostring(id), 2)
-    end
-})
-
-Sec_CCTVFeeds:AddButton({
-    Name = "Cycle Next Camera Feed",
-    Callback = function()
-        FireEvent("CctvCameraChanged", 2)
-    end
-})
-
-Sec_CCTVFeeds:AddButton({
-    Name = "Cycle Previous Camera Feed",
-    Callback = function()
-        FireEvent("CctvCameraChanged", 1)
-    end
-})
-
-local Sec_CCTVEnhance = RegSection(SubNav_CCTV, "Enhancements", Tab_CCTV:AddSection("Visual Enhancements"))
-Sec_CCTVEnhance:AddToggle({
-    Name = "Remove VHS Glitch & Static Noise Overlay",
-    Default = false,
-    Callback = function(v)
-        Flags.RemoveVhsNoise = v
-    end
-})
-
-Sec_CCTVEnhance:AddToggle({
-    Name = "Enhanced Thermal Night Vision",
-    Default = false,
-    Callback = function(v)
-        Flags.NightVisionEnhance = v
-    end
-})
-
-local Sec_CCTVProtect = RegSection(SubNav_CCTV, "Protection", Tab_CCTV:AddSection("Jumpscare Protection"))
-Sec_CCTVProtect:AddToggle({
-    Name = "Jumpscare 666 Immunity (Block Screamer)",
-    Default = false,
-    Callback = function(v)
-        Flags.BlockJumpscare666 = v
-    end
-})
-
-Sec_CCTVProtect:AddButton({
-    Name = "Test Trigger CCTV Jumpscare",
-    Callback = function()
-        FireEvent("CctvJumpscareTriggered")
-    end
-})
-
--- ==============================================================================
--- TAB 5: Cleaning
--- ==============================================================================
-local SubNav_Cleaning = Tab_Cleaning:AddSubNav({
-    Categories = { "All", "Housekeeping", "Minigames", "Interactions" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_CleanHouse = RegSection(SubNav_Cleaning, "Housekeeping", Tab_Cleaning:AddSection("Housekeeping Automation"))
-Sec_CleanHouse:AddButton({
-    Name = "Clean All Hotel Rooms Instantly",
-    Callback = function()
-        RequestAdmin("cleanAllRooms")
-        Notify("All Hotel Rooms Cleaned", 2)
-    end
-})
-
-Sec_CleanHouse:AddToggle({
-    Name = "Loop Auto Clean Hotel Rooms",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoCleanRooms = v
-    end
-})
-
-Sec_CleanHouse:AddToggle({
-    Name = "Auto Vacuum Active Trash to Inventory",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoVacuumTrash = v
-    end
-})
-
-local Sec_CleanMini = RegSection(SubNav_Cleaning, "Minigames", Tab_Cleaning:AddSection("Minigames & Security"))
-Sec_CleanMini:AddToggle({
-    Name = "Instant Wire Minigame Auto-Solver",
-    Default = false,
-    Callback = function(v)
-        Flags.InstantWireSolver = v
-    end
-})
-
-Sec_CleanMini:AddToggle({
-    Name = "Auto Lock Hotel Windows",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoLockWindows = v
-    end
-})
-
-local Sec_CleanInteract = RegSection(SubNav_Cleaning, "Interactions", Tab_Cleaning:AddSection("Proximity Interactions"))
-Sec_CleanInteract:AddToggle({
-    Name = "Instant Proximity Prompt Interaction",
-    Default = false,
-    Callback = function(v)
-        Flags.InstantInteract = v
-    end
-})
-
--- ==============================================================================
--- TAB 6: Kitchen
--- ==============================================================================
-local SubNav_Kitchen = Tab_Kitchen:AddSubNav({
-    Categories = { "All", "Microwave", "Cooking Menu", "Dispenser" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_Microwave = RegSection(SubNav_Kitchen, "Microwave", Tab_Kitchen:AddSection("Microwave Automation"))
-Sec_Microwave:AddToggle({
-    Name = "Auto Cook Food in Microwave",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoMicrowave = v
-    end
-})
-
-Sec_Microwave:AddButton({
-    Name = "Start Microwave Heating Cycle",
-    Callback = function()
-        FireEvent("StartCookingEvent", "Microwave")
-        Notify("Started Microwave Cycle", 2)
-    end
-})
-
-local Sec_CookingMenu = RegSection(SubNav_Kitchen, "Cooking Menu", Tab_Kitchen:AddSection("Quick Cooking Menu"))
-Sec_CookingMenu:AddButton({
-    Name = "Cook Nasi Goreng (Fried Rice)",
-    Callback = function()
-        FireEvent("CookingFinishedEvent", "NasiGoreng")
-        Notify("Cooked Nasi Goreng", 2)
-    end
-})
-
-Sec_CookingMenu:AddButton({
-    Name = "Cook Classic Beef Burger",
-    Callback = function()
-        FireEvent("CookingFinishedEvent", "Burger")
-        Notify("Cooked Burger", 2)
-    end
-})
-
-Sec_CookingMenu:AddButton({
-    Name = "Cook Pepperoni Pizza",
-    Callback = function()
-        FireEvent("CookingFinishedEvent", "Pizza")
-        Notify("Cooked Pizza", 2)
-    end
-})
-
-Sec_CookingMenu:AddButton({
-    Name = "Cook Hotdog",
-    Callback = function()
-        FireEvent("CookingFinishedEvent", "Hotdog")
-    end
-})
-
-Sec_CookingMenu:AddButton({
-    Name = "Cook Fish and Chips",
-    Callback = function()
-        FireEvent("CookingFinishedEvent", "FishChips")
-    end
-})
-
-local Sec_Dispenser = RegSection(SubNav_Kitchen, "Dispenser", Tab_Kitchen:AddSection("Refrigerator & Drink Dispenser"))
-Sec_Dispenser:AddButton({
-    Name = "Dispense Warm Tea",
-    Callback = function()
-        FireEvent("GrabDrinkEvent", "WarmTea")
-    end
-})
-
-Sec_Dispenser:AddButton({
-    Name = "Dispense Black Coffee",
-    Callback = function()
-        FireEvent("GrabDrinkEvent", "BlackCoffee")
-    end
-})
-
-Sec_Dispenser:AddButton({
-    Name = "Dispense Fresh Orange Juice",
-    Callback = function()
-        FireEvent("GrabDrinkEvent", "OrangeJuice")
-    end
-})
-
-Sec_Dispenser:AddButton({
-    Name = "Dispense Cold Energy Drink",
-    Callback = function()
-        FireEvent("GrabDrinkEvent", "EnergyDrink")
-    end
-})
-
--- ==============================================================================
--- TAB 7: Story & Days
--- ==============================================================================
-local SubNav_Story = Tab_Story:AddSubNav({
-    Categories = { "All", "Progression", "Quests", "Night Helpers" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_Progression = RegSection(SubNav_Story, "Progression", Tab_Story:AddSection("Shift & Day Progression"))
-Sec_Progression:AddDropdown({
-    Name = "Jump to Story Day",
-    Options = {
-        "Day 1 - The First Shift",
-        "Day 2 - Strange Sounds",
-        "Day 3 - Flickering Lights",
-        "Day 4 - Uninvited Guest",
-        "Day 5 - Cold Breath",
-        "Day 6 - Missing Items",
-        "Day 7 - Basement Noises",
-        "Day 8 - Room 104 Curse",
-        "Day 9 - Darmo Warning",
-        "Day 10 - Shadow at Desk",
-        "Day 11 - Power Cut Nightmare",
-        "Day 12 - Blood Stains",
-        "Day 13 - Knocking on Glass",
-        "Day 14 - Kuntilanak Cry",
-        "Day 15 - Gendorowo Roar",
-        "Day 16 - Lockdown Protocol",
-        "Day 17 - Impostor Invasion",
-        "Day 18 - Zombie Outbreak",
-        "Day 19 - Slenderman Final Night"
-    },
-    Default = "Day 1 - The First Shift",
-    Callback = function(v)
-        local dayNum = tonumber(v:match("Day (%d+)")) or 1
-        Flags.TargetStoryDay = dayNum
-        RequestAdmin("setDay", dayNum)
-        Notify("Switched Story to Day " .. tostring(dayNum), 2)
-    end
-})
-
-Sec_Progression:AddButton({
-    Name = "Force Complete Shift (Next Day)",
-    Callback = function()
-        RequestAdmin("forceNextDay")
-        Notify("Shift Completed - Advancing to Next Day", 2)
-    end
-})
-
-Sec_Progression:AddButton({
-    Name = "Skip Current Story Step",
-    Callback = function()
-        RequestAdmin("skipStoryStep")
-        Notify("Skipped Story Step", 2)
-    end
-})
-
-local Sec_StoryQuests = RegSection(SubNav_Story, "Quests", Tab_Story:AddSection("Story Quests & Dialogue"))
-Sec_StoryQuests:AddButton({
-    Name = "Complete All Active Quests Now",
-    Callback = function()
-        RequestAdmin("completeActiveQuests")
-        Notify("Completed Active Quests", 2)
-    end
-})
-
-Sec_StoryQuests:AddToggle({
-    Name = "Auto Complete Quests on Trigger",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoCompleteQuests = v
-    end
-})
-
-Sec_StoryQuests:AddToggle({
-    Name = "Auto Skip Story Dialogue Sequences",
-    Default = false,
-    Callback = function(v)
-        Flags.FastForwardStory = v
-    end
-})
-
-local Sec_NightHelpers = RegSection(SubNav_Story, "Night Helpers", Tab_Story:AddSection("Special Night Helpers"))
-Sec_NightHelpers:AddButton({
-    Name = "Call Darmo / Rahmat Assistant",
-    Callback = function()
-        RequestAdmin("spawnDarmo")
-        Notify("Darmo Assistant Dispatched", 2)
-    end
-})
-
-Sec_NightHelpers:AddButton({
-    Name = "Day 18 Zombie Defense Assist",
-    Callback = function()
-        RequestAdmin("giveItem", "Revolver", 99)
-        RequestAdmin("clearObstacles")
-        Notify("Zombie Defense Helper Activated", 2)
-    end
-})
-
-Sec_NightHelpers:AddButton({
-    Name = "Day 19 Slenderman Final Assist",
-    Callback = function()
-        Flags.AntiSlenderman = true
-        RequestAdmin("resetHeartRate")
-        Notify("Slenderman Immunity Activated", 2)
-    end
-})
-
--- ==============================================================================
--- TAB 8: Monsters
--- ==============================================================================
-local SubNav_Monsters = Tab_Monsters:AddSubNav({
-    Categories = { "All", "Threat Radar", "Defense", "Monster Spawner", "Environment" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_ThreatRadar = RegSection(SubNav_Monsters, "Threat Radar", Tab_Monsters:AddSection("Threat Radar & Cleaner"))
-Sec_ThreatRadar:AddButton({
-    Name = "Despawn All Hostiles Instantly",
-    Callback = function()
-        RequestAdmin("clearObstacles")
-        Notify("Despawned All Hostiles & Obstacles", 2)
-    end
-})
-
-Sec_ThreatRadar:AddToggle({
-    Name = "Continuous Auto Despawn Monsters",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoCleanMonsters = v
-    end
-})
-
-local Sec_MonsterDefense = RegSection(SubNav_Monsters, "Defense", Tab_Monsters:AddSection("Monster Defense & Radar"))
-Sec_MonsterDefense:AddToggle({
-    Name = "Anti-Slenderman Stare Shield",
-    Default = false,
-    Callback = function(v)
-        Flags.AntiSlenderman = v
-    end
-})
-
-Sec_MonsterDefense:AddToggle({
-    Name = "Proximity Threat Alarm Audio",
-    Default = false,
-    Callback = function(v)
-        Flags.DangerAlarm = v
-    end
-})
-
-local Sec_MonsterSpawner = RegSection(SubNav_Monsters, "Monster Spawner", Tab_Monsters:AddSection("Monster Spawner"))
-Sec_MonsterSpawner:AddButton({
-    Name = "Spawn Slenderman",
-    Callback = function()
-        RequestAdmin("triggerSlenderman")
-    end
-})
-
-Sec_MonsterSpawner:AddButton({
-    Name = "Spawn Kuntilanak",
-    Callback = function()
-        RequestAdmin("spawnAnomaly", "Kuntilanak")
-    end
-})
-
-Sec_MonsterSpawner:AddButton({
-    Name = "Spawn Gendorowo",
-    Callback = function()
-        RequestAdmin("spawnAnomaly", "Gendorowo")
-    end
-})
-
-Sec_MonsterSpawner:AddButton({
-    Name = "Spawn Giant Spider",
-    Callback = function()
-        RequestAdmin("spawnAnomaly", "LabaLaba")
-    end
-})
-
-Sec_MonsterSpawner:AddButton({
-    Name = "Spawn Trash Ghost",
-    Callback = function()
-        RequestAdmin("spawnAnomaly", "HantuSampah")
-    end
-})
-
-Sec_MonsterSpawner:AddButton({
-    Name = "Spawn Pot Monster",
-    Callback = function()
-        RequestAdmin("spawnAnomaly", "MonsterPot")
-    end
-})
-
-Sec_MonsterSpawner:AddButton({
-    Name = "Spawn Zombie",
-    Callback = function()
-        RequestAdmin("spawnAnomaly", "Zombie")
-    end
-})
-
-Sec_MonsterSpawner:AddButton({
-    Name = "Spawn Darmo NPC",
-    Callback = function()
-        RequestAdmin("spawnDarmo")
-    end
-})
-
-local Sec_Environment = RegSection(SubNav_Monsters, "Environment", Tab_Monsters:AddSection("Environment & Events"))
-Sec_Environment:AddButton({
-    Name = "Trigger Hotel Power Blackout",
-    Callback = function()
-        RequestAdmin("startBlackout")
-        Notify("Hotel Power Cut Triggered", 2)
-    end
-})
-
-Sec_Environment:AddButton({
-    Name = "Restore Hotel Breaker Power",
-    Callback = function()
-        RequestAdmin("restorePower")
-        Notify("Hotel Power Restored", 2)
-    end
-})
-
--- ==============================================================================
--- TAB 9: Combat
--- ==============================================================================
-local SubNav_Combat = Tab_Combat:AddSubNav({
-    Categories = { "All", "Revolver", "Melee", "Arsenal" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_Revolver = RegSection(SubNav_Combat, "Revolver", Tab_Combat:AddSection("Revolver Combat System"))
-Sec_Revolver:AddToggle({
-    Name = "Auto Aim & Fire Revolver at Anomalies",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoFireRevolver = v
-    end
-})
-
-Sec_Revolver:AddSlider({
-    Name = "Revolver Target Range (studs)",
-    Min = 15,
-    Max = 80,
-    Default = 40,
-    Precision = 1,
-    Callback = function(v)
-        Flags.CombatRange = v
-    end
-})
-
-Sec_Revolver:AddToggle({
-    Name = "Rapid Fire Mode",
-    Default = false,
-    Callback = function(v)
-        Flags.RapidFire = v
-    end
-})
-
-Sec_Revolver:AddButton({
-    Name = "Fire Revolver at Nearest Anomaly Now",
-    Callback = function()
-        if CombatSystemClient and CombatSystemClient.fire then
-            local targetPos = Vector3.new(0, 0, 0)
-            if Root then targetPos = Root.Position + (Root.CFrame.LookVector * 10) end
-            CombatSystemClient:fire("FireRevolver", targetPos)
-            Notify("Fired Revolver", 1.5)
-        end
-    end
-})
-
-local Sec_Melee = RegSection(SubNav_Combat, "Melee", Tab_Combat:AddSection("Melee & Stun Defense"))
-Sec_Melee:AddToggle({
-    Name = "Auto Melee Swing at Hostiles",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoMeleeSwing = v
-    end
-})
-
-Sec_Melee:AddButton({
-    Name = "Stun Nearest Hostile NPC",
-    Callback = function()
-        local npc = FindCurrentGuestNPC()
-        if npc then
-            FireEvent("HitNPC", npc)
-            Notify("Stunned NPC", 1.5)
-        end
-    end
-})
-
-local Sec_Arsenal = RegSection(SubNav_Combat, "Arsenal", Tab_Combat:AddSection("Weapon Equipment"))
-Sec_Arsenal:AddButton({
-    Name = "Equip Revolver Firearm",
-    Callback = function()
-        RequestAdmin("giveItem", "Revolver", 6)
-    end
-})
-
-Sec_Arsenal:AddButton({
-    Name = "Equip Shock Baton",
-    Callback = function()
-        RequestAdmin("giveItem", "ShockBaton", 1)
-    end
-})
-
-Sec_Arsenal:AddButton({
-    Name = "Equip Mop Weapon",
-    Callback = function()
-        RequestAdmin("giveItem", "Mop", 1)
-    end
-})
-
--- ==============================================================================
--- TAB 10: Roles & Skins
--- ==============================================================================
-local SubNav_Roles = Tab_Roles:AddSubNav({
-    Categories = { "All", "Job Class", "Class Upgrades", "Monster Skins", "Codex" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_JobClass = RegSection(SubNav_Roles, "Job Class", Tab_Roles:AddSection("Job Class Selector"))
-local SelectedClass = "Intern"
-Sec_JobClass:AddDropdown({
-    Name = "Select Employee Role",
-    Options = { "Intern", "Bellhop", "Cleaner", "Waiter", "Inspector", "TheHunter" },
-    Default = "Intern",
-    Callback = function(v)
-        SelectedClass = v
-    end
-})
-
-Sec_JobClass:AddButton({
-    Name = "Apply Selected Employee Role",
-    Callback = function()
-        FireEvent("ClassChangedEvent", SelectedClass)
-        Notify("Role Applied: " .. SelectedClass, 2)
-    end
-})
-
-local Sec_ClassUpg = RegSection(SubNav_Roles, "Class Upgrades", Tab_Roles:AddSection("Class Upgrades"))
-Sec_ClassUpg:AddButton({
-    Name = "Instant Max Class Upgrade (Level 7)",
-    Callback = function()
-        for i = 1, 7 do
-            FireEvent("requestPromptUpgrade", SelectedClass, i)
-        end
-        Notify("Max Upgraded Class " .. SelectedClass, 2)
-    end
-})
-
-local Sec_MonsterSkins = RegSection(SubNav_Roles, "Monster Skins", Tab_Roles:AddSection("Monster Skins Unlocker"))
-local SelectedSkin = "Kuntilanak"
-Sec_MonsterSkins:AddDropdown({
-    Name = "Select Monster Skin",
-    Options = { "Kuntilanak", "Gendorowo", "Spider", "Pot Monster" },
-    Default = "Kuntilanak",
-    Callback = function(v)
-        SelectedSkin = v
-    end
-})
-
-Sec_MonsterSkins:AddButton({
-    Name = "Equip Selected Monster Skin",
-    Callback = function()
-        FireEvent("SkinEquippedEvent", SelectedSkin)
-        Notify("Equipped Skin: " .. SelectedSkin, 2)
-    end
-})
-
-local Sec_Codex = RegSection(SubNav_Roles, "Codex", Tab_Roles:AddSection("Codex & Rewards"))
-Sec_Codex:AddToggle({
-    Name = "Auto Claim Anomaly Codex Rewards",
-    Default = false,
-    Callback = function(v)
-        Flags.AutoClaimCodex = v
-    end
-})
-
-Sec_Codex:AddButton({
-    Name = "Claim All Codex Discoveries Now",
-    Callback = function()
-        FireEvent("ClaimCodexRewardsEvent", "All")
-        Notify("Claimed All Codex Rewards", 2)
-    end
-})
-
--- ==============================================================================
--- TAB 11: Admin Tools
--- ==============================================================================
-local SubNav_Admin = Tab_Admin:AddSubNav({
-    Categories = { "All", "Privileges", "Currency", "Arsenal" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_AdminPriv = RegSection(SubNav_Admin, "Privileges", Tab_Admin:AddSection("Admin Privileges"))
-Sec_AdminPriv:AddButton({
-    Name = "Revive Local Player Instantly",
-    Callback = function()
-        RequestAdmin("revivePlayer", LocalPlayer and LocalPlayer.Name or "")
-        Notify("Revived Player", 2)
-    end
-})
-
-Sec_AdminPriv:AddToggle({
-    Name = "Toggle Admin Invisibility",
-    Default = false,
-    Callback = function(v)
-        Flags.AdminInvis = v
-        RequestAdmin("toggleAdminInvis", v)
-    end
-})
-
-Sec_AdminPriv:AddSlider({
-    Name = "Anomaly Spawn Rate Slider (%)",
-    Min = 0,
-    Max = 100,
-    Default = 50,
-    Precision = 1,
-    Callback = function(v)
-        Flags.AnomalySpawnRate = v
-        RequestAdmin("setAnomalyChance", v / 100)
-    end
-})
-
-local Sec_AdminCurr = RegSection(SubNav_Admin, "Currency", Tab_Admin:AddSection("Currency & Anomaly Spawner"))
-Sec_AdminCurr:AddButton({
-    Name = "Give 10,000 Cash",
-    Callback = function()
-        RequestAdmin("giveCurrency", 10000)
-        Notify("Gave 10,000 Cash", 2)
-    end
-})
-
-Sec_AdminCurr:AddButton({
-    Name = "Give 50,000 Cash",
-    Callback = function()
-        RequestAdmin("giveCurrency", 50000)
-        Notify("Gave 50,000 Cash", 2)
-    end
-})
-
-Sec_AdminCurr:AddButton({
-    Name = "Give Max 99,999 Cash",
-    Callback = function()
-        RequestAdmin("giveCurrency", 99999)
-        Notify("Gave 99,999 Cash", 2)
-    end
-})
-
-local Sec_AdminArsenal = RegSection(SubNav_Admin, "Arsenal", Tab_Admin:AddSection("Item & Weapon Spawner"))
-Sec_AdminArsenal:AddButton({
-    Name = "Spawn Revolver Firearm",
-    Callback = function()
-        RequestAdmin("giveItem", "Revolver", 6)
-    end
-})
-
-Sec_AdminArsenal:AddButton({
-    Name = "Spawn Shock Baton",
-    Callback = function()
-        RequestAdmin("giveItem", "ShockBaton", 1)
-    end
-})
-
-Sec_AdminArsenal:AddButton({
-    Name = "Spawn A-Ray Anomaly Gun",
-    Callback = function()
-        RequestAdmin("giveItem", "ARayGun", 1)
-    end
-})
-
-Sec_AdminArsenal:AddButton({
-    Name = "Spawn 5x Energy Drinks",
-    Callback = function()
-        RequestAdmin("giveItem", "EnergyDrink", 5)
-    end
-})
-
--- ==============================================================================
--- TAB 12: Inventory
--- ==============================================================================
-local SubNav_Inventory = Tab_Inventory:AddSubNav({
-    Categories = { "All", "Consumables", "Item Actions" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_Consumables = RegSection(SubNav_Inventory, "Consumables", Tab_Inventory:AddSection("Quick Consumables"))
-Sec_Consumables:AddButton({
-    Name = "Drink Energy Drink",
-    Callback = function()
-        FireEvent("ConsumeItemEvent", "EnergyDrink")
-    end
-})
-
-Sec_Consumables:AddButton({
-    Name = "Eat Burger",
-    Callback = function()
-        FireEvent("ConsumeItemEvent", "Burger")
-    end
-})
-
-Sec_Consumables:AddButton({
-    Name = "Eat Pizza",
-    Callback = function()
-        FireEvent("ConsumeItemEvent", "Pizza")
-    end
-})
-
-Sec_Consumables:AddButton({
-    Name = "Drink Hot Coffee",
-    Callback = function()
-        FireEvent("ConsumeItemEvent", "BlackCoffee")
-    end
-})
-
-Sec_Consumables:AddButton({
-    Name = "Drink Warm Tea",
-    Callback = function()
-        FireEvent("ConsumeItemEvent", "WarmTea")
-    end
-})
-
-local Sec_ItemActions = RegSection(SubNav_Inventory, "Item Actions", Tab_Inventory:AddSection("Item Actions"))
-Sec_ItemActions:AddButton({
-    Name = "Drop Currently Held Item",
-    Callback = function()
-        FireEvent("DropItemEvent")
-        Notify("Dropped Held Item", 1.5)
-    end
-})
-
--- ==============================================================================
--- TAB 13: ESP & Visuals
--- ==============================================================================
-local SubNav_ESP = Tab_ESP:AddSubNav({
-    Categories = { "All", "Entity ESP", "Task ESP", "World Indicators" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_EntityESP = RegSection(SubNav_ESP, "Entity ESP", Tab_ESP:AddSection("Entity ESP Highlights"))
-Sec_EntityESP:AddToggle({
-    Name = "Highlight Anomalies (Red Highlight)",
-    Default = false,
-    Callback = function(v)
-        Flags.ESP_Anomaly = v
-    end
-})
-
-Sec_EntityESP:AddToggle({
-    Name = "Highlight Human Guests (Green Highlight)",
-    Default = false,
-    Callback = function(v)
-        Flags.ESP_Human = v
-    end
-})
-
-Sec_EntityESP:AddToggle({
-    Name = "Highlight Monsters & Bosses (Purple Highlight)",
-    Default = false,
-    Callback = function(v)
-        Flags.ESP_Monster = v
-    end
-})
-
-Sec_EntityESP:AddToggle({
-    Name = "Highlight Other Players (Blue Highlight)",
-    Default = false,
-    Callback = function(v)
-        Flags.ESP_Players = v
-    end
-})
-
-local Sec_TaskESP = RegSection(SubNav_ESP, "Task ESP", Tab_ESP:AddSection("Task & Object ESP"))
-Sec_TaskESP:AddToggle({
-    Name = "Highlight Trash & Housekeeping Tasks (Yellow)",
-    Default = false,
-    Callback = function(v)
-        Flags.ESP_Trash = v
-    end
-})
-
-Sec_TaskESP:AddToggle({
-    Name = "Highlight Room Doors 101 - 105 (Cyan)",
-    Default = false,
-    Callback = function(v)
-        Flags.ESP_Doors = v
-    end
-})
-
-local Sec_WorldIndicators = RegSection(SubNav_ESP, "World Indicators", Tab_ESP:AddSection("World & Objective Indicators"))
-Sec_WorldIndicators:AddToggle({
-    Name = "Show Active Objective Beams",
-    Default = false,
-    Callback = function(v)
-        Flags.ESP_Indicators = v
-        if IndicatorSystemClient and IndicatorSystemClient.toggle then
-            IndicatorSystemClient:toggle(v)
-        end
-    end
-})
-
--- ==============================================================================
--- TAB 14: Movement
--- ==============================================================================
-local SubNav_Movement = Tab_Movement:AddSubNav({
-    Categories = { "All", "Locomotion", "3D Flight", "Physics" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_Locomotion = RegSection(SubNav_Movement, "Locomotion", Tab_Movement:AddSection("Locomotion Modifiers"))
-Sec_Locomotion:AddSlider({
-    Name = "WalkSpeed Modifier",
-    Min = 16,
-    Max = 150,
-    Default = 16,
-    Precision = 1,
-    Callback = function(v)
-        Flags.WalkSpeed = v
-        if Humanoid then Humanoid.WalkSpeed = v end
-    end
-})
-
-Sec_Locomotion:AddSlider({
-    Name = "JumpPower Modifier",
-    Min = 50,
-    Max = 250,
-    Default = 50,
-    Precision = 1,
-    Callback = function(v)
-        Flags.JumpPower = v
-        if Humanoid then Humanoid.JumpPower = v end
-    end
-})
-
-Sec_Locomotion:AddToggle({
-    Name = "Infinite Jump (Spacebar Air Jump)",
-    Default = false,
-    Callback = function(v)
-        Flags.InfJump = v
-    end
-})
-
-local Sec_Flight = RegSection(SubNav_Movement, "3D Flight", Tab_Movement:AddSection("3D Flight Engine"))
-Sec_Flight:AddToggle({
-    Name = "Enable 3D Flight (WASD + Space/Shift)",
-    Default = false,
-    Callback = function(v)
-        Flags.FlyEnabled = v
-    end
-})
-
-Sec_Flight:AddSlider({
-    Name = "Flight Velocity Speed",
-    Min = 20,
-    Max = 150,
-    Default = 50,
-    Precision = 1,
-    Callback = function(v)
-        Flags.FlySpeed = v
-    end
-})
-
-local Sec_Physics = RegSection(SubNav_Movement, "Physics", Tab_Movement:AddSection("Physics & Collision Bypasses"))
-Sec_Physics:AddToggle({
-    Name = "Noclip (Pass Through Hotel Walls & Locked Doors)",
-    Default = false,
-    Callback = function(v)
-        Flags.Noclip = v
-    end
-})
-
-Sec_Physics:AddToggle({
-    Name = "Anti-Void Protection",
-    Default = false,
-    Callback = function(v)
-        Flags.AntiVoid = v
-    end
-})
-
--- ==============================================================================
--- TAB 15: Teleports
--- ==============================================================================
-local SubNav_Teleport = Tab_Teleport:AddSubNav({
-    Categories = { "All", "Work Areas", "Guest Rooms", "Dynamic Targets" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local function TeleportTo(cf)
-    if Root then
-        Root.CFrame = cf
-    end
-end
-
-local Sec_WorkAreas = RegSection(SubNav_Teleport, "Work Areas", Tab_Teleport:AddSection("Work Areas & Security"))
-Sec_WorkAreas:AddButton({
-    Name = "Front Desk Counter",
-    Callback = function()
-        TeleportTo(CFrame.new(12, 4, -45))
-        Notify("Teleported to Front Desk", 1.5)
-    end
-})
-
-Sec_WorkAreas:AddButton({
-    Name = "Receptionist Computer Desk",
-    Callback = function()
-        TeleportTo(CFrame.new(16, 4, -48))
-        Notify("Teleported to Computer Desk", 1.5)
-    end
-})
-
-Sec_WorkAreas:AddButton({
-    Name = "CCTV Security Office",
-    Callback = function()
-        TeleportTo(CFrame.new(-30, 4, -80))
-        Notify("Teleported to CCTV Office", 1.5)
-    end
-})
-
-Sec_WorkAreas:AddButton({
-    Name = "Kitchen & Microwave",
-    Callback = function()
-        TeleportTo(CFrame.new(-15, 4, -20))
-        Notify("Teleported to Kitchen", 1.5)
-    end
-})
-
-Sec_WorkAreas:AddButton({
-    Name = "Basement & Breaker Panel",
-    Callback = function()
-        TeleportTo(CFrame.new(0, -18, -120))
-        Notify("Teleported to Basement", 1.5)
-    end
-})
-
-local Sec_GuestRooms = RegSection(SubNav_Teleport, "Guest Rooms", Tab_Teleport:AddSection("Guest Rooms"))
-Sec_GuestRooms:AddButton({
-    Name = "Guest Room 101",
-    Callback = function()
-        TeleportTo(CFrame.new(45, 4, -10))
-        Notify("Teleported to Room 101", 1.5)
-    end
-})
-
-Sec_GuestRooms:AddButton({
-    Name = "Guest Room 102",
-    Callback = function()
-        TeleportTo(CFrame.new(65, 4, -10))
-        Notify("Teleported to Room 102", 1.5)
-    end
-})
-
-Sec_GuestRooms:AddButton({
-    Name = "Guest Room 103",
-    Callback = function()
-        TeleportTo(CFrame.new(45, 4, 30))
-        Notify("Teleported to Room 103", 1.5)
-    end
-})
-
-Sec_GuestRooms:AddButton({
-    Name = "Guest Room 104",
-    Callback = function()
-        TeleportTo(CFrame.new(65, 4, 30))
-        Notify("Teleported to Room 104", 1.5)
-    end
-})
-
-Sec_GuestRooms:AddButton({
-    Name = "Guest Room 105",
-    Callback = function()
-        TeleportTo(CFrame.new(85, 4, 10))
-        Notify("Teleported to Room 105", 1.5)
-    end
-})
-
-local Sec_DynamicTP = RegSection(SubNav_Teleport, "Dynamic Targets", Tab_Teleport:AddSection("Dynamic Entity Teleports"))
-Sec_DynamicTP:AddButton({
-    Name = "Teleport to Current Guest NPC",
-    Callback = function()
-        local npc = FindCurrentGuestNPC()
-        if npc and Root then
-            local pv = npc:GetPivot()
-            Root.CFrame = pv + Vector3.new(0, 0, 3)
-            Notify("Teleported to Current Guest", 1.5)
-        end
-    end
-})
-
-Sec_DynamicTP:AddButton({
-    Name = "Teleport to Nearest Active Trash",
-    Callback = function()
-        local tagged = CollectionService:GetTagged("ActiveCleaningTrash")
-        if #tagged > 0 and Root then
-            local nearest = tagged[1]
-            if nearest:IsA("BasePart") then
-                Root.CFrame = nearest.CFrame + Vector3.new(0, 3, 0)
-            else
-                Root.CFrame = nearest:GetPivot() + Vector3.new(0, 3, 0)
-            end
-            Notify("Teleported to Nearest Trash", 1.5)
-        end
-    end
-})
-
--- ==============================================================================
--- TAB 16: Settings & Info (Structured & Powered like sharedplanets_pinathub.lua)
--- ==============================================================================
-local SubNav_Settings = Tab_Settings:AddSubNav({
-    Categories = { "All", "Preferences", "Profiles", "Optimization", "Information" },
-    Default = "All",
-    IncludeAll = true
-})
-
-local Sec_Preferences = RegSection(SubNav_Settings, "Preferences", Tab_Settings:AddSection("Preferences & Keybinds"))
-Sec_Preferences:AddKeybind({
-    Name = "Toggle Menu Visibility",
-    Default = Enum.KeyCode.RightControl,
-    Callback = function()
-        if Window and Window.Toggle then
-            Window:Toggle()
-        end
-    end
-})
-
-Sec_Preferences:AddButton({
-    Name = "Unload PinatHub Completely",
-    Callback = function()
-        Flags.Unloaded = true
-        if Window and Window.Destroy then
-            pcall(function() Window:Destroy() end)
-        end
-        Notify("PinatHub Unloaded Cleanly", 3)
-    end
-})
-
-local Sec_Profiles = RegSection(SubNav_Settings, "Profiles", Tab_Settings:AddSection("Config Profiles Manager"))
-Sec_Profiles:AddDropdown({
-    Name = "Select Active Profile",
-    Options = ListConfigs(),
-    Default = "Default",
-    Callback = function(v)
-        Flags.CurrentConfigName = v
-    end
-})
-
-Sec_Profiles:AddButton({
-    Name = "Save Current Profile to File",
-    Callback = function()
-        SaveConfig(Flags.CurrentConfigName)
-    end
-})
-
-Sec_Profiles:AddButton({
-    Name = "Load Selected Profile",
-    Callback = function()
-        LoadConfig(Flags.CurrentConfigName)
-    end
-})
-
-Sec_Profiles:AddButton({
-    Name = "Reset All Flags to Defaults",
-    Callback = function()
-        Flags.WalkSpeed = 16
-        Flags.JumpPower = 50
-        Flags.AutoReceptionist = false
-        Flags.LockHeartRate = false
-        Flags.LockedBPM = 70
-        Flags.AutoCleanRooms = false
-        Flags.AutoVacuumTrash = false
-        Flags.ESP_Anomaly = false
-        Flags.ESP_Human = false
-        Flags.ESP_Monster = false
-        Flags.ESP_Trash = false
-        Flags.FlyEnabled = false
-        Flags.Noclip = false
-        Notify("Reset All Flags to Default", 2)
-    end
-})
-
-local Sec_Optimization = RegSection(SubNav_Settings, "Optimization", Tab_Settings:AddSection("Performance & Lag Optimization"))
-Sec_Optimization:AddToggle({
-    Name = "Disable Screamer & Jumpscare Effects",
-    Default = false,
-    Callback = function(v)
-        Flags.DisableScreamerVFX = v
-        if v then Notify("Screamer Effects Disabled", 2) end
-    end
-})
-
-Sec_Optimization:AddToggle({
-    Name = "Disable Heavy Particle Emitters & Dust Lag",
-    Default = false,
-    Callback = function(v)
-        Flags.DisableParticleDust = v
-        if v then
-            pcall(function()
-                for _, emitter in ipairs(Workspace:GetDescendants()) do
-                    if emitter:IsA("ParticleEmitter") or emitter:IsA("Smoke") or emitter:IsA("Fire") then
-                        emitter.Enabled = false
-                    end
-                end
-            end)
-            Notify("Particle Emitters Disabled", 2)
-        end
-    end
-})
-
-local Sec_Information = RegSection(SubNav_Settings, "Information", Tab_Settings:AddSection("Information"))
-Sec_Information:AddParagraph({
-    Title = "PinatHub Night Shift Edition",
-    Content = "Comprehensive Automation, Telemetry, Security & Admin Suite\nEngineered with KingRua UI Library & Native Game Remotes\nClean interface with zero emojis, full SubNav category filtering, and real-time radar graphics.",
-    DefaultOpen = true
-})
-
--- ==============================================================================
--- Automation Background Engines
--- ==============================================================================
-
--- 1. Real-Time Telemetry & Radar Data Stream
+-- ========================================================================================
+-- 7. NATIVE AUTOMATION SYSTEMS & GAME LOOPS
+-- ========================================================================================
+
+-- AUTO RECEPTIONIST LOOP
 task.spawn(function()
-    local lastBpm = 72
-    local lastThreat = 999
-    while not Flags.Unloaded do
-        pcall(function()
-            local bpm = GetCurrentHeartRate()
-            lastBpm = bpm
-            if BPMGraph and BPMGraph.Push then
-                BPMGraph:Push(bpm)
-            end
-
-            local threat = GetNearestAnomalyDistance()
-            lastThreat = threat
-            if ThreatGraph and ThreatGraph.Push then
-                ThreatGraph:Push(threat)
-            end
-
-            local fps = 60
-            local dt = RunService.RenderStepped:Wait()
-            if dt > 0 then fps = math.clamp(math.floor(1 / dt), 1, 144) end
-            if FPSGraph and FPSGraph.Push then
-                FPSGraph:Push(fps)
-            end
-
-            if PanicProgressBar and PanicProgressBar.Set then
-                local panicPct = math.clamp(math.floor(((bpm - 60) / 80) * 100), 0, 100)
-                PanicProgressBar:Set(panicPct, 100)
-            end
-
-            if CleanProgressBar and CleanProgressBar.Set then
-                local trashCount = GetTrashCount()
-                local cleanPct = math.clamp(100 - (trashCount * 8), 10, 100)
-                CleanProgressBar:Set(cleanPct, 100)
-            end
-
-            if StoryProgressBar and StoryProgressBar.Set then
-                local day = GetCurrentStoryDay()
-                StoryProgressBar:Set(day, 19)
-            end
-
-            if ScannerCard and ScannerCard.SetDesc then
-                local guest, isAnomaly = FindCurrentGuestNPC()
-                if guest then
-                    local statusStr = isAnomaly and "IMPOSTOR ANOMALY DETECTED" or "VERIFIED HUMAN GUEST"
-                    ScannerCard:SetDesc("Guest: " .. guest.Name .. "\nVerification: " .. statusStr)
-                else
-                    ScannerCard:SetDesc("Guest: No Guest at Counter\nDesk Queue: Clear")
-                end
-            end
-
-            if ShiftCard and ShiftCard.SetDesc then
-                local day = GetCurrentStoryDay()
-                local trash = GetTrashCount()
-                ShiftCard:SetDesc("Shift Day: Day " .. tostring(day) .. " / 19\nPending Trash Chores: " .. tostring(trash))
-            end
-
-            if VitalsCard and VitalsCard.SetDesc then
-                local bpmState = (bpm < 85 and "Calm / Normal") or (bpm < 115 and "Elevated / Nervous") or "PANIC SPIKE"
-                VitalsCard:SetDesc("Heart Rate: " .. tostring(bpm) .. " BPM (" .. bpmState .. ")\nStress Lock: " .. (Flags.LockHeartRate and "Active" or "Disabled"))
-            end
-
-            if EngineCard and EngineCard.SetDesc then
-                local mem = 0
-                pcall(function() mem = math.floor(Stats:GetTotalMemoryUsageMb()) end)
-                EngineCard:SetDesc("FPS: " .. tostring(fps) .. " | Memory: " .. tostring(mem) .. " MB")
-            end
-        end)
-        task.wait(1)
-    end
-end)
-
--- 2. Receptionist Impostor AI Automation Loop
-task.spawn(function()
-    while not Flags.Unloaded do
+    while true do
+        task.wait(Flags.ReceptionDelay)
         if Flags.AutoReceptionist then
             pcall(function()
-                local guest, isAnomaly = FindCurrentGuestNPC()
+                local guest = FindCurrentGuestNPC()
+                local comp = FindReceptionComputer()
+                local deskPos = comp and comp.Position or Vector3.new(-12, 4, 35)
+
                 if guest then
-                    if Flags.AutoOpenIDCard then
-                        FireEvent("ShowIdentityCardEvent")
+                    -- Nudge player close to reception desk so server proximity check passes
+                    if Flags.AutoNudgeToDesk and Root and (Root.Position - deskPos).Magnitude > 18 then
+                        Root.CFrame = CFrame.new(deskPos + Vector3.new(0, 3, 4))
+                        task.wait(0.2)
                     end
-                    if Flags.AutoSkipDialogue then
-                        FireEvent("DialogSkipRequestEvent", true)
-                    end
-                    task.wait(Flags.ReceptionDelay or 0.5)
-                    if isAnomaly then
-                        FireEvent("ReceptionistActionEvent", "Reject")
+
+                    local isAnomaly = guest:GetAttribute("IsAnomaly") == true
+                    local cannotReject = guest:GetAttribute("CannotReject") == true
+
+                    if isAnomaly and not cannotReject then
+                        -- Reject Anomaly
+                        local rem = GetRemote("ReceptionistActionEvent")
+                        if rem then
+                            rem:FireServer("Reject")
+                        else
+                            RequestAdminAction("skipCustomer")
+                        end
                     else
-                        FireEvent("ReceptionistActionEvent", "Register")
+                        -- Register Human Guest
+                        local rem = GetRemote("ReceptionistActionEvent")
+                        if rem then
+                            rem:FireServer("Register")
+                        end
                     end
-                    task.wait(1.5)
+
+                    -- Auto skip dialogue
+                    if Flags.AutoSkipDialogue then
+                        FireRemote("DialogSkipRequestEvent", true, guest:GetAttribute("DialogId"), 1)
+                    end
                 end
             end)
         end
+    end
+end)
+
+-- AUTO CLEANING & TRASH CHORES
+task.spawn(function()
+    while true do
+        task.wait(0.8)
+        if Flags.AutoCleanTrash then
+            pcall(function()
+                -- Step 1: Scan for all ProximityPrompts in cleaning items
+                local cleanedAny = false
+                for _, desc in ipairs(Workspace:GetDescendants()) do
+                    if desc:IsA("ProximityPrompt") and desc.Enabled then
+                        local model = desc:FindFirstAncestorOfClass("Model") or desc.Parent
+                        local isTrash = (model and model:GetAttribute("IsSpawnedCleaningItem") == true)
+                            or string.find(string.lower(desc.ActionText), "bersihkan")
+                            or string.find(string.lower(desc.ActionText), "ambil")
+                            or string.find(string.lower(desc.ActionText), "sapu")
+                            or string.find(string.lower(desc.ActionText), "pel")
+                            or string.find(string.lower(desc.ObjectText), "sampah")
+
+                        if isTrash and Root then
+                            local promptPart = desc.Parent:IsA("BasePart") and desc.Parent or (model and (model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")))
+                            if promptPart then
+                                -- Check required tool
+                                local promptName = string.lower(desc.Name)
+                                local trashType = model and model:GetAttribute("TrashType") or ""
+                                local needTool = nil
+
+                                if trashType == "Dry" or string.find(promptName, "sapu") then
+                                    needTool = "sapu"
+                                elseif trashType == "Wet" or string.find(promptName, "pel") then
+                                    needTool = "pel"
+                                end
+
+                                -- Equip tool from Backpack if needed
+                                if needTool and LocalPlayer and LocalPlayer.Backpack then
+                                    local tool = LocalPlayer.Backpack:FindFirstChild(needTool)
+                                    if tool and Humanoid then
+                                        Humanoid:EquipTool(tool)
+                                        task.wait(0.15)
+                                    end
+                                end
+
+                                -- Trigger prompt
+                                if fireproximityprompt then
+                                    fireproximityprompt(desc, 0)
+                                elseif desc.InputHoldBegin then
+                                    desc:InputHoldBegin()
+                                    task.wait(desc.HoldDuration + 0.05)
+                                    desc:InputHoldEnd()
+                                end
+                                cleanedAny = true
+                            end
+                        end
+                    end
+                end
+
+                -- Server-wide cleanup fallback
+                if not cleanedAny then
+                    RequestAdminAction("cleanAllRooms")
+                end
+            end)
+        end
+
+        -- Auto Solve Wires
+        if Flags.AutoSolveWires then
+            pcall(function()
+                FireRemote("WireConnectedEvent", 1)
+                FireRemote("WireConnectedEvent", 2)
+                FireRemote("WireConnectedEvent", 3)
+                FireRemote("WireConnectedEvent", 4)
+                FireRemote("WireSolveResultEvent", true)
+                if WireMinigameClient and WireMinigameClient.Close then
+                    WireMinigameClient.Close()
+                end
+            end)
+        end
+
+        -- Auto Clear Obstacles
+        if Flags.AutoClearObstacles then
+            pcall(function()
+                RequestAdminAction("clearObstacles")
+            end)
+        end
+    end
+end)
+
+-- HEART RATE LOCK & ENERGY DRINK STABILIZER
+task.spawn(function()
+    while true do
         task.wait(0.5)
-    end
-end)
-
--- 3. Heart Rate Lock & Stress Reset Loop
-task.spawn(function()
-    while not Flags.Unloaded do
-        pcall(function()
-            if Flags.LockHeartRate then
-                RequestAdmin("setHeartRate", Flags.LockedBPM or 70)
-            end
-            if Flags.AutoResetPanic then
-                local bpm = GetCurrentHeartRate()
-                if bpm > (Flags.PanicThreshold or 110) then
-                    RequestAdmin("resetHeartRate")
-                end
-            end
-            if Flags.AutoDrinkEnergy then
-                local bpm = GetCurrentHeartRate()
-                if bpm > (Flags.PanicThreshold or 110) then
-                    FireEvent("ConsumeItemEvent", "EnergyDrink")
-                end
-            end
-            if Flags.RemovePanicEffects then
-                local vfx = Camera and Camera:FindFirstChild("HeartRatePanicEffectsPre")
-                if vfx then vfx:Destroy() end
-            end
-            if Flags.MuteHeartbeat then
-                for _, s in ipairs(Workspace:GetDescendants()) do
-                    if s:IsA("Sound") and (s.Name:find("Heart") or s.Name:find("Pulse")) then
-                        s.Volume = 0
-                    end
-                end
-            end
-        end)
-        task.wait(0.2)
-    end
-end)
-
--- 4. CCTV VHS Glitch Remover Loop
-task.spawn(function()
-    while not Flags.Unloaded do
-        if Flags.RemoveVhsNoise then
+        if Flags.LockHeartRate then
             pcall(function()
-                for _, ui in ipairs(Players.LocalPlayer:WaitForChild("PlayerGui"):GetDescendants()) do
-                    if ui.Name:find("Vhs") or ui.Name:find("Noise") or ui.Name:find("Glitch") then
-                        if ui:IsA("GuiObject") then ui.Visible = false end
+                if HeartRateSlice then
+                    if HeartRateSlice.setHeartRate then
+                        HeartRateSlice.setHeartRate(Flags.LockedBPM)
                     end
+                    if HeartRateSlice.clearNotifications then
+                        HeartRateSlice.clearNotifications()
+                    end
+                end
+                if LocalPlayer then
+                    LocalPlayer:SetAttribute("HeartRate", Flags.LockedBPM)
+                end
+                -- Server reset
+                if NetworkerClients.Admin then
+                    RequestAdminAction("setHeartRate", LocalPlayer.UserId, Flags.LockedBPM)
                 end
             end)
         end
-        task.wait(1)
-    end
-end)
 
--- 5. Housekeeping Auto Clean & Vacuum Loop
-task.spawn(function()
-    while not Flags.Unloaded do
-        if Flags.AutoCleanRooms then
+        if Flags.AutoDrinkEnergy then
             pcall(function()
-                RequestAdmin("cleanAllRooms")
-            end)
-        end
-        if Flags.AutoVacuumTrash then
-            pcall(function()
-                local tagged = CollectionService:GetTagged("ActiveCleaningTrash")
-                if Root and #tagged > 0 then
-                    for _, trash in ipairs(tagged) do
-                        local prompt = trash:FindFirstChildOfClass("ProximityPrompt")
-                        if prompt then
-                            fireproximityprompt(prompt, 0)
+                local curBpm = GetCurrentHeartRate()
+                if curBpm >= Flags.PanicThreshold then
+                    if LocalPlayer and LocalPlayer.Backpack then
+                        local drink = LocalPlayer.Backpack:FindFirstChild("energyDrink")
+                        if drink and Humanoid then
+                            Humanoid:EquipTool(drink)
+                            task.wait(0.2)
+                            if drink.Activate then drink:Activate() end
                         end
                     end
                 end
             end)
         end
-        if Flags.InstantWireSolver then
-            pcall(function()
-                for i = 1, 4 do
-                    FireEvent("WireConnectedEvent", i)
-                end
-                FireEvent("WireSolveResultEvent", true)
-            end)
-        end
-        task.wait(1)
-    end
-end)
 
--- 6. Proximity Prompt Enhancer Loop
-task.spawn(function()
-    while not Flags.Unloaded do
-        if Flags.InstantInteract then
+        if Flags.MuteHeartbeat then
             pcall(function()
-                for _, p in ipairs(Workspace:GetDescendants()) do
-                    if p:IsA("ProximityPrompt") then
-                        p.HoldDuration = 0
-                        p.MaxActivationDistance = 50
+                for _, s in ipairs(SoundService:GetDescendants()) do
+                    if s:IsA("Sound") and (string.find(string.lower(s.Name), "heart") or string.find(string.lower(s.Name), "panic")) then
+                        s.Volume = 0
                     end
                 end
             end)
         end
-        task.wait(1.5)
     end
 end)
 
--- 7. Auto Microwave Cooking Loop
+-- COMBAT & ANOMALY DEFENSE
 task.spawn(function()
-    while not Flags.Unloaded do
-        if Flags.AutoMicrowave then
+    while true do
+        task.wait(0.3)
+        if Flags.AutoRevolverAimbot and Root then
             pcall(function()
-                FireEvent("StartCookingEvent", "Microwave")
-                task.wait(3)
-                FireEvent("CookingFinishedEvent", "CookedMeal")
+                local nearestNpc, nearestDist = nil, 60
+                for _, item in ipairs(Workspace:GetChildren()) do
+                    if item:IsA("Model") and item ~= Character then
+                        if item:GetAttribute("IsAnomaly") == true or item:GetAttribute("IsObstacle") == true then
+                            local part = item:FindFirstChild("HumanoidRootPart") or item:FindFirstChild("Head") or item.PrimaryPart
+                            if part then
+                                local d = (part.Position - Root.Position).Magnitude
+                                if d < nearestDist then
+                                    nearestDist = d
+                                    nearestNpc = part
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if nearestNpc then
+                    -- Equip revolver if in backpack
+                    if LocalPlayer and LocalPlayer.Backpack then
+                        local rev = LocalPlayer.Backpack:FindFirstChild("revolver")
+                        if rev and Humanoid then Humanoid:EquipTool(rev) end
+                    end
+                    -- Fire Revolver
+                    if CombatSystemClient and CombatSystemClient.fireRevolverFromButton then
+                        CombatSystemClient.fireRevolverFromButton()
+                    end
+                    if NetworkerClients.Combat then
+                        NetworkerClients.Combat:fire("FireRevolver", nearestNpc.Position)
+                    end
+                end
             end)
         end
-        task.wait(2)
-    end
-end)
 
--- 8. Combat Auto Revolver & Melee Loop
-task.spawn(function()
-    while not Flags.Unloaded do
-        if Flags.AutoFireRevolver then
+        if Flags.AutoMeleeAura and Root then
             pcall(function()
-                if CombatSystemClient and CombatSystemClient.fire and Root then
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("Model") and obj ~= Character then
-                            if obj:GetAttribute("IsAnomaly") == true or obj.Name:find("Slender") or obj.Name:find("Monster") then
-                                local pos = obj:GetPivot().Position
-                                local dist = (pos - Root.Position).Magnitude
-                                if dist <= (Flags.CombatRange or 40) then
-                                    CombatSystemClient:fire("FireRevolver", pos)
-                                    if not Flags.RapidFire then break end
+                for _, item in ipairs(Workspace:GetChildren()) do
+                    if item:IsA("Model") and item ~= Character then
+                        if item:GetAttribute("IsAnomaly") == true or item:GetAttribute("IsObstacle") == true then
+                            local part = item:FindFirstChild("HumanoidRootPart") or item.PrimaryPart
+                            if part and (part.Position - Root.Position).Magnitude <= Flags.MeleeAuraDistance then
+                                if NetworkerClients.Combat then
+                                    NetworkerClients.Combat:fire("PerformSwing")
+                                    NetworkerClients.Combat:fire("HitNPC", item)
                                 end
                             end
                         end
@@ -2178,138 +1521,1025 @@ task.spawn(function()
                 end
             end)
         end
-        if Flags.AutoMeleeSwing then
+    end
+end)
+
+-- CCTV ENHANCEMENTS
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if Flags.RemoveVhsNoise then
             pcall(function()
-                if CombatSystemClient and CombatSystemClient.fire then
-                    CombatSystemClient:fire("PerformSwing")
+                local pg = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
+                if pg then
+                    for _, g in ipairs(pg:GetChildren()) do
+                        if string.find(string.lower(g.Name), "vhs") or string.find(string.lower(g.Name), "noise") or string.find(string.lower(g.Name), "static") then
+                            if g:IsA("ScreenGui") then g.Enabled = false end
+                        end
+                    end
                 end
             end)
         end
-        task.wait(Flags.RapidFire and 0.15 or 0.5)
     end
 end)
 
--- 9. ESP & Highlights Engine
-local ESPFolder = Instance.new("Folder")
-ESPFolder.Name = "PinatHub_HotelESP"
-ESPFolder.Parent = Workspace
-
-local function CreateHighlight(target, color)
-    if not target or not target:IsA("Model") then return end
-    local existing = target:FindFirstChild("PinatHighlight")
-    if not existing then
-        local h = Instance.new("Highlight")
-        h.Name = "PinatHighlight"
-        h.FillColor = color
-        h.OutlineColor = Color3.fromRGB(255, 255, 255)
-        h.FillTransparency = 0.5
-        h.OutlineTransparency = 0
-        h.Adornee = target
-        h.Parent = target
-    else
-        existing.FillColor = color
-        existing.Enabled = true
+-- MOVEMENT ENGINE (WalkSpeed, JumpPower, Fly, Noclip)
+RunService.RenderStepped:Connect(function()
+    if Character and Humanoid then
+        if Flags.WalkSpeed and Flags.WalkSpeed ~= 16 then
+            Humanoid.WalkSpeed = Flags.WalkSpeed
+        end
+        if Flags.JumpPower and Flags.JumpPower ~= 50 then
+            Humanoid.UseJumpPower = true
+            Humanoid.JumpPower = Flags.JumpPower
+        end
     end
-end
-
-task.spawn(function()
-    while not Flags.Unloaded do
-        pcall(function()
-            for _, obj in ipairs(Workspace:GetDescendants()) do
-                if obj:IsA("Model") and obj ~= Character then
-                    local isAnomaly = obj:GetAttribute("IsAnomaly")
-                    if isAnomaly == true and Flags.ESP_Anomaly then
-                        CreateHighlight(obj, Color3.fromRGB(255, 50, 50))
-                    elseif isAnomaly == false and Flags.ESP_Human then
-                        CreateHighlight(obj, Color3.fromRGB(50, 255, 50))
-                    elseif (obj.Name:find("Slender") or obj.Name:find("Monster")) and Flags.ESP_Monster then
-                        CreateHighlight(obj, Color3.fromRGB(180, 50, 255))
-                    end
-                end
+    if Flags.Noclip and Character then
+        for _, part in ipairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
             end
-            if Flags.ESP_Players then
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer and p.Character then
-                        CreateHighlight(p.Character, Color3.fromRGB(50, 150, 255))
-                    end
-                end
-            end
-            if Flags.ESP_Trash then
-                for _, trash in ipairs(CollectionService:GetTagged("ActiveCleaningTrash")) do
-                    if trash:IsA("Model") then
-                        CreateHighlight(trash, Color3.fromRGB(255, 255, 50))
-                    end
-                end
-            end
-        end)
-        task.wait(1.5)
+        end
     end
 end)
 
--- 10. Locomotion, Noclip & Flight Engine
 UserInputService.JumpRequest:Connect(function()
-    if Flags.InfJump and Humanoid then
+    if Flags.InfiniteJump and Humanoid then
         Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
-RunService.Stepped:Connect(function()
-    if Flags.Noclip and Character then
-        for _, p in ipairs(Character:GetDescendants()) do
-            if p:IsA("BasePart") then
-                p.CanCollide = false
-            end
-        end
-    end
-    if Flags.AntiVoid and Root then
-        if Root.Position.Y < -50 then
-            Root.CFrame = CFrame.new(12, 5, -45)
-        end
-    end
-end)
+-- ========================================================================================
+-- 8. HIGH-ACCURACY ESP RENDER ENGINE
+-- ========================================================================================
+local ESPFolder = Instance.new("Folder")
+ESPFolder.Name = "PinatHub_ESP_AnomalyHotel"
+pcall(function() ESPFolder.Parent = Workspace end)
 
-task.spawn(function()
-    local flyBodyPos, flyBodyGyro
-    while not Flags.Unloaded do
-        if Flags.FlyEnabled and Root then
-            if not flyBodyPos then
-                flyBodyPos = Instance.new("BodyPosition")
-                flyBodyPos.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-                flyBodyPos.Position = Root.Position
-                flyBodyPos.Parent = Root
-            end
-            if not flyBodyGyro then
-                flyBodyGyro = Instance.new("BodyGyro")
-                flyBodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
-                flyBodyGyro.CFrame = Root.CFrame
-                flyBodyGyro.Parent = Root
-            end
-            local moveDir = Vector3.new(0, 0, 0)
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-            flyBodyPos.Position = flyBodyPos.Position + (moveDir * ((Flags.FlySpeed or 50) / 10))
-            flyBodyGyro.CFrame = Camera.CFrame
-        else
-            if flyBodyPos then flyBodyPos:Destroy(); flyBodyPos = nil end
-            if flyBodyGyro then flyBodyGyro:Destroy(); flyBodyGyro = nil end
+local function ApplyHighlight(inst, color, fillTrans, outlineCol, tagText)
+    if not inst or not inst.Parent then return end
+    local hl = inst:FindFirstChild("Pinat_ESP_HL")
+    if not hl then
+        hl = Instance.new("Highlight")
+        hl.Name = "Pinat_ESP_HL"
+        hl.Adornee = inst
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        hl.Parent = inst
+    end
+    hl.FillColor = color
+    hl.OutlineColor = outlineCol or color
+    hl.FillTransparency = fillTrans or 0.45
+    hl.OutlineTransparency = 0
+
+    local head = inst:FindFirstChild("Head") or (inst:IsA("BasePart") and inst) or (inst.PrimaryPart)
+    if head and tagText then
+        local bb = head:FindFirstChild("Pinat_ESP_Tag")
+        if not bb then
+            bb = Instance.new("BillboardGui")
+            bb.Name = "Pinat_ESP_Tag"
+            bb.Adornee = head
+            bb.Size = UDim2.fromOffset(130, 26)
+            bb.StudsOffset = Vector3.new(0, 2.5, 0)
+            bb.AlwaysOnTop = true
+            bb.Parent = head
+
+            local lbl = Instance.new("TextLabel")
+            lbl.Name = "TagLbl"
+            lbl.Size = UDim2.fromScale(1, 1)
+            lbl.BackgroundTransparency = 1
+            lbl.Font = Enum.Font.GothamBold
+            lbl.TextSize = 11
+            lbl.TextColor3 = color
+            lbl.TextStrokeTransparency = 0.2
+            lbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            lbl.Parent = bb
         end
-        RunService.RenderStepped:Wait()
+        local lbl = bb:FindFirstChild("TagLbl")
+        if lbl then lbl.Text = tagText end
     end
-end)
-
--- Select Tab 1 (Analytics) as Initial Focus
-pcall(function()
-    if Window and Window.SelectTab then
-        Window:SelectTab(1)
-    end
-end)
-
-Notify("PinatHub Initialized Successfully", 3)
-return Window
 end
 
-return __PinatHub_AnomalyHotel_Init__()
+local function ClearHighlight(inst)
+    if not inst then return end
+    local hl = inst:FindFirstChild("Pinat_ESP_HL")
+    if hl then hl:Destroy() end
+    local head = inst:FindFirstChild("Head") or inst.PrimaryPart or inst
+    if head then
+        local bb = head:FindFirstChild("Pinat_ESP_Tag")
+        if bb then bb:Destroy() end
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        pcall(function()
+            for _, item in ipairs(Workspace:GetChildren()) do
+                if item:IsA("Model") and item ~= Character and item:FindFirstChildOfClass("Humanoid") then
+                    local isAnomaly = item:GetAttribute("IsAnomaly") == true
+                    local isObstacle = item:GetAttribute("IsObstacle") == true or string.find(item.Name, "Kunti") or string.find(item.Name, "Slenderman")
+
+                    if isAnomaly and Flags.ESPAnomaly then
+                        ApplyHighlight(item, Color3.fromRGB(255, 45, 60), 0.4, Color3.fromRGB(255, 120, 140), "⚠ ANOMALI (IMPOSTOR)")
+                    elseif isObstacle and Flags.ESPObstacle then
+                        ApplyHighlight(item, Color3.fromRGB(180, 50, 255), 0.35, Color3.fromRGB(220, 120, 255), "☠ MONSTER / HANTU")
+                    elseif not isAnomaly and Flags.ESPHuman then
+                        ApplyHighlight(item, Color3.fromRGB(50, 230, 110), 0.55, Color3.fromRGB(120, 255, 170), "✔ TAMU HOTEL (MANUSIA)")
+                    else
+                        ClearHighlight(item)
+                    end
+                end
+            end
+
+            -- Trash ESP
+            if Flags.ESPTrash then
+                for _, desc in ipairs(Workspace:GetDescendants()) do
+                    if desc:GetAttribute("IsSpawnedCleaningItem") == true and desc.Parent then
+                        local tType = desc:GetAttribute("TrashType") or "Sampah"
+                        ApplyHighlight(desc, Color3.fromRGB(255, 200, 40), 0.5, Color3.fromRGB(255, 240, 100), "🧹 " .. tType)
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- ========================================================================================
+-- 9. UI CREATION & ALL 12 MASTER TABS
+-- ========================================================================================
+local Window = KingRua:CreateWindow({
+    Title = "PinatHub",
+    SubTitle = "Hotel Anomaly v2.0",
+    TabWidth = 150
+})
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 1: 📊 LIVE ANALYTICS (Guarantee Zero 0/nil)
+-- ----------------------------------------------------------------------------------------
+local TabAnalytics = Window:CreateTab({ Title = "Analytics", Icon = "📊" })
+do
+    TabAnalytics:AddSection("Live Hotel Telemetry & Bio-Monitors")
+
+    local GraphBPM = TabAnalytics:AddGraph({
+        Title = "Detak Jantung (BPM) Live Stream",
+        Height = 75,
+        Min = 40,
+        Max = 180,
+        Color = Color3.fromRGB(255, 75, 95)
+    })
+
+    local GraphThreat = TabAnalytics:AddGraph({
+        Title = "Jarak Ancaman Anomali (Studs)",
+        Height = 70,
+        Min = 0,
+        Max = 120,
+        Color = Color3.fromRGB(255, 160, 40)
+    })
+
+    local GraphFPS = TabAnalytics:AddGraph({
+        Title = "FPS Engine & Latensi Klien",
+        Height = 65,
+        Min = 0,
+        Max = 120,
+        Color = Color3.fromRGB(60, 210, 140)
+    })
+
+    TabAnalytics:AddSection("Status Shift & Vital Pengguna")
+
+    local BarPanic = TabAnalytics:AddProgressBar({
+        Title = "Tingkat Stres / Panik Mental",
+        Default = 20,
+        Max = 100,
+        Color = Color3.fromRGB(255, 80, 80)
+    })
+
+    local BarShift = TabAnalytics:AddProgressBar({
+        Title = "Progres Hari Shift Resepsionis",
+        Default = 1,
+        Max = 19,
+        Color = Color3.fromRGB(80, 160, 255)
+    })
+
+    local BarChore = TabAnalytics:AddProgressBar({
+        Title = "Tugas Kebersihan Kamar Aktif",
+        Default = 0,
+        Max = 10,
+        Color = Color3.fromRGB(240, 190, 50)
+    })
+
+    TabAnalytics:AddSection("Kartu Telemetri Meja Depan")
+
+    local CardFrontDesk = TabAnalytics:AddParagraph({
+        Title = "Scanner Meja Resepsionis",
+        Content = "Memuat data tamu hotel..."
+    })
+
+    local CardShift = TabAnalytics:AddParagraph({
+        Title = "Status Hari & Kamar Hotel",
+        Content = "Memuat data shift..."
+    })
+
+    local CardVitals = TabAnalytics:AddParagraph({
+        Title = "Kondisi Fisik & Mental Karakter",
+        Content = "Memuat data vital..."
+    })
+
+    local CardEngine = TabAnalytics:AddParagraph({
+        Title = "Statistik Jaringan & Lingkungan",
+        Content = "Memuat data engine..."
+    })
+
+    TabAnalytics:AddSection("Optimasi Render & Grafik")
+
+    TabAnalytics:AddToggle({
+        Title = "Fullbright (Terang Tanpa Bayangan)",
+        Default = Flags.Fullbright,
+        Callback = function(v)
+            Flags.Fullbright = v
+            if v then
+                Lighting.Brightness = 2
+                Lighting.ClockTime = 14
+                Lighting.FogEnd = 100000
+                Lighting.GlobalShadows = false
+            else
+                Lighting.Brightness = 1
+                Lighting.ClockTime = 0
+                Lighting.GlobalShadows = true
+            end
+        end
+    })
+
+    TabAnalytics:AddToggle({
+        Title = "Potato Mode (Anti-Lag Booster)",
+        Default = Flags.PotatoMode,
+        Callback = function(v)
+            Flags.PotatoMode = v
+            if v then
+                settings().Rendering.QualityLevel = 1
+                for _, p in ipairs(Workspace:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        p.Material = Enum.Material.SmoothPlastic
+                    end
+                end
+            end
+        end
+    })
+
+    TabAnalytics:AddSlider({
+        Title = "Field Of View (FOV Kamera)",
+        Min = 50,
+        Max = 120,
+        Default = 70,
+        Callback = function(v)
+            Flags.CustomFOV = v
+            if Camera then Camera.FieldOfView = v end
+        end
+    })
+
+    -- Live Telemetry Streaming Loop
+    task.spawn(function()
+        local frameCount = 0
+        local lastTime = tick()
+        local curFps = 60
+
+        RunService.RenderStepped:Connect(function()
+            frameCount = frameCount + 1
+            local now = tick()
+            if now - lastTime >= 1 then
+                curFps = frameCount / (now - lastTime)
+                frameCount = 0
+                lastTime = now
+            end
+        end)
+
+        while true do
+            task.wait(0.4)
+            pcall(function()
+                local bpm = GetCurrentHeartRate()
+                local maxBpm = GetMaxHeartRate()
+                local day = GetCurrentStoryDay()
+                local threatDist = GetNearestAnomalyDistance()
+                local guest = FindCurrentGuestNPC()
+                local trashCount = GetCleaningStatus()
+
+                -- Push graphs
+                GraphBPM:Push(bpm)
+                GraphFPS:Push(curFps)
+                GraphThreat:Push(math.clamp(threatDist, 0, 120))
+
+                -- Update Bars
+                local panicPct = math.clamp(math.floor(((bpm - 60) / (maxBpm - 60)) * 100), 0, 100)
+                BarPanic:Set(panicPct, 100)
+                BarShift:Set(day, 19)
+                BarChore:Set(trashCount, 10)
+
+                -- Update Cards
+                if guest then
+                    local isAnom = guest:GetAttribute("IsAnomaly") == true
+                    local guestName = guest.Name or "Tamu Hotel"
+                    local cannotRej = guest:GetAttribute("CannotReject") == true
+                    CardFrontDesk:SetDesc(string.format(
+                        "Tamu di Meja: %s\nStatus: %s\nBisa Ditolak: %s\nVerifikasi: 100%% Akurat (Native Module Attribute)",
+                        guestName,
+                        isAnom and "🔴 ANOMALI / IMPOSTOR" or "🟢 MANUSIA ASLI",
+                        cannotRej and "TIDAK (Wajib Diterima)" or "YA"
+                    ))
+                else
+                    CardFrontDesk:SetDesc("Tamu di Meja: Tidak ada tamu di depan meja resepsionis.\nStatus: Menunggu kedatangan tamu berikutnya...")
+                end
+
+                CardShift:SetDesc(string.format(
+                    "Hari Berjalan: Hari ke-%d / 19\nSisa Sampah / Kotoran: %d item\nPemadaman Listrik: %s\nMode: Shift Malam Normal",
+                    day,
+                    trashCount,
+                    Workspace:GetAttribute("IsBlackout") == true and "🔴 YA (Mati Lampu)" or "🟢 TIDAK (Listrik Nyala)"
+                ))
+
+                CardVitals:SetDesc(string.format(
+                    "Detak Jantung: %d BPM (Max: %d BPM)\nStatus Mental: %s\nKecepatan Gerak: %d studs/detik\nKesehatan Tubuh: %s",
+                    bpm,
+                    maxBpm,
+                    bpm > 115 and "PANIK BERLEBIHAN" or (bpm > 85 and "WASPADA" or "TENANG / NORMAL"),
+                    Humanoid and math.floor(Humanoid.WalkSpeed) or 16,
+                    Humanoid and string.format("%d / %d HP", math.floor(Humanoid.Health), math.floor(Humanoid.MaxHealth)) or "100 / 100 HP"
+                ))
+
+                CardEngine:SetDesc(string.format(
+                    "Engine Frame Rate: %.1f FPS\nAncaman Terdekat: %.1f studs\nStatus Jaringan: Terhubung ke Server (Packages.Networker)\nPing Latensi: %.1f ms",
+                    curFps,
+                    threatDist,
+                    Stats.Network.ServerStatsItem["Data Ping"]:GetValue() or 45
+                ))
+            end)
+        end
+    end)
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 2: 🛎️ RECEPTIONIST
+-- ----------------------------------------------------------------------------------------
+local TabReception = Window:CreateTab({ Title = "Resepsionis", Icon = "🛎️" })
+do
+    TabReception:AddSection("Otomatisasi Meja Resepsionis")
+
+    TabReception:AddToggle({
+        Title = "Auto Receptionist (Filter Anomali 100% Akurat)",
+        Default = Flags.AutoReceptionist,
+        Callback = function(v)
+            Flags.AutoReceptionist = v
+        end
+    })
+
+    TabReception:AddToggle({
+        Title = "Auto Dekati Meja (Bypass Radius 20 Studs)",
+        Default = Flags.AutoNudgeToDesk,
+        Callback = function(v)
+            Flags.AutoNudgeToDesk = v
+        end
+    })
+
+    TabReception:AddToggle({
+        Title = "Auto Lewati Dialog Tamu (DialogSkipRequest)",
+        Default = Flags.AutoSkipDialogue,
+        Callback = function(v)
+            Flags.AutoSkipDialogue = v
+        end
+    })
+
+    TabReception:AddSlider({
+        Title = "Jeda Waktu Pemeriksaan (Detik)",
+        Min = 0.2,
+        Max = 2.0,
+        Default = Flags.ReceptionDelay,
+        Callback = function(v)
+            Flags.ReceptionDelay = v
+        end
+    })
+
+    TabReception:AddSection("Aksi Manual Meja Depan")
+
+    TabReception:AddButton({
+        Title = "Paksa Terima Tamu Saat Ini (Register)",
+        Desc = "Menembakkan ReceptionistActionEvent:FireServer('Register')",
+        Callback = function()
+            FireRemote("ReceptionistActionEvent", "Register")
+        end
+    })
+
+    TabReception:AddButton({
+        Title = "Paksa Tolak Anomali Saat Ini (Reject)",
+        Desc = "Menembakkan ReceptionistActionEvent:FireServer('Reject')",
+        Callback = function()
+            FireRemote("ReceptionistActionEvent", "Reject")
+        end
+    })
+
+    TabReception:AddButton({
+        Title = "Buka / Tutup Buku Registrasi (RegistrationBook)",
+        Desc = "Memanggil RegistrationBookClient.toggle()",
+        Callback = function()
+            if RegistrationBookClient and RegistrationBookClient.toggle then
+                RegistrationBookClient.toggle()
+            else
+                FireRemote("OpenRegistrationBook")
+            end
+        end
+    })
+
+    TabReception:AddButton({
+        Title = "Skip Customer Meja (Admin Action)",
+        Desc = "Langsung mengganti tamu meja dengan antrean berikutnya",
+        Callback = function()
+            RequestAdminAction("skipCustomer")
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 3: 🧹 CLEANING & CHORES
+-- ----------------------------------------------------------------------------------------
+local TabCleaning = Window:CreateTab({ Title = "Kebersihan", Icon = "🧹" })
+do
+    TabCleaning:AddSection("Otomatisasi Pembersihan Kamar")
+
+    TabCleaning:AddToggle({
+        Title = "Auto Bersihkan Semua Sampah (Kamar & Lobi)",
+        Default = Flags.AutoCleanTrash,
+        Callback = function(v)
+            Flags.AutoCleanTrash = v
+        end
+    })
+
+    TabCleaning:AddToggle({
+        Title = "Auto Selesaikan Minigame Kabel Listrik",
+        Default = Flags.AutoSolveWires,
+        Callback = function(v)
+            Flags.AutoSolveWires = v
+        end
+    })
+
+    TabCleaning:AddToggle({
+        Title = "Auto Hapus Semua Monster / Hambatan",
+        Default = Flags.AutoClearObstacles,
+        Callback = function(v)
+            Flags.AutoClearObstacles = v
+        end
+    })
+
+    TabCleaning:AddSection("Eksekusi Instan")
+
+    TabCleaning:AddButton({
+        Title = "Bersihkan Semua Kamar Seketika (cleanAllRooms)",
+        Desc = "Memerintahkan server untuk membersihkan seluruh kamar hotel",
+        Callback = function()
+            RequestAdminAction("cleanAllRooms")
+        end
+    })
+
+    TabCleaning:AddButton({
+        Title = "Selesaikan Minigame Kabel Seketika (WireSolve)",
+        Desc = "Menembakkan sinyal koneksi wire 1..4 ke server",
+        Callback = function()
+            FireRemote("WireConnectedEvent", 1)
+            FireRemote("WireConnectedEvent", 2)
+            FireRemote("WireConnectedEvent", 3)
+            FireRemote("WireConnectedEvent", 4)
+            FireRemote("WireSolveResultEvent", true)
+            if WireMinigameClient and WireMinigameClient.Close then
+                WireMinigameClient.Close()
+            end
+        end
+    })
+
+    TabCleaning:AddButton({
+        Title = "Hapus Semua Hambatan & Monster (clearObstacles)",
+        Desc = "Menyingkirkan Kunti, Gendorowo, dan rintangan lainnya",
+        Callback = function()
+            RequestAdminAction("clearObstacles")
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 4: ❤️ HEART RATE & STRESS
+-- ----------------------------------------------------------------------------------------
+local TabHeart = Window:CreateTab({ Title = "Detak Jantung", Icon = "❤️" })
+do
+    TabHeart:AddSection("Stabilisasi Detak Jantung & Panik")
+
+    TabHeart:AddToggle({
+        Title = "Kunci Detak Jantung (Lock Heart Rate)",
+        Default = Flags.LockHeartRate,
+        Callback = function(v)
+            Flags.LockHeartRate = v
+        end
+    })
+
+    TabHeart:AddSlider({
+        Title = "Nilai BPM Terkunci",
+        Min = 40,
+        Max = 160,
+        Default = Flags.LockedBPM,
+        Callback = function(v)
+            Flags.LockedBPM = v
+        end
+    })
+
+    TabHeart:AddToggle({
+        Title = "Auto Minum Minuman Energi Saat Panik",
+        Default = Flags.AutoDrinkEnergy,
+        Callback = function(v)
+            Flags.AutoDrinkEnergy = v
+        end
+    })
+
+    TabHeart:AddSlider({
+        Title = "Ambang Batas Panik Minum Energi",
+        Min = 80,
+        Max = 150,
+        Default = Flags.PanicThreshold,
+        Callback = function(v)
+            Flags.PanicThreshold = v
+        end
+    })
+
+    TabHeart:AddToggle({
+        Title = "Bisukan Suara Detak Jantung & Panik",
+        Default = Flags.MuteHeartbeat,
+        Callback = function(v)
+            Flags.MuteHeartbeat = v
+        end
+    })
+
+    TabHeart:AddSection("Preset Cepat Detak Jantung")
+
+    TabHeart:AddButton({
+        Title = "Preset BPM Tenang (40 BPM)",
+        Callback = function()
+            Flags.LockedBPM = 40
+            RequestAdminAction("setHeartRate", LocalPlayer.UserId, 40)
+        end
+    })
+
+    TabHeart:AddButton({
+        Title = "Preset BPM Normal (70 BPM)",
+        Callback = function()
+            Flags.LockedBPM = 70
+            RequestAdminAction("setHeartRate", LocalPlayer.UserId, 70)
+        end
+    })
+
+    TabHeart:AddButton({
+        Title = "Reset Stres & Panik ke Server (resetHeartRate)",
+        Callback = function()
+            RequestAdminAction("resetHeartRate", LocalPlayer.UserId)
+            if HeartRateSlice and HeartRateSlice.clearNotifications then
+                HeartRateSlice.clearNotifications()
+            end
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 5: 📹 CCTV SECURITY
+-- ----------------------------------------------------------------------------------------
+local TabCctv = Window:CreateTab({ Title = "CCTV", Icon = "📹" })
+do
+    TabCctv:AddSection("Kontrol Kamera Keamanan")
+
+    TabCctv:AddDropdown({
+        Title = "Pilih Kamera CCTV",
+        Options = {"CAM 1: Meja Lobi", "CAM 2: Koridor Utama", "CAM 3: Dapur Restoran", "CAM 4: Lantai 2 Kamar", "CAM 5: Tangga Darurat", "CAM 6: Pintu Belakang"},
+        Default = "CAM 1: Meja Lobi",
+        Callback = function(opt)
+            local camNum = tonumber(string.match(opt, "%d+")) or 1
+            FireRemote("CctvCameraChanged", camNum)
+        end
+    })
+
+    TabCctv:AddToggle({
+        Title = "Hilangkan Efek Statis / VHS Distortion",
+        Default = Flags.RemoveVhsNoise,
+        Callback = function(v)
+            Flags.RemoveVhsNoise = v
+        end
+    })
+
+    TabCctv:AddSection("Keamanan & Uji Jumpscare")
+
+    TabCctv:AddButton({
+        Title = "Buka Monitor CCTV Secara Langsung",
+        Desc = "Mengakses monitor CCTV dari mana saja",
+        Callback = function()
+            FireRemote("CctvCameraChanged", 1)
+        end
+    })
+
+    TabCctv:AddButton({
+        Title = "Uji Coba Jumpscare CCTV (CCTVClient.TriggerJumpscare)",
+        Callback = function()
+            if CCTVClient and CCTVClient.TriggerJumpscare then
+                CCTVClient.TriggerJumpscare()
+            else
+                FireRemote("CctvJumpscareTriggered")
+            end
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 6: ⚔️ COMBAT & WEAPONS
+-- ----------------------------------------------------------------------------------------
+local TabCombat = Window:CreateTab({ Title = "Pertahanan", Icon = "⚔️" })
+do
+    TabCombat:AddSection("Sistem Pertahanan Terhadap Anomali")
+
+    TabCombat:AddToggle({
+        Title = "Auto Revolver Aimbot (Tembak Anomali Terdekat)",
+        Default = Flags.AutoRevolverAimbot,
+        Callback = function(v)
+            Flags.AutoRevolverAimbot = v
+        end
+    })
+
+    TabCombat:AddToggle({
+        Title = "Auto Melee Aura (Ayunan Tongkat Listrik / Senjata)",
+        Default = Flags.AutoMeleeAura,
+        Callback = function(v)
+            Flags.AutoMeleeAura = v
+        end
+    })
+
+    TabCombat:AddSlider({
+        Title = "Jarak Jangkauan Melee Aura (Studs)",
+        Min = 5,
+        Max = 30,
+        Default = Flags.MeleeAuraDistance,
+        Callback = function(v)
+            Flags.MeleeAuraDistance = v
+        end
+    })
+
+    TabCombat:AddSection("Aksi Senjata Klien")
+
+    TabCombat:AddButton({
+        Title = "Tembak Revolver Sekali (CombatSystemClient)",
+        Callback = function()
+            if CombatSystemClient and CombatSystemClient.fireRevolverFromButton then
+                CombatSystemClient.fireRevolverFromButton()
+            end
+        end
+    })
+
+    TabCombat:AddButton({
+        Title = "Ayunkan Senjata Melee (PerformSwing)",
+        Callback = function()
+            if NetworkerClients.Combat then
+                NetworkerClients.Combat:fire("PerformSwing")
+            end
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 7: 📅 STORY & SHIFTS
+-- ----------------------------------------------------------------------------------------
+local TabStory = Window:CreateTab({ Title = "Alur Cerita", Icon = "📅" })
+do
+    TabStory:AddSection("Navigasi Hari & Shift (1 - 19)")
+
+    local selDay = 1
+    TabStory:AddSlider({
+        Title = "Pilih Hari Cerita Target",
+        Min = 1,
+        Max = 19,
+        Default = 1,
+        Callback = function(v)
+            selDay = v
+        end
+    })
+
+    TabStory:AddButton({
+        Title = "Lompat ke Hari Target (setDay)",
+        Desc = "Mengubah hari alur cerita ke hari yang dipilih",
+        Callback = function()
+            RequestAdminAction("setDay", selDay)
+            if DayServiceClient and DayServiceClient.playDayTransition then
+                DayServiceClient:playDayTransition(selDay, false)
+            end
+        end
+    })
+
+    TabStory:AddButton({
+        Title = "Paksa Pindah ke Hari Berikutnya (forceNextDay)",
+        Callback = function()
+            RequestAdminAction("forceNextDay")
+        end
+    })
+
+    TabStory:AddButton({
+        Title = "Lewati Langkah Cerita Aktif (skipStoryStep)",
+        Callback = function()
+            RequestAdminAction("skipStoryStep")
+        end
+    })
+
+    TabStory:AddButton({
+        Title = "Selesaikan Semua Quest Aktif (completeActiveQuests)",
+        Callback = function()
+            RequestAdminAction("completeActiveQuests")
+        end
+    })
+
+    TabStory:AddSection("Event Horor Khusus")
+
+    TabStory:AddButton({
+        Title = "Panggil Event Slenderman (triggerSlenderman)",
+        Callback = function()
+            RequestAdminAction("triggerSlenderman")
+        end
+    })
+
+    TabStory:AddButton({
+        Title = "Mulai Pemadaman Listrik (startBlackout)",
+        Callback = function()
+            RequestAdminAction("startBlackout")
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 8: 🎒 INVENTORY & ITEMS
+-- ----------------------------------------------------------------------------------------
+local TabInventory = Window:CreateTab({ Title = "Inventaris", Icon = "🎒" })
+do
+    TabInventory:AddSection("Dapatkan Peralatan (giveItem)")
+
+    TabInventory:AddButton({
+        Title = "Dapatkan Senjata Api Revolver 🔫",
+        Callback = function()
+            RequestAdminAction("giveItem", LocalPlayer.UserId, "revolver", 1)
+        end
+    })
+
+    TabInventory:AddButton({
+        Title = "Dapatkan Tongkat Kejut Listrik (shockBaton) ⚡",
+        Callback = function()
+            RequestAdminAction("giveItem", LocalPlayer.UserId, "shockBaton", 1)
+        end
+    })
+
+    TabInventory:AddButton({
+        Title = "Dapatkan Minuman Energi (energyDrink x5) ⚡",
+        Callback = function()
+            RequestAdminAction("giveItem", LocalPlayer.UserId, "energyDrink", 5)
+        end
+    })
+
+    TabInventory:AddButton({
+        Title = "Dapatkan Sapu & Pel Pembersih (sapu, pel) 🧹",
+        Callback = function()
+            RequestAdminAction("giveItem", LocalPlayer.UserId, "sapu", 1)
+            RequestAdminAction("giveItem", LocalPlayer.UserId, "pel", 1)
+        end
+    })
+
+    TabInventory:AddButton({
+        Title = "Dapatkan Paket Semua Item Esensial (allEssential)",
+        Callback = function()
+            RequestAdminAction("giveItem", LocalPlayer.UserId, "allEssential", 1)
+        end
+    })
+
+    TabInventory:AddSection("Keuangan & Kelas")
+
+    TabInventory:AddButton({
+        Title = "Tambahkan Uang Kas $99,999 (giveCurrency)",
+        Callback = function()
+            RequestAdminAction("giveCurrency", LocalPlayer.UserId, 99999)
+        end
+    })
+
+    TabInventory:AddButton({
+        Title = "Buka Semua Kelas Pekerjaan (giveClass ALL)",
+        Callback = function()
+            RequestAdminAction("giveClass", LocalPlayer.UserId, "ALL", 1)
+        end
+    })
+
+    TabInventory:AddButton({
+        Title = "Setel Reputasi Hotel ke Bintang 5 Penuh",
+        Callback = function()
+            RequestAdminAction("setReputation", LocalPlayer.UserId, 5)
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 9: ⚡ LIFE & REVIVE
+-- ----------------------------------------------------------------------------------------
+local TabLife = Window:CreateTab({ Title = "Kehidupan", Icon = "⚡" })
+do
+    TabLife:AddSection("Penyelamatan & Hidup Kembali")
+
+    TabLife:AddButton({
+        Title = "Hidupkan Diri Sendiri Seketika (Revive Self)",
+        Desc = "Memanggil GameOverServiceClient.requestReviveSelf()",
+        Callback = function()
+            if GameOverServiceClient and GameOverServiceClient.requestReviveSelf then
+                GameOverServiceClient.requestReviveSelf()
+            end
+            if NetworkerClients.GameOver then
+                NetworkerClients.GameOver:fetch("requestReviveSelf")
+            end
+            RequestAdminAction("revivePlayer", LocalPlayer.UserId)
+        end
+    })
+
+    TabLife:AddButton({
+        Title = "Hidupkan Semua Pemain (Revive All)",
+        Desc = "Menghidupkan seluruh staf hotel yang gugur",
+        Callback = function()
+            if GameOverServiceClient and GameOverServiceClient.requestReviveAll then
+                GameOverServiceClient.requestReviveAll()
+            end
+            if NetworkerClients.GameOver then
+                NetworkerClients.GameOver:fetch("requestReviveAll")
+            end
+        end
+    })
+
+    TabLife:AddButton({
+        Title = "Ulangi Hari Saat Ini (requestRetry)",
+        Callback = function()
+            if GameOverServiceClient and GameOverServiceClient.requestRetry then
+                GameOverServiceClient.requestRetry()
+            end
+        end
+    })
+
+    TabLife:AddButton({
+        Title = "Kembali ke Lobi Utama (requestLobby)",
+        Callback = function()
+            if GameOverServiceClient and GameOverServiceClient.requestLobby then
+                GameOverServiceClient.requestLobby()
+            end
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 10: 👁️ ESP & VISUALS
+-- ----------------------------------------------------------------------------------------
+local TabEsp = Window:CreateTab({ Title = "Visual ESP", Icon = "👁️" })
+do
+    TabEsp:AddSection("Filter Tampilan ESP")
+
+    TabEsp:AddToggle({
+        Title = "ESP Anomali / Impostor (Merah Terang)",
+        Default = Flags.ESPAnomaly,
+        Callback = function(v)
+            Flags.ESPAnomaly = v
+        end
+    })
+
+    TabEsp:AddToggle({
+        Title = "ESP Tamu Manusia (Hijau Terang)",
+        Default = Flags.ESPHuman,
+        Callback = function(v)
+            Flags.ESPHuman = v
+        end
+    })
+
+    TabEsp:AddToggle({
+        Title = "ESP Monster / Rintangan (Ungu Terang)",
+        Default = Flags.ESPObstacle,
+        Callback = function(v)
+            Flags.ESPObstacle = v
+        end
+    })
+
+    TabEsp:AddToggle({
+        Title = "ESP Sampah & Kotoran Kamar (Kuning Emas)",
+        Default = Flags.ESPTrash,
+        Callback = function(v)
+            Flags.ESPTrash = v
+        end
+    })
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 11: 🚀 MOVEMENT & TELEPORTS
+-- ----------------------------------------------------------------------------------------
+local TabMove = Window:CreateTab({ Title = "Pergerakan", Icon = "🚀" })
+do
+    TabMove:AddSection("Kecepatan & Fisika Karakter")
+
+    TabMove:AddSlider({
+        Title = "Kecepatan Jalan (WalkSpeed)",
+        Min = 16,
+        Max = 120,
+        Default = Flags.WalkSpeed,
+        Callback = function(v)
+            Flags.WalkSpeed = v
+            if Humanoid then Humanoid.WalkSpeed = v end
+        end
+    })
+
+    TabMove:AddSlider({
+        Title = "Kekuatan Lompatan (JumpPower)",
+        Min = 50,
+        Max = 200,
+        Default = Flags.JumpPower,
+        Callback = function(v)
+            Flags.JumpPower = v
+            if Humanoid then
+                Humanoid.UseJumpPower = true
+                Humanoid.JumpPower = v
+            end
+        end
+    })
+
+    TabMove:AddToggle({
+        Title = "Lompatan Tanpa Batas (Infinite Jump)",
+        Default = Flags.InfiniteJump,
+        Callback = function(v)
+            Flags.InfiniteJump = v
+        end
+    })
+
+    TabMove:AddToggle({
+        Title = "Tembus Tembok (Noclip)",
+        Default = Flags.Noclip,
+        Callback = function(v)
+            Flags.Noclip = v
+        end
+    })
+
+    TabMove:AddSection("Teleportasi Titik Hotel")
+
+    for locName, cpos in pairs(TeleportLocations) do
+        TabMove:AddButton({
+            Title = "Teleport ke: " .. locName,
+            Callback = function()
+                if Root then
+                    Root.CFrame = CFrame.new(cpos + Vector3.new(0, 3, 0))
+                end
+            end
+        })
+    end
+end
+
+-- ----------------------------------------------------------------------------------------
+-- TAB 12: ⚙️ SETTINGS & CONFIG
+-- ----------------------------------------------------------------------------------------
+local TabSettings = Window:CreateTab({ Title = "Pengaturan", Icon = "⚙️" })
+do
+    TabSettings:AddSection("Manajemen Script & Konfigurasi")
+
+    TabSettings:AddButton({
+        Title = "Tutup / Buka Jendela GUI (Toggle Display)",
+        Desc = "Anda juga bisa menekan tombol X di pojok kanan atas",
+        Callback = function()
+            Window.MainFrame.Visible = not Window.MainFrame.Visible
+        end
+    })
+
+    TabSettings:AddButton({
+        Title = "Klaim Semua Hadiah Jurnal Anomali (claimAnomalyReward)",
+        Callback = function()
+            if NetworkerClients.Journal then
+                for i = 1, 20 do
+                    NetworkerClients.Journal:fetch("claimAnomalyReward", i)
+                end
+            end
+        end
+    })
+
+    TabSettings:AddButton({
+        Title = "Unload PinatHub Suite",
+        Desc = "Menutup antarmuka dan membersihkan memori script",
+        Callback = function()
+            if Window.ScreenGui then Window.ScreenGui:Destroy() end
+            if ESPFolder then ESPFolder:Destroy() end
+        end
+    })
+end
+
+-- Select Tab 1 on launch
+Window:SelectTab(1)
+
+-- Notification on launch
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "PinatHub Anomaly Hotel",
+        Text = "Berhasil dimuat! 12 Tab & Modul Game Lengkap Siap Digunakan.",
+        Duration = 5
+    })
+end)
+
+print("[PinatHub] Anomaly Hotel & Night Shift Simulator v2.0 successfully initialized.")
+
+end -- End of __PinatHub_AnomalyHotel_Init__
+
+__PinatHub_AnomalyHotel_Init__()
