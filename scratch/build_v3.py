@@ -1,4 +1,19 @@
---[[
+# -*- coding: utf-8 -*-
+import sys, os
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+out_path = r"c:\Users\personal\pinathublibraryREAL\intregation-pinathub-to-kingrua-library-1\anewgame_pinathub_v2.lua"
+
+print("Building rock-solid anewgame_pinathub_v2.lua with Native PinatHub Image IDs, zero emojis, and Luau typing fixes...")
+
+chunks = []
+
+def add(chunk):
+    chunks.append(chunk)
+
+# SECTION 1: HEADER & DEFENSIVE LOCALPLAYER
+add(r'''--[[
     PinatHub Premium - Anomaly Hotel & Night Shift Simulator
     Fully Grounded Native Game Modules & High-Precision Automation Suite
     Integrated with PinatHub / KingRua Dynamic Analytics UI Library
@@ -72,7 +87,10 @@ pcall(function()
         end
     end)
 end)
+''')
 
+# SECTION 2: SAFE SLICE & DATA MODULE RESOLUTION (No side-effects, no CharacterAdded calls)
+add(r'''
 -- ========================================================================================
 -- 1. SAFE NATIVE SLICE & DATA MODULES RESOLUTION (Pure State Tables, Zero Side Effects)
 -- ========================================================================================
@@ -192,7 +210,10 @@ local function FireRemote(name, ...)
     end
     return false
 end
+''')
 
+# SECTION 3: FLAGS & TELEPORT LOCATIONS
+add(r'''
 -- ========================================================================================
 -- 4. CENTRALIZED STATE & FLAGS
 -- ========================================================================================
@@ -265,7 +286,10 @@ local TeleportLocations = {
     ["Basement & Generator"] = Vector3.new(0, -18, -40),
     ["Pintu Masuk Utama"] = Vector3.new(0, 4, 90),
 }
+''')
 
+# SECTION 4: KINGRUA UI WITH NATIVE IMAGE ASSET IDS & INDICATOR
+add(r'''
 -- ========================================================================================
 -- 5. KINGRUA UI LIBRARY INTEGRATION (With Native PinatHub Image Labels & Lucide Asset IDs)
 -- ========================================================================================
@@ -1189,7 +1213,10 @@ do
         return WindowObj
     end
 end
+''')
 
+# SECTION 5: DEFENSIVE TELEMETRY ENGINE
+add(r'''
 -- ========================================================================================
 -- 6. DEFENSIVE TELEMETRY ENGINE (Zero Nil, Zero Error, Zero 0/nil Guaranteed)
 -- ========================================================================================
@@ -1305,7 +1332,10 @@ local function GetCleaningStatus()
     end
     return math.max(0, totalTrash)
 end
+''')
 
+# SECTION 6: AUTOMATION SYSTEMS & GAME LOOPS (Fix fireproximityprompt argument count)
+add(r'''
 -- ========================================================================================
 -- 7. NATIVE AUTOMATION SYSTEMS & GAME LOOPS
 -- ========================================================================================
@@ -1585,7 +1615,10 @@ UserInputService.JumpRequest:Connect(function()
         Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
+''')
 
+# SECTION 7: ESP SYSTEM (No emojis)
+add(r'''
 -- ========================================================================================
 -- 8. HIGH-ACCURACY ESP RENDER ENGINE (Clean Tags, Zero Emojis)
 -- ========================================================================================
@@ -1680,7 +1713,10 @@ task.spawn(function()
         end)
     end
 end)
+''')
 
+# SECTION 8: ALL 12 MASTER TABS (With Native Image Asset IDs, Potato Mode Luau typing fix)
+add(r'''
 -- ========================================================================================
 -- 9. UI CREATION & ALL 12 MASTER TABS (With Native Image Asset IDs & Zero Emojis)
 -- ========================================================================================
@@ -2559,3 +2595,11 @@ print("[PinatHub] Anomaly Hotel & Night Shift Simulator v2.0 successfully initia
 end -- End of __PinatHub_AnomalyHotel_Init__
 
 __PinatHub_AnomalyHotel_Init__()
+''')
+
+# Write out
+full_code = "".join(chunks)
+with open(out_path, "w", encoding="utf-8") as f:
+    f.write(full_code)
+
+print(f"Successfully wrote {len(full_code)} bytes ({len(full_code.splitlines())} lines) to {out_path}")
