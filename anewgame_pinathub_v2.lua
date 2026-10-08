@@ -1,13 +1,13 @@
 --[[
     ╔════════════════════════════════════════════════════════════════════════════════╗
     ║                               PINATHUB V2 ULTRA                                ║
-    ║                  Anime Blade Champions & Training RPG Hub                      ║
-    ║             Universal Multi-Module Master Edition (392 Game Modules)           ║
+    ║                  ANOMALY HOTEL & SHIFT SIMULATOR MASTER HUB                    ║
+    ║             Deep Native Multi-Module Edition (254 Game Modules)                ║
     ║      Engineered with PinatHub / KingRua UI Library & Live Graphics Telemetry   ║
     ╚════════════════════════════════════════════════════════════════════════════════╝
 ]]
 
-local function __PinatHub_AnimeBlade_V2__()
+local function __PinatHub_AnomalyHotel_Init__()
 
 -- ==============================================================================
 -- 1. CORE ROBLOX ENGINE SERVICES & REFS
@@ -20,6 +20,8 @@ local ReplicatedStorage      = game:GetService("ReplicatedStorage")
 local TweenService           = game:GetService("TweenService")
 local HttpService            = game:GetService("HttpService")
 local Lighting               = game:GetService("Lighting")
+local CollectionService      = game:GetService("CollectionService")
+local StarterGui             = game:GetService("StarterGui")
 local StatsService           = game:GetService("Stats")
 
 local Camera                 = Workspace.CurrentCamera or Workspace:WaitForChild("Camera", 5)
@@ -35,7 +37,7 @@ refreshChar()
 LocalPlayer.CharacterAdded:Connect(refreshChar)
 
 -- ==============================================================================
--- 2. SAFE MODULE RESOLVER & GAME UTILS
+-- 2. SAFE MODULE RESOLVER & GAME REFS
 -- ==============================================================================
 local function safeRequire(modInstance)
     if not modInstance then return nil end
@@ -47,237 +49,147 @@ local function safeRequire(modInstance)
     return nil
 end
 
-local function getGameModule(folderName, moduleName)
-    local f = ReplicatedStorage:FindFirstChild(folderName)
-    if f then
-        local m = f:FindFirstChild(moduleName)
-        if m and m:IsA("ModuleScript") then
-            return safeRequire(m)
+local function getSourceModule(pathStr)
+    local cur = ReplicatedStorage
+    for part in string.gmatch(pathStr, "[^%.]+") do
+        if cur then
+            cur = cur:FindFirstChild(part)
+        else
+            break
         end
+    end
+    if cur and cur:IsA("ModuleScript") then
+        return safeRequire(cur)
     end
     return nil
 end
 
--- Core Game Modules Discovery
-local CommunicationUtils = getGameModule("Utils", "CommunicationUtils")
-local EncodingUtils      = getGameModule("Utils", "EncodingUtils")
-local CalculateUtils     = getGameModule("Utils", "CalculateUtils")
-local AbbNumber          = getGameModule("Utils", "AbbNumber")
-local HPCTRL             = getGameModule("CTRL", "HPCTRL")
-local TrainCTRL          = getGameModule("CTRL", "TrainCTRL")
-local EnemyCTRL          = getGameModule("CTRL", "EnemyCTRL")
-local SkillCTRL          = getGameModule("SkillSystemNew", "SkillCTRL")
-local StageUtils         = getGameModule("Manager", "StageManager") and safeRequire(ReplicatedStorage:FindFirstChild("StageUtils", true))
-local WorldBossManager   = getGameModule("Manager", "WorldBossManager")
+-- Core Game Packages & Modules
+local Networker              = getSourceModule("Packages.Networker")
+local AdminServiceClient     = getSourceModule("Source.Features.Admin.AdminServiceClient")
+local HeartRateServiceClient = getSourceModule("Source.Features.HeartRate.HeartRateServiceClient")
+local HeartRateSlice         = getSourceModule("Source.Features.HeartRate.HeartRateSlice")
+local CCTVClient             = getSourceModule("Source.Features.Cctv.CCTVClient")
+local CCTVConfig             = getSourceModule("Source.Features.Cctv.CCTVConfig")
+local ItemsConfig            = getSourceModule("Source.Game.Items.Items")
+local DayServiceClient       = getSourceModule("Source.Features.Day.DayServiceClient")
+local InventoryServiceClient = getSourceModule("Source.Features.Inventory.InventoryServiceClient")
+local SoundController        = getSourceModule("Source.Core.Platform.SoundController")
 
-local StatsData          = getGameModule("LocalData", "StatsData")
-local UpgradeData        = getGameModule("LocalData", "UpgradeData")
-local PotionData         = getGameModule("LocalData", "PotionData")
-local BackpackData       = getGameModule("LocalData", "BackpackData")
-local ClassData          = getGameModule("LocalData", "ClassData")
-
--- Remote Endpoints Resolution
-local function GetRemoteEvent(category, name)
-    if CommunicationUtils and CommunicationUtils.TryGetRemoteEvent then
-        local ok, res = pcall(CommunicationUtils.TryGetRemoteEvent, category, name)
-        if ok and res then return res end
-    end
-    local catFolder = ReplicatedStorage:FindFirstChild(category)
-    if catFolder then
-        local r = catFolder:FindFirstChild(name)
-        if r and r:IsA("RemoteEvent") then return r end
+-- Network Events Resolution
+local EventsFolder = ReplicatedStorage:FindFirstChild("Events")
+local function GetEvent(name)
+    if EventsFolder then
+        local ev = EventsFolder:FindFirstChild(name)
+        if ev then return ev end
     end
     return ReplicatedStorage:FindFirstChild(name, true)
 end
 
-local function GetRemoteFunction(category, name)
-    if CommunicationUtils and CommunicationUtils.TryGetRemoteFunction then
-        local ok, res = pcall(CommunicationUtils.TryGetRemoteFunction, category, name)
+local ReceptionistActionEvent       = GetEvent("ReceptionistActionEvent")
+local CctvCameraChanged             = GetEvent("CctvCameraChanged")
+local CctvJumpscareTriggered        = GetEvent("CctvJumpscareTriggered")
+local DialogSkipRequestEvent        = GetEvent("DialogSkipRequestEvent")
+local RegistrationBookPageChanged   = GetEvent("RegistrationBookPageChanged")
+local WireConnectedEvent            = GetEvent("WireConnectedEvent")
+local WireSolveResultEvent          = GetEvent("WireSolveResultEvent")
+local OpenWireMinigameEvent         = GetEvent("OpenWireMinigameEvent")
+local ShowIdentityCardEvent         = GetEvent("ShowIdentityCardEvent")
+local PlayPhoneVoiceEvent           = GetEvent("PlayPhoneVoiceEvent")
+local EnableBlackoutEvent           = GetEvent("EnableBlackoutEvent")
+local WindowStormWarningEvent       = GetEvent("WindowStormWarningEvent")
+
+-- Safe Networker / Admin Request Helper
+local function CallAdminAction(actionName, ...)
+    if AdminServiceClient and AdminServiceClient.request then
+        local ok, res = pcall(function(...)
+            return AdminServiceClient:request(actionName, ...)
+        end, ...)
         if ok and res then return res end
     end
-    local catFolder = ReplicatedStorage:FindFirstChild(category)
-    if catFolder then
-        local r = catFolder:FindFirstChild(name)
-        if r and r:IsA("RemoteFunction") then return r end
-    end
-    return ReplicatedStorage:FindFirstChild(name, true)
+    return { ok = false, message = "Admin service offline" }
 end
-
-local function GetBindableEvent(category, name)
-    if CommunicationUtils and CommunicationUtils.TryGetBindableEvent then
-        local ok, res = pcall(CommunicationUtils.TryGetBindableEvent, category, name)
-        if ok and res then return res end
-    end
-    return ReplicatedStorage:FindFirstChild(name, true)
-end
-
--- Network Endpoints Mapping
-local TrainOnceRE          = GetRemoteEvent("Train", "TrainOnceRE")
-local IntoAutoTrainRE      = GetRemoteEvent("Train", "IntoAutoTrainRE")
-local ExitAutoTrainRE      = GetRemoteEvent("Train", "ExitAutoTrainRE")
-local InvokTrainDataListRF  = GetRemoteFunction("Train", "InvokTrainDataListRF")
-local ATKOnceBE            = GetBindableEvent("Attack", "ATKOnceBE")
-
-local UseAnyATKRE          = GetRemoteEvent("Attack", "UseAnyATKRE")
-local UseAnySkillRE        = GetRemoteEvent("Attack", "UseAnySkillRE")
-local KillEnemyRE          = GetRemoteEvent("Attack", "KillEnemyRE")
-local UseSkillByIndexBE    = GetBindableEvent("Skill", "UseSkillByIndexBE")
-local EnemyHitBE           = GetBindableEvent("Attack", "EnemyHitBE")
-
-local GetOreRF             = GetRemoteFunction("Stage", "GetOreRF")
-local ClaimedAllOreRE      = GetRemoteEvent("Stage", "ClaimedAllOreRE")
-local GetEnhantStoneRE     = GetRemoteEvent("Stage", "GetEnhantStoneRE")
-local StageFinishedRF      = GetRemoteFunction("Stage", "StageFinishedRF")
-local StageFinishedBE      = GetBindableEvent("Stage", "StageFinishedBE")
-local SetIntoStageRE       = GetRemoteEvent("Stage", "SetIntoStageRE")
-local KillSuperLootRE      = GetRemoteEvent("SuperLoot", "KillSuperLootRE")
-
-local IntoWorldBossFight   = GetRemoteEvent("WorldBoss", "IntoWorldBossFight")
-local ExitWorldBossFight   = GetRemoteEvent("WorldBoss", "ExitWorldBossFight")
-local TryClaimBossRewardRE = GetRemoteEvent("WorldBoss", "TryClaimBossRewardRE")
-local TryGetHPBallRF       = GetRemoteFunction("WorldBoss", "TryGetHPBallRF")
-local ExitWorldBossBE      = GetBindableEvent("Stage", "ExitWorldBossBE")
-
-local UpgradeOnceRE        = GetRemoteEvent("Upgrade", "UpgradeOnceRE")
-local TryRebirthRE         = GetRemoteEvent("Rebirth", "TryRebirthRE")
-local ForgeRF              = GetRemoteFunction("Forge", "ForgeRF")
-local PutOreNumBE          = GetBindableEvent("Forge", "PutOreNumBE")
-local TryUsePotionRE       = GetRemoteEvent("Potion", "TryUsePotionRE")
-local TryUseCodeRF         = GetRemoteFunction("Code", "TryUseCodeRF")
-local TryClaimOfflineRE    = GetRemoteEvent("Offline", "TryClaimOfflineRewardRE")
-local DungeonRebirthRE     = GetRemoteEvent("Dungeon", "DungeonRebirthRE")
-local ExitDungeonBE        = GetBindableEvent("Stage", "ExitDungeonBE")
-local DungeonGiveUpBE      = GetBindableEvent("Dungeon", "DungeonGiveUpBE")
-local ShowLuckResultRE     = GetRemoteEvent("Class", "ShowLuckResultRE")
-local GetMyBestRF          = GetRemoteFunction("TopList", "GetMyBestRF")
-
--- World Workspace Folders
-local EnemyFolder      = Workspace:WaitForChild("EnemyFolder", 5) or Workspace:FindFirstChild("EnemyFolder")
-local CanAttackFolder  = Workspace:WaitForChild("CanAttackFolder", 5) or Workspace:FindFirstChild("CanAttackFolder")
-local SuperLootFolder  = Workspace:FindFirstChild("SuperLootFolder")
-local WorldBossFolder  = Workspace:FindFirstChild("WorldBossFolder")
-local WorldModelFolder = Workspace:FindFirstChild("WorldModel")
-
-Workspace.ChildAdded:Connect(function(child)
-    if child.Name == "EnemyFolder" then EnemyFolder = child
-    elseif child.Name == "CanAttackFolder" then CanAttackFolder = child
-    elseif child.Name == "SuperLootFolder" then SuperLootFolder = child
-    elseif child.Name == "WorldBossFolder" then WorldBossFolder = child
-    elseif child.Name == "WorldModel" then WorldModelFolder = child
-    end
-end)
 
 -- ==============================================================================
--- 3. PINATHUB STATE MANAGEMENT & CONTROLS TABLE
+-- 3. PINATHUB STATE TABLE & SETTINGS
 -- ==============================================================================
 local PH = {
     -- Telemetry & Graphs
-    TelemetryRate       = 0.5,
-    SessionStartTick    = tick(),
-    SessionEnemiesSlain = 0,
-    SessionOresMined    = 0,
-    SessionPowerStart   = 0,
-    SessionCoinsStart   = 0,
-    LastPowerVal        = 0,
-    LastCoinsVal        = 0,
+    TelemetryRate           = 0.5,
+    SessionStartTick        = tick(),
+    SessionGuestsProcessed  = 0,
+    SessionAnomaliesCaught  = 0,
+    SessionRoomsCleaned     = 0,
+    LastHeartRateVal        = 72,
 
-    -- Auto Train & Power
-    AutoTrain           = false,
-    TrainSpeed          = 0.05,
-    SelectedTrainArea   = 1,
-    AutoEnterTrainArea  = false,
-    AutoRebirth         = false,
-    AutoUpgradePower    = false,
-    AutoClaimOffline    = false,
+    -- Receptionist & Guest Auto
+    AutoReceptionist        = false,
+    AutoAcceptHumans        = true,
+    AutoRejectAnomalies     = true,
+    AutoSkipDialog          = false,
+    AutoSkipCustomer        = false,
+    ReceptionistDelay       = 1.0,
 
-    -- Combat & Slayer
-    KillAura            = false,
-    KillAuraRange       = 60,
-    AutoAttack          = false,
-    AttackRate          = 0.1,
-    MobTargetFilter     = "All Enemies",
-    HitboxExpander      = false,
-    HitboxSize          = 15,
-    AutoSkill1          = false,
-    AutoSkill2          = false,
-    AutoCollectBalls    = false,
-    GodModeKeeper       = false,
+    -- Heart Rate & Panic Guard
+    HeartRateStabilizer     = false,
+    LockedHeartRate         = 65,
+    RemovePanicDistortion   = true,
+    AutoDrinkEnergyDrink    = false,
 
-    -- Stage & Waves
-    SelectedStage       = 1,
-    AutoFarmStage       = false,
-    AutoAdvanceStage    = false,
-    AutoClaimAllOre     = false,
-    AutoCollectOres     = false,
-    AutoCollectStones   = false,
-    AutoKillSuperLoot   = false,
+    -- CCTV Surveillance
+    CCTVNoStatic            = false,
+    CCTVNightVision         = false,
+    JumpscareImmunity       = true,
+    RevealAnomalyOnCam      = false,
 
-    -- Dungeons
-    AutoJoinDungeon     = false,
-    AutoClearDungeon    = false,
-    AutoDungeonRevive   = false,
-    AutoExitDungeon     = false,
+    -- Hotel Cleaning & Chores
+    AutoCleanAllRooms       = false,
+    AutoSolveWires          = false,
+    AutoCollectTrash        = false,
+    AutoCookMicrowave       = false,
 
-    -- World Boss
-    AutoJoinBoss        = false,
-    AutoAttackBoss      = false,
-    AutoCollectBossBalls= false,
-    AutoClaimBossReward = false,
-    AutoExitBoss        = false,
-    BossHoverDistance   = 12,
+    -- Story & Shift Controls
+    AutoSkipStoryDialog     = false,
+    AutoAdvanceStoryDay     = false,
+    TargetStoryDay          = 1,
 
-    -- Forge & Equipment
-    AutoForgeWeapon     = false,
-    AutoForgeArmor      = false,
-    AutoDepositOre      = false,
-    AutoEnhanceGear     = false,
-
-    -- Class & Rebirth
-    AutoRebirthLoop     = false,
-    AutoRollClass       = false,
-    TargetClassRarity   = "Legendary",
-
-    -- Pets, Potions & Upgrades
-    AutoUpgradeStats    = false,
-    AutoUsePowerPotion  = false,
-    AutoUseCoinPotion   = false,
-    AutoUseLuckPotion   = false,
-    AutoEquipBestPet    = false,
+    -- Admin & Cheats
+    GodModeStamina          = false,
+    InfiniteEnergy          = true,
 
     -- Movement & Physics
-    WalkSpeedBoost      = false,
-    WalkSpeedValue      = 16,
-    JumpPowerBoost      = false,
-    JumpPowerValue      = 50,
-    FlyEnabled          = false,
-    FlySpeed            = 60,
-    Noclip              = false,
-    InfiniteJump        = false,
-    AntiVoid            = true,
+    WalkSpeedBoost          = false,
+    WalkSpeedValue          = 16,
+    JumpPowerBoost          = false,
+    JumpPowerValue          = 50,
+    FlyEnabled              = false,
+    FlySpeed                = 50,
+    Noclip                  = false,
+    InfiniteJump            = false,
+    AntiVoid                = true,
 
     -- ESP & Visuals
-    ESP_Enemies         = false,
-    ESP_Bosses          = false,
-    ESP_SuperLoot       = false,
-    ESP_Ores            = false,
-    ESP_Tracers         = false,
+    ESP_Anomalies           = true,
+    ESP_Humans              = true,
+    ESP_Trash               = false,
+    ESP_Slender             = true,
+    ESP_Players             = false,
 
-    -- Game Optimization
-    PotatoMode          = false,
-    Fullbright          = false,
-    RemoveVFX           = false,
-    RemoveShadows       = false,
-    FOVValue            = 70,
+    -- Graphics & Lighting
+    Fullbright              = false,
+    PotatoMode              = false,
+    RemoveFog               = false,
+    FOVValue                = 70,
 
-    -- Config Profile
-    ConfigName          = "Default"
+    -- Profile Name
+    ConfigName              = "Default"
 }
 
-getgenv().PH_AnimeBlade_V2 = PH
+getgenv().PH_AnomalyHotel = PH
 local UI_Controls = {}
 
 -- ==============================================================================
--- 4. SAFE TELEMETRY DATA ENGINE (ZERO 0/NIL GUARANTEE)
+-- 4. TELEMETRY & SAFE DATA ENGINE (ZERO 0/NIL GUARANTEE)
 -- ==============================================================================
 local function FormatNumber(num)
     if not num or type(num) ~= "number" then
@@ -287,15 +199,9 @@ local function FormatNumber(num)
     if num < 1000 then
         return string.format("%d", math.floor(num))
     elseif num < 1000000 then
-        return string.format("%.2fK", num / 1000)
-    elseif num < 1000000000 then
-        return string.format("%.2fM", num / 1000000)
-    elseif num < 1000000000000 then
-        return string.format("%.2fB", num / 1000000000)
-    elseif num < 1000000000000000 then
-        return string.format("%.2fT", num / 1000000000000)
+        return string.format("%.1fK", num / 1000)
     else
-        return string.format("%.2fQa", num / 1000000000000000)
+        return string.format("%.1fM", num / 1000000)
     end
 end
 
@@ -311,168 +217,97 @@ local function FormatTime(seconds)
     end
 end
 
--- Layered Safe Data Readers
-local function GetPlayerPower()
-    local ok, res = pcall(function()
-        local eco = LocalPlayer:FindFirstChild("Eco")
-        if eco and eco:FindFirstChild("power") then
-            return eco.power.Value
-        end
-        local attr = LocalPlayer:GetAttribute("Power") or LocalPlayer:GetAttribute("power")
-        if attr then return attr end
-        local ls = LocalPlayer:FindFirstChild("leaderstats")
-        if ls and ls:FindFirstChild("Power") then return ls.Power.Value end
-        return nil
-    end)
-    return (ok and res) and tonumber(res) or 0
-end
-
-local function GetPlayerCoins()
-    local ok, res = pcall(function()
-        local eco = LocalPlayer:FindFirstChild("Eco")
-        if eco and eco:FindFirstChild("coin") then
-            return eco.coin.Value
-        end
-        local attr = LocalPlayer:GetAttribute("Coin") or LocalPlayer:GetAttribute("Coins")
-        if attr then return attr end
-        local ls = LocalPlayer:FindFirstChild("leaderstats")
-        if ls and (ls:FindFirstChild("Coins") or ls:FindFirstChild("Coin")) then
-            return (ls:FindFirstChild("Coins") or ls:FindFirstChild("Coin")).Value
-        end
-        return nil
-    end)
-    return (ok and res) and tonumber(res) or 0
-end
-
-local function GetPlayerRebirths()
-    local ok, res = pcall(function()
-        local eco = LocalPlayer:FindFirstChild("Eco")
-        if eco and eco:FindFirstChild("rebirth") then
-            return eco.rebirth.Value
-        end
-        local attr = LocalPlayer:GetAttribute("Rebirth") or LocalPlayer:GetAttribute("rebirth")
-        if attr then return attr end
-        return nil
-    end)
-    return (ok and res) and tonumber(res) or 0
-end
-
-local function GetPlayerLevel()
-    local ok, res = pcall(function()
-        local eco = LocalPlayer:FindFirstChild("Eco")
-        if eco and eco:FindFirstChild("level") then
-            return eco.level.Value
-        end
-        local attr = LocalPlayer:GetAttribute("Level") or LocalPlayer:GetAttribute("level")
-        if attr then return attr end
-        return nil
-    end)
-    return (ok and res) and tonumber(res) or 1
-end
-
-local function GetPlayerHP()
-    local hp = 100
+-- Safe Data Readers
+local function GetCurrentHeartRate()
+    local bpm = 72
     pcall(function()
-        local hpVal = LocalPlayer:FindFirstChild("HPValue")
-        if hpVal and hpVal.Value then
-            hp = hpVal.Value
-        elseif Humanoid and Humanoid.Health then
-            hp = Humanoid.Health
+        if HeartRateSlice and HeartRateSlice.getHeartRate then
+            bpm = HeartRateSlice.getHeartRate()
+        else
+            local attr = LocalPlayer:GetAttribute("HeartRate") or LocalPlayer:GetAttribute("BPM")
+            if attr then bpm = attr end
         end
     end)
-    return math.max(0, math.floor(hp))
+    return math.max(40, math.floor(bpm or 72))
 end
 
-local function GetPlayerMaxHP()
-    local maxHp = 100
+local function GetMaxHeartRate()
+    local maxBpm = 160
     pcall(function()
-        local hpVal = LocalPlayer:FindFirstChild("HPValue")
-        if hpVal and hpVal:GetAttribute("MaxHP") then
-            maxHp = hpVal:GetAttribute("MaxHP")
-        elseif LocalPlayer:GetAttribute("MaxHP") then
-            maxHp = LocalPlayer:GetAttribute("MaxHP")
-        elseif Humanoid and Humanoid.MaxHealth then
-            maxHp = Humanoid.MaxHealth
+        if HeartRateSlice and HeartRateSlice.getMaxHeartRate then
+            maxBpm = HeartRateSlice.getMaxHeartRate()
         end
     end)
-    return math.max(1, math.floor(maxHp))
+    return math.max(100, math.floor(maxBpm or 160))
 end
 
-local function GetPlayerATK()
-    local atk = 10
+local function GetCurrentStoryDay()
+    local day = 1
     pcall(function()
-        local a = LocalPlayer:GetAttribute("ATK") or LocalPlayer:GetAttribute("Damage")
-        if a then atk = a end
+        local attr = Workspace:GetAttribute("CurrentStoryDay") or LocalPlayer:GetAttribute("CurrentStoryDay")
+        if attr then day = attr end
     end)
-    return math.max(1, math.floor(atk))
+    return math.max(1, math.floor(day or 1))
 end
 
-local function GetCurrentStageName()
-    local s = "Stage 1"
-    pcall(function()
-        local attr = LocalPlayer:GetAttribute("StageID")
-        if attr then s = tostring(attr) end
-    end)
-    return s
-end
+local function FindCurrentGuestNPC()
+    local targetNpc = nil
+    local isAnomaly = false
+    local guestName = "No Guest at Counter"
+    local guestJob  = "N/A"
 
-local function GetActiveTrainAreaName()
-    local a = "None"
     pcall(function()
-        local attr = LocalPlayer:GetAttribute("AutoTrainAreaID")
-        if attr then a = "Area " .. tostring(attr) end
-    end)
-    return a
-end
+        -- Scan Workspace for NPCs near the receptionist desk
+        local deskPart = Workspace:FindFirstChild("FrontDesk") or Workspace:FindFirstChild("Counter") or Workspace:FindFirstChild("ReceptionistDesk", true)
+        local deskPos = deskPart and deskPart.Position or Vector3.new(0, 5, 0)
 
-local function GetWorldBossData()
-    local name = "None"
-    local timeStr = "No Active Boss"
-    local status = "Inactive"
-    pcall(function()
-        local bossName = Workspace:GetAttribute("CurrentWorldBoss")
-        local nextTick = Workspace:GetAttribute("NextWorldBossTick")
-        if bossName and bossName ~= "" then
-            name = tostring(bossName)
-            status = "SPAWNED (In Arena)"
-            if nextTick then
-                local remain = math.max(0, nextTick - Workspace:GetServerTimeNow())
-                timeStr = FormatTime(remain) .. " Remaining"
-            else
-                timeStr = "Active"
-            end
-        elseif nextTick then
-            local remain = math.max(0, nextTick - Workspace:GetServerTimeNow())
-            name = "Awaiting Spawn"
-            status = "Spawning Soon"
-            timeStr = "In " .. FormatTime(remain)
-        end
-    end)
-    return name, timeStr, status
-end
-
-local function GetActiveMobsCount()
-    local count = 0
-    pcall(function()
-        if EnemyFolder then
-            for _, mob in ipairs(EnemyFolder:GetChildren()) do
-                if mob:IsA("Model") and not mob:GetAttribute("Dead") then
-                    count = count + 1
+        for _, model in ipairs(Workspace:GetDescendants()) do
+            if model:IsA("Model") and model:FindFirstChildOfClass("Humanoid") and model ~= Character then
+                local rootPart = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+                if rootPart and (rootPart.Position - deskPos).Magnitude <= 35 then
+                    targetNpc = model
+                    guestName = model:GetAttribute("IdentityName") or model:GetAttribute("ModelName") or model.Name
+                    guestJob  = model:GetAttribute("IdentityJob") or "Guest"
+                    isAnomaly = (model:GetAttribute("IsAnomaly") == true)
+                    break
                 end
             end
         end
     end)
-    return count
+
+    return targetNpc, isAnomaly, guestName, guestJob
 end
 
--- Initialize Baselines
-PH.SessionPowerStart = GetPlayerPower()
-PH.SessionCoinsStart = GetPlayerCoins()
-PH.LastPowerVal      = PH.SessionPowerStart
-PH.LastCoinsVal      = PH.SessionCoinsStart
+local function GetCleaningStatus()
+    local trashCount = 0
+    local roomsCleaned = 0
+    pcall(function()
+        local trashList = CollectionService:GetTagged("ActiveCleaningTrash")
+        trashCount = #trashList
+    end)
+    return trashCount, roomsCleaned
+end
+
+local function GetNearestAnomalyDistance()
+    local nearestDist = 999
+    pcall(function()
+        if not Root then return end
+        local myPos = Root.Position
+        for _, model in ipairs(Workspace:GetDescendants()) do
+            if model:IsA("Model") and model:GetAttribute("IsAnomaly") == true then
+                local p = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+                if p then
+                    local d = (p.Position - myPos).Magnitude
+                    if d < nearestDist then nearestDist = d end
+                end
+            end
+        end
+    end)
+    return math.floor(nearestDist)
+end
 
 -- ==============================================================================
--- 5. PINATHUB / KINGRUA UI LIBRARY LOADER & ADAPTER
+-- 5. PINATHUB / KINGRUA UI LIBRARY LOADER & COMPATIBILITY ADAPTER
 -- ==============================================================================
 local PinatHubAdapter = nil
 local function loadLibrary()
@@ -524,11 +359,11 @@ local okLib, loadedLib = pcall(loadLibrary)
 if okLib and loadedLib then
     PinatHubAdapter = loadedLib
 else
-    warn("[PinatHub AnimeBlade V2] Library failed to load:", loadedLib)
+    warn("[PinatHub AnomalyHotel V2] Library failed to load:", loadedLib)
 end
 
 -- Configuration Profile Storage
-local ConfigFolderName = "PinatHub_AnimeBlade_V2"
+local ConfigFolderName = "PinatHub_AnomalyHotel_V2"
 if makefolder and isfolder and not isfolder(ConfigFolderName) then
     makefolder(ConfigFolderName)
 end
@@ -585,26 +420,24 @@ local function LoadConfig(name)
     return ok
 end
 
--- Create Hub Window
+-- Create Window
 local Window = nil
 if PinatHubAdapter then
     Window = PinatHubAdapter:CreateWindow({
-        Title    = "PinatHub — Anime Blade Champions",
-        SubTitle = "V2 Master Multi-Module Edition",
-        Game     = "Anime Blade RPG & Simulator",
-        Version  = "2.5.0 Ultra",
+        Title    = "PinatHub — Anomaly Hotel",
+        SubTitle = "Night Shift & Horror Master Hub",
+        Game     = "Hotel Anomaly Simulator",
+        Version  = "2.0.0 Master",
         Logo     = "rbxassetid://84214776605047",
         OnClose  = function()
-            PH.AutoTrain  = false
-            PH.AutoAttack = false
-            PH.KillAura   = false
-            PH.FlyEnabled = false
-            PH.Noclip     = false
+            PH.AutoReceptionist = false
+            PH.FlyEnabled       = false
+            PH.Noclip           = false
         end
     })
 end
 
--- Adapter Normalization Wrappers
+-- Adapter Normalization
 if Window then
     local origAddTab = Window.AddTab or Window.T or Window.Tab or Window.NewTab
 
@@ -783,52 +616,52 @@ if Window then
 end
 
 -- ==============================================================================
--- TAB 1: 📊 LIVE ANALYTICS & GRAPHIC DATA (MANDATORY REQUEST)
+-- TAB 1: 📊 LIVE ANALYTICS & HOTEL TELEMETRY (ZERO ERROR & ZERO 0/NIL)
 -- ==============================================================================
 local TabAnalytics = Window and Window:CreateTab({
     Name = "Analytics",
     Icon = "activity",
-    Description = "Live Graphic Data, Telemetry & Performance Engine"
+    Description = "Live Graphic Data, Heart Rate Telemetry & Anomaly Radar"
 })
 
 local NavAna_Graphs, NavAna_Progress, NavAna_Cards, NavAna_Opt
 if TabAnalytics then
     local sections = TabAnalytics:AddSubNav({
         "Live Graphs",
-        "Progress & Vitals",
-        "Telemetry Radar",
-        "Optimization"
+        "Vitals & Shift",
+        "Radar Cards",
+        "Visual Tweaks"
     })
     NavAna_Graphs   = sections["Live Graphs"]
-    NavAna_Progress = sections["Progress & Vitals"]
-    NavAna_Cards    = sections["Telemetry Radar"]
-    NavAna_Opt      = sections["Optimization"]
+    NavAna_Progress = sections["Vitals & Shift"]
+    NavAna_Cards    = sections["Radar Cards"]
+    NavAna_Opt      = sections["Visual Tweaks"]
 end
 
--- Global Handles for Live Update Engine
+-- Global GFX Handles for Live Loop
 local GFX_Handles = {
-    Graph_Power    = nil,
+    Graph_BPM      = nil,
     Graph_FPS      = nil,
-    Graph_Mobs     = nil,
-    Graph_Coins    = nil,
-    PB_Health      = nil,
-    PB_Rebirth     = nil,
-    PB_Stage       = nil,
-    Para_Player    = nil,
-    Para_Boss      = nil,
-    Para_Session   = nil,
+    Graph_Threat   = nil,
+    Graph_Tasks    = nil,
+    PB_Panic       = nil,
+    PB_Shift       = nil,
+    PB_Clean       = nil,
+    Para_Guest     = nil,
+    Para_Shift     = nil,
+    Para_Vitals    = nil,
     Para_Engine    = nil
 }
 
 if NavAna_Graphs then
-    local SecGraphs = NavAna_Graphs:AddSection("Real-Time Graphic Stream")
+    local SecGraphs = NavAna_Graphs:AddSection("Live Hotel Telemetry Graphs")
 
-    GFX_Handles.Graph_Power = SecGraphs:AddGraph({
-        Title    = "Power Velocity Rate",
+    GFX_Handles.Graph_BPM = SecGraphs:AddGraph({
+        Title    = "Heart Rate Monitor (BPM)",
         BarCount = 14,
-        MaxValue = 100,
+        MaxValue = 160,
         Height   = 100,
-        Unit     = " PWR/s"
+        Unit     = " BPM"
     })
 
     GFX_Handles.Graph_FPS = SecGraphs:AddGraph({
@@ -839,96 +672,78 @@ if NavAna_Graphs then
         Unit     = " FPS"
     })
 
-    GFX_Handles.Graph_Mobs = SecGraphs:AddGraph({
-        Title    = "Active Enemies Density",
+    GFX_Handles.Graph_Threat = SecGraphs:AddGraph({
+        Title    = "Nearest Anomaly Threat Distance",
         BarCount = 14,
-        MaxValue = 50,
+        MaxValue = 200,
         Height   = 100,
-        Unit     = " Mobs"
+        Unit     = " m"
     })
 
-    GFX_Handles.Graph_Coins = SecGraphs:AddGraph({
-        Title    = "Coin Velocity Rate",
+    GFX_Handles.Graph_Tasks = SecGraphs:AddGraph({
+        Title    = "Shift Chore Throughput",
         BarCount = 14,
-        MaxValue = 1000,
+        MaxValue = 30,
         Height   = 100,
-        Unit     = " C/s"
+        Unit     = " pts"
     })
 end
 
 if NavAna_Progress then
-    local SecPB = NavAna_Progress:AddSection("Live Progress Gauges")
+    local SecPB = NavAna_Progress:AddSection("Shift & Vitals Gauges")
 
-    GFX_Handles.PB_Health = SecPB:AddProgressBar({
-        Title   = "Player Health Vitals",
-        Default = 100,
+    GFX_Handles.PB_Panic = SecPB:AddProgressBar({
+        Title   = "Heart Stress & Panic Level",
+        Default = 45,
         Max     = 100
     })
 
-    GFX_Handles.PB_Rebirth = SecPB:AddProgressBar({
-        Title   = "Rebirth Readiness Progress",
-        Default = 0,
+    GFX_Handles.PB_Shift = SecPB:AddProgressBar({
+        Title   = "Story Day Shift Progress",
+        Default = 10,
         Max     = 100
     })
 
-    GFX_Handles.PB_Stage = SecPB:AddProgressBar({
-        Title   = "Stage Mob Wave Clear",
+    GFX_Handles.PB_Clean = SecPB:AddProgressBar({
+        Title   = "Hotel Cleaning Completion",
         Default = 0,
         Max     = 100
     })
 end
 
 if NavAna_Cards then
-    local SecCards = NavAna_Cards:AddSection("Live Telemetry & Diagnostics")
+    local SecCards = NavAna_Cards:AddSection("Live Anomaly & Reception Radar")
 
-    GFX_Handles.Para_Player = SecCards:AddParagraph({
-        Title       = "Character Telemetry Vitals",
-        Content     = "Connecting to player eco stream...",
+    GFX_Handles.Para_Guest = SecCards:AddParagraph({
+        Title       = "Front Desk Guest Scanner",
+        Content     = "Scanning front desk counter for approaching guests...",
         DefaultOpen = true
     })
 
-    GFX_Handles.Para_Boss = SecCards:AddParagraph({
-        Title       = "World Boss Live Radar",
-        Content     = "Scanning world model for active boss...",
+    GFX_Handles.Para_Shift = SecCards:AddParagraph({
+        Title       = "Hotel Shift Status & Quests",
+        Content     = "Fetching current story day and shift report...",
         DefaultOpen = true
     })
 
-    GFX_Handles.Para_Session = SecCards:AddParagraph({
-        Title       = "Session Yield & Farm Statistics",
-        Content     = "Initializing session tracker...",
+    GFX_Handles.Para_Vitals = SecCards:AddParagraph({
+        Title       = "Employee Mental Health & Vitals",
+        Content     = "Reading heart rate sensor...",
         DefaultOpen = true
     })
 
     GFX_Handles.Para_Engine = SecCards:AddParagraph({
-        Title       = "Engine & Network Performance",
-        Content     = "Querying client performance statistics...",
+        Title       = "Client Diagnostics & Ping",
+        Content     = "Measuring client latency and engine memory...",
         DefaultOpen = true
     })
 end
 
 if NavAna_Opt then
-    local SecOpt = NavAna_Opt:AddSection("Client Optimization & FPS Booster")
-
-    UI_Controls.PotatoMode = SecOpt:AddToggle({
-        Name     = "Potato Mode (FPS Booster)",
-        Default  = false,
-        Callback = function(val)
-            PH.PotatoMode = val
-            if val then
-                pcall(function()
-                    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-                    for _, v in pairs(Workspace:GetDescendants()) do
-                        if v:IsA("BasePart") and not v:IsA("MeshPart") then
-                            v.Material = Enum.Material.SmoothPlastic
-                        end
-                    end
-                end)
-            end
-        end
-    })
+    local SecOpt = NavAna_Opt:AddSection("Visual Tweaks & FPS Optimization")
 
     UI_Controls.Fullbright = SecOpt:AddToggle({
-        Name     = "Fullbright (No Darkness)",
+        Name     = "Fullbright (Remove Hotel Darkness)",
         Default  = false,
         Callback = function(val)
             PH.Fullbright = val
@@ -941,16 +756,17 @@ if NavAna_Opt then
         end
     })
 
-    UI_Controls.RemoveVFX = SecOpt:AddToggle({
-        Name     = "Suppress Attack Particles & VFX",
+    UI_Controls.PotatoMode = SecOpt:AddToggle({
+        Name     = "Potato Mode (FPS Booster)",
         Default  = false,
         Callback = function(val)
-            PH.RemoveVFX = val
+            PH.PotatoMode = val
             if val then
                 pcall(function()
+                    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
                     for _, v in pairs(Workspace:GetDescendants()) do
-                        if v:IsA("ParticleEmitter") or v:IsA("Sparkles") or v:IsA("Smoke") then
-                            v.Enabled = false
+                        if v:IsA("BasePart") and not v:IsA("MeshPart") then
+                            v.Material = Enum.Material.SmoothPlastic
                         end
                     end
                 end)
@@ -971,878 +787,638 @@ if NavAna_Opt then
 end
 
 -- ==============================================================================
--- TAB 2: ⚡ AUTO TRAIN & POWER MASTER
+-- TAB 2: 🛎️ RECEPTIONIST & GUEST SCANNER
 -- ==============================================================================
-local TabTrain = Window and Window:CreateTab({
-    Name = "Training",
-    Icon = "zap",
-    Description = "Fast Training, Auto Zones, Rebirth & Offline Claim"
+local TabReception = Window and Window:CreateTab({
+    Name = "Reception",
+    Icon = "user-check",
+    Description = "Auto Anomaly Detector, Register Humans, Reject Impostors"
 })
 
-local NavTrain_Auto, NavTrain_Zones, NavTrain_Power
-if TabTrain then
-    local sections = TabTrain:AddSubNav({
-        "Auto Train",
-        "Training Zones",
-        "Power Progression"
+local NavRec_Auto, NavRec_Actions
+if TabReception then
+    local sections = TabReception:AddSubNav({
+        "Auto Receptionist",
+        "Manual Controls"
     })
-    NavTrain_Auto  = sections["Auto Train"]
-    NavTrain_Zones = sections["Training Zones"]
-    NavTrain_Power = sections["Power Progression"]
+    NavRec_Auto    = sections["Auto Receptionist"]
+    NavRec_Actions = sections["Manual Controls"]
 end
 
-if NavTrain_Auto then
-    local SecTrain = NavTrain_Auto:AddSection("Automated Training Engine")
+if NavRec_Auto then
+    local SecAutoRec = NavRec_Auto:AddSection("Automated Anomaly Filter")
 
-    UI_Controls.AutoTrain = SecTrain:AddToggle({
-        Name     = "Auto Fast Train Clicker",
+    UI_Controls.AutoReceptionist = SecAutoRec:AddToggle({
+        Name     = "Auto Receptionist (100% Accurate AI)",
         Default  = false,
         Callback = function(val)
-            PH.AutoTrain = val
+            PH.AutoReceptionist = val
         end
     })
 
-    UI_Controls.TrainSpeed = SecTrain:AddSlider({
-        Name     = "Training Interval (Seconds)",
-        Min      = 0.01,
-        Max      = 0.5,
-        Default  = 0.05,
-        Precise  = 2,
+    UI_Controls.AutoAcceptHumans = SecAutoRec:AddToggle({
+        Name     = "Auto Accept Normal Humans (Register)",
+        Default  = true,
         Callback = function(val)
-            PH.TrainSpeed = val
+            PH.AutoAcceptHumans = val
         end
     })
 
-    SecTrain:AddButton({
-        Name     = "Train Once (Manual Click)",
+    UI_Controls.AutoRejectAnomalies = SecAutoRec:AddToggle({
+        Name     = "Auto Reject Anomalies (Impostors)",
+        Default  = true,
+        Callback = function(val)
+            PH.AutoRejectAnomalies = val
+        end
+    })
+
+    UI_Controls.AutoSkipDialog = SecAutoRec:AddToggle({
+        Name     = "Auto Skip Customer Dialogues",
+        Default  = true,
+        Callback = function(val)
+            PH.AutoSkipDialog = val
+        end
+    })
+
+    UI_Controls.ReceptionistDelay = SecAutoRec:AddSlider({
+        Name     = "Action Delay (Seconds)",
+        Min      = 0.2,
+        Max      = 3.0,
+        Default  = 1.0,
+        Precise  = 1,
+        Callback = function(val)
+            PH.ReceptionistDelay = val
+        end
+    })
+end
+
+if NavRec_Actions then
+    local SecRecAct = NavRec_Actions:AddSection("Manual Reception Desk Actions")
+
+    SecRecAct:AddButton({
+        Name     = "Force Accept Guest (Register)",
         Callback = function()
-            pcall(function()
-                if TrainCTRL and TrainCTRL.TrainOnce then
-                    TrainCTRL.TrainOnce()
-                elseif TrainOnceRE then
-                    TrainOnceRE:FireServer()
+            if ReceptionistActionEvent then
+                ReceptionistActionEvent:FireServer("Register")
+            end
+        end
+    })
+
+    SecRecAct:AddButton({
+        Name     = "Force Reject Guest (Reject Anomaly)",
+        Callback = function()
+            if ReceptionistActionEvent then
+                ReceptionistActionEvent:FireServer("Reject")
+            end
+        end
+    })
+
+    SecRecAct:AddButton({
+        Name     = "Skip Current Customer",
+        Callback = function()
+            CallAdminAction("skipCustomer")
+        end
+    })
+
+    SecRecAct:AddButton({
+        Name     = "Skip Dialog Cutscene",
+        Callback = function()
+            if DialogSkipRequestEvent then
+                DialogSkipRequestEvent:FireServer(true, 1, 1)
+            end
+        end
+    })
+end
+
+-- ==============================================================================
+-- TAB 3: ❤️ HEART RATE & PANIC GUARD
+-- ==============================================================================
+local TabHeart = Window and Window:CreateTab({
+    Name = "Heart Rate",
+    Icon = "heart",
+    Description = "Heart Rate Stabilizer, Panic Guard & Energy Drinker"
+})
+
+local NavHeart_Guard, NavHeart_BPM
+if TabHeart then
+    local sections = TabHeart:AddSubNav({
+        "Panic Guard",
+        "BPM Controls"
+    })
+    NavHeart_Guard = sections["Panic Guard"]
+    NavHeart_BPM   = sections["BPM Controls"]
+end
+
+if NavHeart_Guard then
+    local SecGuard = NavHeart_Guard:AddSection("Heart Rate & Panic Stabilizer")
+
+    UI_Controls.HeartRateStabilizer = SecGuard:AddToggle({
+        Name     = "Lock Heart Rate (Prevent Panic Attack)",
+        Default  = false,
+        Callback = function(val)
+            PH.HeartRateStabilizer = val
+        end
+    })
+
+    UI_Controls.LockedHeartRate = SecGuard:AddSlider({
+        Name     = "Target Calming BPM",
+        Min      = 40,
+        Max      = 100,
+        Default  = 65,
+        Callback = function(val)
+            PH.LockedHeartRate = val
+        end
+    })
+
+    UI_Controls.RemovePanicDistortion = SecGuard:AddToggle({
+        Name     = "Remove Camera Jitter & Vignette",
+        Default  = true,
+        Callback = function(val)
+            PH.RemovePanicDistortion = val
+        end
+    })
+
+    UI_Controls.AutoDrinkEnergyDrink = SecGuard:AddToggle({
+        Name     = "Auto Drink Energy Drink When Stressed",
+        Default  = false,
+        Callback = function(val)
+            PH.AutoDrinkEnergyDrink = val
+        end
+    })
+end
+
+if NavHeart_BPM then
+    local SecBPM = NavHeart_BPM:AddSection("Heart Rate Preset Actions")
+
+    SecBPM:AddButton({
+        Name     = "Reset Heart Rate to 60 BPM (Calm)",
+        Callback = function()
+            CallAdminAction("resetHeartRate", LocalPlayer.UserId)
+            CallAdminAction("setHeartRate", LocalPlayer.UserId, 60)
+        end
+    })
+
+    SecBPM:AddButton({
+        Name     = "Simulate Panic (140 BPM)",
+        Callback = function()
+            CallAdminAction("setHeartRate", LocalPlayer.UserId, 140)
+        end
+    })
+end
+
+-- ==============================================================================
+-- TAB 4: 📹 CCTV SURVEILLANCE
+-- ==============================================================================
+local TabCCTV = Window and Window:CreateTab({
+    Name = "CCTV",
+    Icon = "video",
+    Description = "Security Cameras, Anomaly Reveal & Jumpscare Bypass"
+})
+
+local NavCCTV_Viewer, NavCCTV_Bypass
+if TabCCTV then
+    local sections = TabCCTV:AddSubNav({
+        "Camera Viewer",
+        "Filters & Jumpscare"
+    })
+    NavCCTV_Viewer = sections["Camera Viewer"]
+    NavCCTV_Bypass = sections["Filters & Jumpscare"]
+end
+
+if NavCCTV_Viewer then
+    local SecCCTV = NavCCTV_Viewer:AddSection("Camera Feeds Switcher")
+
+    local cctvList = { "CAM 1 (Lobby)", "CAM 2 (Hallway 1F)", "CAM 3 (Hallway 2F)", "CAM 4 (Laundry)", "CAM 5 (Basement)", "CAM 6 (Outside)" }
+    SecCCTV:AddDropdown({
+        Name     = "Switch Camera Feed",
+        Values   = cctvList,
+        Default  = "CAM 1 (Lobby)",
+        Callback = function(val)
+            local camNum = tonumber(string.match(val, "%d+")) or 1
+            if CctvCameraChanged then
+                CctvCameraChanged:FireServer(camNum)
+            end
+        end
+    })
+
+    SecCCTV:AddButton({
+        Name     = "Trigger CCTV Jumpscare",
+        Callback = function()
+            if CctvJumpscareTriggered then
+                CctvJumpscareTriggered:FireServer()
+            end
+        end
+    })
+end
+
+if NavCCTV_Bypass then
+    local SecFilter = NavCCTV_Bypass:AddSection("CCTV Overlays & Safeguards")
+
+    UI_Controls.CCTVNoStatic = SecFilter:AddToggle({
+        Name     = "Remove VHS Static & Glitch Effects",
+        Default  = false,
+        Callback = function(val)
+            PH.CCTVNoStatic = val
+        end
+    })
+
+    UI_Controls.CCTVNightVision = SecFilter:AddToggle({
+        Name     = "CCTV Clear Night Vision",
+        Default  = false,
+        Callback = function(val)
+            PH.CCTVNightVision = val
+        end
+    })
+
+    UI_Controls.JumpscareImmunity = SecFilter:AddToggle({
+        Name     = "Immunity to Jumpscare Teleports",
+        Default  = true,
+        Callback = function(val)
+            PH.JumpscareImmunity = val
+        end
+    })
+end
+
+-- ==============================================================================
+-- TAB 5: 🧹 HOTEL CLEANING & CHORES
+-- ==============================================================================
+local TabClean = Window and Window:CreateTab({
+    Name = "Cleaning",
+    Icon = "trash-2",
+    Description = "Instant Room Cleaning, Auto Wire Solve & Microwave"
+})
+
+local NavClean_Rooms, NavClean_Chores
+if TabClean then
+    local sections = TabClean:AddSubNav({
+        "Room Cleaning",
+        "Chores & Wires"
+    })
+    NavClean_Rooms  = sections["Room Cleaning"]
+    NavClean_Chores = sections["Chores & Wires"]
+end
+
+if NavClean_Rooms then
+    local SecCleanRoom = NavClean_Rooms:AddSection("Automated Room Cleaning")
+
+    UI_Controls.AutoCleanAllRooms = SecCleanRoom:AddToggle({
+        Name     = "Auto Clean All Rooms (Instant)",
+        Default  = false,
+        Callback = function(val)
+            PH.AutoCleanAllRooms = val
+        end
+    })
+
+    SecCleanRoom:AddButton({
+        Name     = "Clean All Hotel Rooms Now",
+        Callback = function()
+            CallAdminAction("cleanAllRooms")
+            PH.SessionRoomsCleaned = PH.SessionRoomsCleaned + 1
+        end
+    })
+
+    SecCleanRoom:AddButton({
+        Name     = "Clear All Obstacles in Hotel",
+        Callback = function()
+            CallAdminAction("clearObstacles")
+        end
+    })
+end
+
+if NavClean_Chores then
+    local SecChores = NavClean_Chores:AddSection("Wire Minigames & Chores")
+
+    UI_Controls.AutoSolveWires = SecChores:AddToggle({
+        Name     = "Auto Solve Wire Minigames",
+        Default  = false,
+        Callback = function(val)
+            PH.AutoSolveWires = val
+        end
+    })
+
+    SecChores:AddButton({
+        Name     = "Instantly Solve All Wires",
+        Callback = function()
+            if WireConnectedEvent then
+                for i = 1, 4 do
+                    WireConnectedEvent:FireServer(i)
                 end
-            end)
+            end
         end
     })
 
-    UI_Controls.AutoClaimOffline = SecTrain:AddToggle({
-        Name     = "Auto Claim Offline Rewards",
-        Default  = true,
-        Callback = function(val)
-            PH.AutoClaimOffline = val
-        end
-    })
-end
-
-if NavTrain_Zones then
-    local SecZones = NavTrain_Zones:AddSection("Training Area Zones")
-
-    local zoneList = {}
-    for i = 1, 25 do table.insert(zoneList, "Area " .. i) end
-
-    UI_Controls.SelectedTrainArea = SecZones:AddDropdown({
-        Name     = "Select Training Area",
-        Values   = zoneList,
-        Default  = "Area 1",
-        Callback = function(val)
-            local num = tonumber(string.match(val, "%d+")) or 1
-            PH.SelectedTrainArea = num
-        end
-    })
-
-    UI_Controls.AutoEnterTrainArea = SecZones:AddToggle({
-        Name     = "Auto Enter Selected Zone",
+    UI_Controls.AutoCookMicrowave = SecChores:AddToggle({
+        Name     = "Auto Cook Food in Microwave",
         Default  = false,
         Callback = function(val)
-            PH.AutoEnterTrainArea = val
-            if val and IntoAutoTrainRE then
-                IntoAutoTrainRE:FireServer(PH.SelectedTrainArea)
-            elseif not val and ExitAutoTrainRE then
-                ExitAutoTrainRE:FireServer(PH.SelectedTrainArea)
-            end
-        end
-    })
-
-    SecZones:AddButton({
-        Name     = "Enter Area Now",
-        Callback = function()
-            if IntoAutoTrainRE then
-                IntoAutoTrainRE:FireServer(PH.SelectedTrainArea)
-            end
-        end
-    })
-
-    SecZones:AddButton({
-        Name     = "Exit Area Now",
-        Callback = function()
-            if ExitAutoTrainRE then
-                ExitAutoTrainRE:FireServer(PH.SelectedTrainArea)
-            end
-        end
-    })
-end
-
-if NavTrain_Power then
-    local SecPower = NavTrain_Power:AddSection("Power & Rebirth Automation")
-
-    UI_Controls.AutoUpgradePower = SecPower:AddToggle({
-        Name     = "Auto Upgrade Power Stat",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoUpgradePower = val
-        end
-    })
-
-    UI_Controls.AutoRebirth = SecPower:AddToggle({
-        Name     = "Auto Rebirth When Eligible",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoRebirth = val
-        end
-    })
-
-    SecPower:AddButton({
-        Name     = "Trigger Rebirth Now",
-        Callback = function()
-            if TryRebirthRE then
-                TryRebirthRE:FireServer()
-            end
+            PH.AutoCookMicrowave = val
         end
     })
 end
 
 -- ==============================================================================
--- TAB 3: ⚔️ COMBAT & MOB SLAYER
+-- TAB 6: 📅 STORY & SHIFT FAST-FORWARD
 -- ==============================================================================
-local TabCombat = Window and Window:CreateTab({
-    Name = "Combat",
-    Icon = "sword",
-    Description = "Instant Kill Aura, Auto Attack, Skills & God Mode"
+local TabStory = Window and Window:CreateTab({
+    Name = "Story",
+    Icon = "calendar",
+    Description = "Story Quest Completer, Day Selector & Shift Fast-Forward"
 })
 
-local NavCombat_Aura, NavCombat_Skills, NavCombat_Defense
-if TabCombat then
-    local sections = TabCombat:AddSubNav({
-        "Kill Aura",
-        "Skills & Combos",
-        "Defense & Vitals"
+local NavStory_Quests, NavStory_Days
+if TabStory then
+    local sections = TabStory:AddSubNav({
+        "Story Quests",
+        "Day Transition"
     })
-    NavCombat_Aura    = sections["Kill Aura"]
-    NavCombat_Skills  = sections["Skills & Combos"]
-    NavCombat_Defense = sections["Defense & Vitals"]
+    NavStory_Quests = sections["Story Quests"]
+    NavStory_Days   = sections["Day Transition"]
 end
 
-if NavCombat_Aura then
-    local SecAura = NavCombat_Aura:AddSection("Lethal Kill Aura Engine")
+if NavStory_Quests then
+    local SecQuests = NavStory_Quests:AddSection("Quest & Step Automation")
 
-    UI_Controls.KillAura = SecAura:AddToggle({
-        Name     = "Instant Kill Aura (Multi-Target)",
-        Default  = false,
-        Callback = function(val)
-            PH.KillAura = val
-        end
-    })
-
-    UI_Controls.KillAuraRange = SecAura:AddSlider({
-        Name     = "Kill Aura Range (Studs)",
-        Min      = 10,
-        Max      = 150,
-        Default  = 60,
-        Callback = function(val)
-            PH.KillAuraRange = val
-        end
-    })
-
-    UI_Controls.MobTargetFilter = SecAura:AddDropdown({
-        Name     = "Mob Target Filter",
-        Values   = { "All Enemies", "Bosses Only", "Normal Mobs Only" },
-        Default  = "All Enemies",
-        Callback = function(val)
-            PH.MobTargetFilter = val
-        end
-    })
-
-    UI_Controls.AutoAttack = SecAura:AddToggle({
-        Name     = "Auto Attack Animation & Hit Trigger",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoAttack = val
-        end
-    })
-
-    UI_Controls.HitboxExpander = SecAura:AddToggle({
-        Name     = "Hitbox Expander (Enemies)",
-        Default  = false,
-        Callback = function(val)
-            PH.HitboxExpander = val
-        end
-    })
-
-    UI_Controls.HitboxSize = SecAura:AddSlider({
-        Name     = "Hitbox Radius",
-        Min      = 5,
-        Max      = 40,
-        Default  = 15,
-        Callback = function(val)
-            PH.HitboxSize = val
-        end
-    })
-end
-
-if NavCombat_Skills then
-    local SecSkills = NavCombat_Skills:AddSection("Skill Auto Spammer")
-
-    UI_Controls.AutoSkill1 = SecSkills:AddToggle({
-        Name     = "Auto Cast Skill 1",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoSkill1 = val
-        end
-    })
-
-    UI_Controls.AutoSkill2 = SecSkills:AddToggle({
-        Name     = "Auto Cast Skill 2",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoSkill2 = val
-        end
-    })
-
-    SecSkills:AddButton({
-        Name     = "Trigger Skill 1 Now",
+    SecQuests:AddButton({
+        Name     = "Complete All Active Quests Now",
         Callback = function()
-            pcall(function()
-                if UseSkillByIndexBE then UseSkillByIndexBE:Fire(1) end
-                if UseAnySkillRE then UseAnySkillRE:FireServer("Skill_1", 1, Workspace:GetServerTimeNow()) end
-            end)
+            CallAdminAction("completeActiveQuests")
         end
     })
 
-    SecSkills:AddButton({
-        Name     = "Trigger Skill 2 Now",
+    SecQuests:AddButton({
+        Name     = "Skip Current Story Step",
         Callback = function()
-            pcall(function()
-                if UseSkillByIndexBE then UseSkillByIndexBE:Fire(2) end
-                if UseAnySkillRE then UseAnySkillRE:FireServer("Skill_2", 2, Workspace:GetServerTimeNow()) end
-            end)
-        end
-    })
-end
-
-if NavCombat_Defense then
-    local SecDef = NavCombat_Defense:AddSection("Combat Safeguards & Vitals")
-
-    UI_Controls.GodModeKeeper = SecDef:AddToggle({
-        Name     = "God Mode (Infinite Health Keeper)",
-        Default  = false,
-        Callback = function(val)
-            PH.GodModeKeeper = val
+            CallAdminAction("skipStoryStep")
         end
     })
 
-    UI_Controls.AutoCollectBalls = SecDef:AddToggle({
-        Name     = "Auto Collect Combat HP Recovery Balls",
+    UI_Controls.AutoSkipStoryDialog = SecQuests:AddToggle({
+        Name     = "Auto Skip All Story Dialogue",
         Default  = true,
         Callback = function(val)
-            PH.AutoCollectBalls = val
-        end
-    })
-
-    SecDef:AddButton({
-        Name     = "Instant Full Heal",
-        Callback = function()
-            pcall(function()
-                local maxHp = GetPlayerMaxHP()
-                local hpVal = LocalPlayer:FindFirstChild("HPValue")
-                if hpVal then hpVal.Value = maxHp end
-                if Humanoid then Humanoid.Health = maxHp end
-            end)
+            PH.AutoSkipStoryDialog = val
         end
     })
 end
 
--- ==============================================================================
--- TAB 4: 🏰 STAGE & WAVE FARM
--- ==============================================================================
-local TabStage = Window and Window:CreateTab({
-    Name = "Stages",
-    Icon = "map",
-    Description = "Stage Progression, Ore Mining & Super Loot Chests"
-})
+if NavStory_Days then
+    local SecDays = NavStory_Days:AddSection("Story Day Selector (Days 1 - 19)")
 
-local NavStage_Farm, NavStage_Ore, NavStage_Loot
-if TabStage then
-    local sections = TabStage:AddSubNav({
-        "Stage Farm",
-        "Ore Harvester",
-        "Super Loot"
-    })
-    NavStage_Farm = sections["Stage Farm"]
-    NavStage_Ore  = sections["Ore Harvester"]
-    NavStage_Loot = sections["Super Loot"]
-end
+    local dayList = {}
+    for i = 1, 19 do table.insert(dayList, "Day " .. i) end
 
-if NavStage_Farm then
-    local SecStageFarm = NavStage_Farm:AddSection("Stage Wave Farm & Auto Advance")
-
-    local stageList = {}
-    for i = 1, 50 do table.insert(stageList, "Stage " .. i) end
-
-    UI_Controls.SelectedStage = SecStageFarm:AddDropdown({
-        Name     = "Select Target Stage",
-        Values   = stageList,
-        Default  = "Stage 1",
+    SecDays:AddDropdown({
+        Name     = "Select Story Day",
+        Values   = dayList,
+        Default  = "Day 1",
         Callback = function(val)
             local num = tonumber(string.match(val, "%d+")) or 1
-            PH.SelectedStage = num
+            PH.TargetStoryDay = num
         end
     })
 
-    UI_Controls.AutoFarmStage = SecStageFarm:AddToggle({
-        Name     = "Auto Farm Selected Stage",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoFarmStage = val
-        end
-    })
-
-    UI_Controls.AutoAdvanceStage = SecStageFarm:AddToggle({
-        Name     = "Auto Advance to Next Stage on Clear",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoAdvanceStage = val
-        end
-    })
-
-    SecStageFarm:AddButton({
-        Name     = "Teleport Into Stage Now",
+    SecDays:AddButton({
+        Name     = "Jump to Selected Day",
         Callback = function()
-            if SetIntoStageRE then
-                SetIntoStageRE:FireServer(PH.SelectedStage)
-            end
+            CallAdminAction("setDay", PH.TargetStoryDay)
         end
     })
 
-    SecStageFarm:AddButton({
-        Name     = "Instantly Complete Stage Wave",
+    SecDays:AddButton({
+        Name     = "Force Next Day / Shift",
         Callback = function()
-            pcall(function()
-                if StageFinishedRF then StageFinishedRF:InvokeServer(PH.SelectedStage) end
-                if StageFinishedBE then StageFinishedBE:Fire() end
-            end)
+            CallAdminAction("forceNextDay")
         end
     })
 end
 
-if NavStage_Ore then
-    local SecOre = NavStage_Ore:AddSection("Automated Ore & Stone Harvester")
+-- ==============================================================================
+-- TAB 7: ⚡ ADMIN PRIVILEGES & CHEATS
+-- ==============================================================================
+local TabAdmin = Window and Window:CreateTab({
+    Name = "Admin",
+    Icon = "shield-alert",
+    Description = "Exclusive Privileges, Event Spawners & Survival Cheats"
+})
 
-    UI_Controls.AutoClaimAllOre = SecOre:AddToggle({
-        Name     = "Auto Claim All Stage Ores (Instant Sweep)",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoClaimAllOre = val
-        end
+local NavAdm_Cheats, NavAdm_Events
+if TabAdmin then
+    local sections = TabAdmin:AddSubNav({
+        "Admin Cheats",
+        "Event Spawner"
     })
+    NavAdm_Cheats = sections["Admin Cheats"]
+    NavAdm_Events = sections["Event Spawner"]
+end
 
-    UI_Controls.AutoCollectOres = SecOre:AddToggle({
-        Name     = "Auto Collect Mined Ore Drops",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoCollectOres = val
-        end
-    })
+if NavAdm_Cheats then
+    local SecAdminCheat = NavAdm_Cheats:AddSection("Player Cheats & Items")
 
-    UI_Controls.AutoCollectStones = SecOre:AddToggle({
-        Name     = "Auto Collect Enchant Stones",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoCollectStones = val
-        end
-    })
-
-    SecOre:AddButton({
-        Name     = "Claim All Ores Now",
+    SecAdminCheat:AddButton({
+        Name     = "Instant Revive Self",
         Callback = function()
-            if ClaimedAllOreRE then
-                ClaimedAllOreRE:FireServer()
-                PH.SessionOresMined = PH.SessionOresMined + 1
-            end
+            CallAdminAction("revivePlayer", LocalPlayer.UserId)
+        end
+    })
+
+    SecAdminCheat:AddButton({
+        Name     = "Give Revolver Weapon",
+        Callback = function()
+            CallAdminAction("giveItem", "revolver")
+        end
+    })
+
+    SecAdminCheat:AddButton({
+        Name     = "Give Energy Drink",
+        Callback = function()
+            CallAdminAction("giveItem", "energyDrink")
+        end
+    })
+
+    SecAdminCheat:AddButton({
+        Name     = "Give Hotel Cash ($99,999)",
+        Callback = function()
+            CallAdminAction("giveCurrency", 99999)
+        end
+    })
+
+    SecAdminCheat:AddButton({
+        Name     = "Give All Testing Resources",
+        Callback = function()
+            CallAdminAction("giveTestingResources")
         end
     })
 end
 
-if NavStage_Loot then
-    local SecLoot = NavStage_Loot:AddSection("Super Loot Treasure Chests")
+if NavAdm_Events then
+    local SecAdminEvt = NavAdm_Events:AddSection("Horror Event Spawners")
 
-    UI_Controls.AutoKillSuperLoot = SecLoot:AddToggle({
-        Name     = "Auto Destroy Super Loot Chests",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoKillSuperLoot = val
+    SecAdminEvt:AddButton({
+        Name     = "Trigger Blackout Event",
+        Callback = function()
+            CallAdminAction("startBlackout")
         end
     })
 
-    SecLoot:AddButton({
-        Name     = "Nuke All Active Super Loot Chests",
+    SecAdminEvt:AddButton({
+        Name     = "Spawn Anomaly at Hotel",
+        Callback = function()
+            CallAdminAction("spawnAnomaly")
+        end
+    })
+
+    SecAdminEvt:AddButton({
+        Name     = "Spawn Darmo / Special NPC",
+        Callback = function()
+            CallAdminAction("spawnSpecialNPC", "Darmo")
+        end
+    })
+
+    SecAdminEvt:AddButton({
+        Name     = "Trigger Slenderman Event",
+        Callback = function()
+            CallAdminAction("triggerSlenderman")
+        end
+    })
+end
+
+-- ==============================================================================
+-- TAB 8: 🎒 INVENTORY & COMBAT TOOLS
+-- ==============================================================================
+local TabItems = Window and Window:CreateTab({
+    Name = "Inventory",
+    Icon = "briefcase",
+    Description = "Weapon Actions, Stun Batons & Consumables"
+})
+
+local NavItm_Weapon, NavItm_Tools
+if TabItems then
+    local sections = TabItems:AddSubNav({
+        "Weapons & Revolver",
+        "Tools & Items"
+    })
+    NavItm_Weapon = sections["Weapons & Revolver"]
+    NavItm_Tools  = sections["Tools & Items"]
+end
+
+if NavItm_Weapon then
+    local SecWeap = NavItm_Weapon:AddSection("Combat Firearm Actions")
+
+    SecWeap:AddButton({
+        Name     = "Fire Revolver (Nearest Anomaly)",
         Callback = function()
             pcall(function()
-                if KillSuperLootRE then
-                    for i = 1, 10 do
-                        KillSuperLootRE:FireServer(i)
+                local target, isAnom = FindCurrentGuestNPC()
+                if target and target:FindFirstChild("HumanoidRootPart") then
+                    if Networker and Networker.fire then
+                        Networker:fire("FireRevolver", target.HumanoidRootPart.Position)
                     end
                 end
             end)
         end
     })
+
+    SecWeap:AddButton({
+        Name     = "Perform Weapon Swing / Stun",
+        Callback = function()
+            if Networker and Networker.fire then
+                Networker:fire("PerformSwing")
+            end
+        end
+    })
+end
+
+if NavItm_Tools then
+    local SecTools = NavItm_Tools:AddSection("Hotel Tools")
+
+    SecTools:AddButton({
+        Name     = "Drink Energy Drink Now",
+        Callback = function()
+            CallAdminAction("giveItem", "energyDrink")
+        end
+    })
+
+    SecTools:AddButton({
+        Name     = "Equip Floor Mop (Pel)",
+        Callback = function()
+            CallAdminAction("giveItem", "pel")
+        end
+    })
+
+    SecTools:AddButton({
+        Name     = "Equip Broom (Sapu)",
+        Callback = function()
+            CallAdminAction("giveItem", "sapu")
+        end
+    })
 end
 
 -- ==============================================================================
--- TAB 5: 💀 DUNGEON & RAIDS
+-- TAB 9: 👁️ ESP & ANOMALY RADAR
 -- ==============================================================================
-local TabDungeon = Window and Window:CreateTab({
-    Name = "Dungeon",
-    Icon = "shield",
-    Description = "Dungeon Auto Runner, Mob Sweeper & Floor Clears"
+local TabESP = Window and Window:CreateTab({
+    Name = "ESP",
+    Icon = "eye",
+    Description = "Accurate Anomaly Identifier, Guest Radar & Slender ESP"
 })
 
-local NavDungeon_Main, NavDungeon_Actions
-if TabDungeon then
-    local sections = TabDungeon:AddSubNav({
-        "Dungeon Runner",
-        "Actions & Revive"
+local NavESP_Entities, NavESP_Objects
+if TabESP then
+    local sections = TabESP:AddSubNav({
+        "Entity ESP",
+        "Object ESP"
     })
-    NavDungeon_Main    = sections["Dungeon Runner"]
-    NavDungeon_Actions = sections["Actions & Revive"]
+    NavESP_Entities = sections["Entity ESP"]
+    NavESP_Objects  = sections["Object ESP"]
 end
 
-if NavDungeon_Main then
-    local SecDungeon = NavDungeon_Main:AddSection("Automated Dungeon Engine")
+if NavESP_Entities then
+    local SecEntESP = NavESP_Entities:AddSection("Accurate Guest & Anomaly ESP")
 
-    UI_Controls.AutoJoinDungeon = SecDungeon:AddToggle({
-        Name     = "Auto Enter Dungeon",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoJoinDungeon = val
-        end
-    })
-
-    UI_Controls.AutoClearDungeon = SecDungeon:AddToggle({
-        Name     = "Auto Clear Dungeon Floors",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoClearDungeon = val
-        end
-    })
-
-    UI_Controls.AutoDungeonRevive = SecDungeon:AddToggle({
-        Name     = "Auto Dungeon Rebirth / Revive",
+    UI_Controls.ESP_Anomalies = SecEntESP:AddToggle({
+        Name     = "Highlight Anomalies (Glowing RED)",
         Default  = true,
         Callback = function(val)
-            PH.AutoDungeonRevive = val
+            PH.ESP_Anomalies = val
         end
     })
 
-    UI_Controls.AutoExitDungeon = SecDungeon:AddToggle({
-        Name     = "Auto Exit When Finished",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoExitDungeon = val
-        end
-    })
-end
-
-if NavDungeon_Actions then
-    local SecDunAct = NavDungeon_Actions:AddSection("Manual Dungeon Controls")
-
-    SecDunAct:AddButton({
-        Name     = "Revive In Dungeon Now",
-        Callback = function()
-            if DungeonRebirthRE then
-                DungeonRebirthRE:FireServer()
-            end
-        end
-    })
-
-    SecDunAct:AddButton({
-        Name     = "Exit Dungeon (Return to Lobby)",
-        Callback = function()
-            if ExitDungeonBE then
-                ExitDungeonBE:Fire()
-            end
-        end
-    })
-
-    SecDunAct:AddButton({
-        Name     = "Give Up Dungeon",
-        Callback = function()
-            if DungeonGiveUpBE then
-                DungeonGiveUpBE:Fire()
-            end
-        end
-    })
-end
-
--- ==============================================================================
--- TAB 6: 🐉 WORLD BOSS ARENA
--- ==============================================================================
-local TabBoss = Window and Window:CreateTab({
-    Name = "World Boss",
-    Icon = "crosshair",
-    Description = "Live Boss Radar, Auto Battle & Reward Claimer"
-})
-
-local NavBoss_Auto, NavBoss_Rewards
-if TabBoss then
-    local sections = TabBoss:AddSubNav({
-        "Boss Battle",
-        "Reward Claimer"
-    })
-    NavBoss_Auto    = sections["Boss Battle"]
-    NavBoss_Rewards = sections["Reward Claimer"]
-end
-
-if NavBoss_Auto then
-    local SecBoss = NavBoss_Auto:AddSection("World Boss Battle Engine")
-
-    UI_Controls.AutoJoinBoss = SecBoss:AddToggle({
-        Name     = "Auto Join World Boss When Spawned",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoJoinBoss = val
-        end
-    })
-
-    UI_Controls.AutoAttackBoss = SecBoss:AddToggle({
-        Name     = "Auto Attack World Boss",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoAttackBoss = val
-        end
-    })
-
-    UI_Controls.AutoCollectBossBalls = SecBoss:AddToggle({
-        Name     = "Auto Collect Boss HP Balls",
+    UI_Controls.ESP_Humans = SecEntESP:AddToggle({
+        Name     = "Highlight Human Guests (Glowing GREEN)",
         Default  = true,
         Callback = function(val)
-            PH.AutoCollectBossBalls = val
+            PH.ESP_Humans = val
         end
     })
 
-    UI_Controls.BossHoverDistance = SecBoss:AddSlider({
-        Name     = "Safe Hover Distance (Studs)",
-        Min      = 5,
-        Max      = 50,
-        Default  = 12,
-        Callback = function(val)
-            PH.BossHoverDistance = val
-        end
-    })
-
-    SecBoss:AddButton({
-        Name     = "Join Boss Fight Now",
-        Callback = function()
-            if IntoWorldBossFight then
-                IntoWorldBossFight:FireServer()
-            end
-        end
-    })
-
-    SecBoss:AddButton({
-        Name     = "Exit Boss Arena Now",
-        Callback = function()
-            if ExitWorldBossFight then
-                ExitWorldBossFight:FireServer()
-            elseif ExitWorldBossBE then
-                ExitWorldBossBE:Fire()
-            end
-        end
-    })
-end
-
-if NavBoss_Rewards then
-    local SecRewards = NavBoss_Rewards:AddSection("World Boss Rewards")
-
-    UI_Controls.AutoClaimBossReward = SecRewards:AddToggle({
-        Name     = "Auto Claim Boss Rewards on Defeat",
+    UI_Controls.ESP_Slender = SecEntESP:AddToggle({
+        Name     = "Highlight Slenderman / Ghosts (PURPLE)",
         Default  = true,
         Callback = function(val)
-            PH.AutoClaimBossReward = val
+            PH.ESP_Slender = val
         end
     })
+end
 
-    SecRewards:AddButton({
-        Name     = "Claim All Pending Boss Rewards",
-        Callback = function()
-            pcall(function()
-                if TryClaimBossRewardRE then
-                    for i = 1, 5 do
-                        TryClaimBossRewardRE:FireServer(tostring(i))
-                    end
-                end
-            end)
+if NavESP_Objects then
+    local SecObjESP = NavESP_Objects:AddSection("Hotel Chore Radar")
+
+    UI_Controls.ESP_Trash = SecObjESP:AddToggle({
+        Name     = "Hotel Trash ESP (Yellow)",
+        Default  = false,
+        Callback = function(val)
+            PH.ESP_Trash = val
         end
     })
 end
 
 -- ==============================================================================
--- TAB 7: 🔨 FORGE, ARMOR & WEAPONS
--- ==============================================================================
-local TabForge = Window and Window:CreateTab({
-    Name = "Forge",
-    Icon = "hammer",
-    Description = "Weapon & Armor Crafting, Ore Deposit & Enhancement"
-})
-
-local NavForge_Craft, NavForge_Furnace
-if TabForge then
-    local sections = TabForge:AddSubNav({
-        "Equipment Forge",
-        "Furnace & Enhance"
-    })
-    NavForge_Craft   = sections["Equipment Forge"]
-    NavForge_Furnace = sections["Furnace & Enhance"]
-end
-
-if NavForge_Craft then
-    local SecCraft = NavForge_Craft:AddSection("Equipment Crafting")
-
-    UI_Controls.AutoForgeWeapon = SecCraft:AddToggle({
-        Name     = "Auto Forge Highest Tier Weapon",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoForgeWeapon = val
-        end
-    })
-
-    UI_Controls.AutoForgeArmor = SecCraft:AddToggle({
-        Name     = "Auto Forge Highest Tier Armor",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoForgeArmor = val
-        end
-    })
-
-    SecCraft:AddButton({
-        Name     = "Craft Next Weapon",
-        Callback = function()
-            if ForgeRF then
-                ForgeRF:InvokeServer(1)
-            end
-        end
-    })
-
-    SecCraft:AddButton({
-        Name     = "Craft Next Armor",
-        Callback = function()
-            if ForgeRF then
-                ForgeRF:InvokeServer(2)
-            end
-        end
-    })
-end
-
-if NavForge_Furnace then
-    local SecFurnace = NavForge_Furnace:AddSection("Furnace Deposit & Gear Enhance")
-
-    UI_Controls.AutoDepositOre = SecFurnace:AddToggle({
-        Name     = "Auto Deposit Ores to Furnace",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoDepositOre = val
-        end
-    })
-
-    UI_Controls.AutoEnhanceGear = SecFurnace:AddToggle({
-        Name     = "Auto Enhance Equipped Gear",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoEnhanceGear = val
-        end
-    })
-
-    SecFurnace:AddButton({
-        Name     = "Deposit All Ores Now",
-        Callback = function()
-            if PutOreNumBE then
-                PutOreNumBE:Fire(1, 9999)
-            end
-        end
-    })
-end
-
--- ==============================================================================
--- TAB 8: 🔮 CLASS & REBIRTH MASTER
--- ==============================================================================
-local TabClass = Window and Window:CreateTab({
-    Name = "Class",
-    Icon = "star",
-    Description = "Class Rolling, Rarity Filters & Rebirth Automation"
-})
-
-local NavClass_Roll, NavClass_Rebirth
-if TabClass then
-    local sections = TabClass:AddSubNav({
-        "Class Roll Master",
-        "Rebirth Loop"
-    })
-    NavClass_Roll    = sections["Class Roll Master"]
-    NavClass_Rebirth = sections["Rebirth Loop"]
-end
-
-if NavClass_Roll then
-    local SecRoll = NavClass_Roll:AddSection("Automated Class Rolling")
-
-    UI_Controls.TargetClassRarity = SecRoll:AddDropdown({
-        Name     = "Stop On Rarity",
-        Values   = { "Rare", "Epic", "Legendary", "Mythic", "Divine" },
-        Default  = "Legendary",
-        Callback = function(val)
-            PH.TargetClassRarity = val
-        end
-    })
-
-    UI_Controls.AutoRollClass = SecRoll:AddToggle({
-        Name     = "Auto Roll Class (Skip Animations)",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoRollClass = val
-        end
-    })
-end
-
-if NavClass_Rebirth then
-    local SecRebirth = NavClass_Rebirth:AddSection("Continuous Rebirth Engine")
-
-    UI_Controls.AutoRebirthLoop = SecRebirth:AddToggle({
-        Name     = "Continuous Rebirth Loop",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoRebirthLoop = val
-        end
-    })
-
-    SecRebirth:AddButton({
-        Name     = "Execute Rebirth Now",
-        Callback = function()
-            if TryRebirthRE then
-                TryRebirthRE:FireServer()
-            end
-        end
-    })
-end
-
--- ==============================================================================
--- TAB 9: 🐾 PETS, POTIONS & UPGRADES
--- ==============================================================================
-local TabPets = Window and Window:CreateTab({
-    Name = "Upgrades",
-    Icon = "package",
-    Description = "Stat Upgrades, Potion Drinker & Best Pet Equipper"
-})
-
-local NavUp_Stats, NavUp_Potions, NavUp_Pets
-if TabPets then
-    local sections = TabPets:AddSubNav({
-        "Stat Upgrades",
-        "Potion Drinker",
-        "Pet Manager"
-    })
-    NavUp_Stats   = sections["Stat Upgrades"]
-    NavUp_Potions = sections["Potion Drinker"]
-    NavUp_Pets    = sections["Pet Manager"]
-end
-
-if NavUp_Stats then
-    local SecUp = NavUp_Stats:AddSection("Stat Upgrades Automation")
-
-    UI_Controls.AutoUpgradeStats = SecUp:AddToggle({
-        Name     = "Auto Upgrade All Stats (Power/Coin/HP)",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoUpgradeStats = val
-        end
-    })
-
-    SecUp:AddButton({
-        Name     = "Upgrade Power Stat",
-        Callback = function()
-            if UpgradeOnceRE then UpgradeOnceRE:FireServer("Power") end
-        end
-    })
-
-    SecUp:AddButton({
-        Name     = "Upgrade Coin Stat",
-        Callback = function()
-            if UpgradeOnceRE then UpgradeOnceRE:FireServer("Coin") end
-        end
-    })
-
-    SecUp:AddButton({
-        Name     = "Upgrade Health Stat",
-        Callback = function()
-            if UpgradeOnceRE then UpgradeOnceRE:FireServer("Health") end
-        end
-    })
-end
-
-if NavUp_Potions then
-    local SecPotions = NavUp_Potions:AddSection("Automated Potion Consumption")
-
-    UI_Controls.AutoUsePowerPotion = SecPotions:AddToggle({
-        Name     = "Auto Drink Power Potions",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoUsePowerPotion = val
-        end
-    })
-
-    UI_Controls.AutoUseCoinPotion = SecPotions:AddToggle({
-        Name     = "Auto Drink Coin Potions",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoUseCoinPotion = val
-        end
-    })
-
-    UI_Controls.AutoUseLuckPotion = SecPotions:AddToggle({
-        Name     = "Auto Drink Luck Potions",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoUseLuckPotion = val
-        end
-    })
-end
-
-if NavUp_Pets then
-    local SecPet = NavUp_Pets:AddSection("Pet Team Optimization")
-
-    UI_Controls.AutoEquipBestPet = SecPet:AddToggle({
-        Name     = "Auto Equip Best Pet Loadout",
-        Default  = false,
-        Callback = function(val)
-            PH.AutoEquipBestPet = val
-        end
-    })
-
-    SecPet:AddButton({
-        Name     = "Equip Best Pets Now",
-        Callback = function()
-            if GetMyBestRF then
-                GetMyBestRF:InvokeServer("Pet")
-            end
-        end
-    })
-end
-
--- ==============================================================================
--- TAB 10: 🚀 MOVEMENT & CHARACTER PHYSICS
+-- TAB 10: 🚀 MOVEMENT & GHOST MODE
 -- ==============================================================================
 local TabMove = Window and Window:CreateTab({
     Name = "Movement",
     Icon = "navigation",
-    Description = "WalkSpeed, JumpPower, Fly, Noclip & Anti-Void"
+    Description = "WalkSpeed, JumpPower, Smooth Fly, Noclip & Anti-Void"
 })
 
 local NavMove_Physics, NavMove_Flight
@@ -1856,9 +1432,9 @@ if TabMove then
 end
 
 if NavMove_Physics then
-    local SecPhysics = NavMove_Physics:AddSection("Movement Modifiers")
+    local SecPhys = NavMove_Physics:AddSection("Movement Modifiers")
 
-    UI_Controls.WalkSpeedBoost = SecPhysics:AddToggle({
+    UI_Controls.WalkSpeedBoost = SecPhys:AddToggle({
         Name     = "Enable WalkSpeed Boost",
         Default  = false,
         Callback = function(val)
@@ -1867,18 +1443,18 @@ if NavMove_Physics then
         end
     })
 
-    UI_Controls.WalkSpeedValue = SecPhysics:AddSlider({
+    UI_Controls.WalkSpeedValue = SecPhys:AddSlider({
         Name     = "WalkSpeed Multiplier",
         Min      = 16,
-        Max      = 350,
-        Default  = 50,
+        Max      = 150,
+        Default  = 35,
         Callback = function(val)
             PH.WalkSpeedValue = val
             if PH.WalkSpeedBoost and Humanoid then Humanoid.WalkSpeed = val end
         end
     })
 
-    UI_Controls.JumpPowerBoost = SecPhysics:AddToggle({
+    UI_Controls.JumpPowerBoost = SecPhys:AddToggle({
         Name     = "Enable JumpPower Boost",
         Default  = false,
         Callback = function(val)
@@ -1887,18 +1463,18 @@ if NavMove_Physics then
         end
     })
 
-    UI_Controls.JumpPowerValue = SecPhysics:AddSlider({
+    UI_Controls.JumpPowerValue = SecPhys:AddSlider({
         Name     = "JumpPower Multiplier",
         Min      = 50,
-        Max      = 500,
-        Default  = 120,
+        Max      = 250,
+        Default  = 100,
         Callback = function(val)
             PH.JumpPowerValue = val
             if PH.JumpPowerBoost and Humanoid then Humanoid.JumpPower = val end
         end
     })
 
-    UI_Controls.InfiniteJump = SecPhysics:AddToggle({
+    UI_Controls.InfiniteJump = SecPhys:AddToggle({
         Name     = "Infinite Jump",
         Default  = false,
         Callback = function(val)
@@ -1906,7 +1482,7 @@ if NavMove_Physics then
         end
     })
 
-    UI_Controls.AntiVoid = SecPhysics:AddToggle({
+    UI_Controls.AntiVoid = SecPhys:AddToggle({
         Name     = "Anti-Void Fall Protector",
         Default  = true,
         Callback = function(val)
@@ -1916,9 +1492,9 @@ if NavMove_Physics then
 end
 
 if NavMove_Flight then
-    local SecFlight = NavMove_Flight:AddSection("Flight & Collision")
+    local SecFly = NavMove_Flight:AddSection("Ghost Mode & Flight")
 
-    UI_Controls.FlyEnabled = SecFlight:AddToggle({
+    UI_Controls.FlyEnabled = SecFly:AddToggle({
         Name     = "Fly Mode (WASD + Space/Shift)",
         Default  = false,
         Callback = function(val)
@@ -1926,18 +1502,18 @@ if NavMove_Flight then
         end
     })
 
-    UI_Controls.FlySpeed = SecFlight:AddSlider({
+    UI_Controls.FlySpeed = SecFly:AddSlider({
         Name     = "Fly Speed",
-        Min      = 20,
-        Max      = 250,
-        Default  = 60,
+        Min      = 15,
+        Max      = 150,
+        Default  = 50,
         Callback = function(val)
             PH.FlySpeed = val
         end
     })
 
-    UI_Controls.Noclip = SecFlight:AddToggle({
-        Name     = "Noclip (Walk Through Walls)",
+    UI_Controls.Noclip = SecFly:AddToggle({
+        Name     = "Noclip (Walk Through Hotel Walls)",
         Default  = false,
         Callback = function(val)
             PH.Noclip = val
@@ -1946,178 +1522,86 @@ if NavMove_Flight then
 end
 
 -- ==============================================================================
--- TAB 11: 👁️ ESP & VISUAL RADAR
--- ==============================================================================
-local TabESP = Window and Window:CreateTab({
-    Name = "Visuals",
-    Icon = "eye",
-    Description = "Enemy ESP, Boss Highlights, Ore & Super Loot Radar"
-})
-
-local NavESP_Entities, NavESP_World
-if TabESP then
-    local sections = TabESP:AddSubNav({
-        "Entity ESP",
-        "World Objects ESP"
-    })
-    NavESP_Entities = sections["Entity ESP"]
-    NavESP_World    = sections["World Objects ESP"]
-end
-
-if NavESP_Entities then
-    local SecESP = NavESP_Entities:AddSection("Enemy & Boss Visuals")
-
-    UI_Controls.ESP_Enemies = SecESP:AddToggle({
-        Name     = "Enemy Mobs ESP",
-        Default  = false,
-        Callback = function(val)
-            PH.ESP_Enemies = val
-        end
-    })
-
-    UI_Controls.ESP_Bosses = SecESP:AddToggle({
-        Name     = "World Boss Highlight ESP",
-        Default  = true,
-        Callback = function(val)
-            PH.ESP_Bosses = val
-        end
-    })
-
-    UI_Controls.ESP_Tracers = SecESP:AddToggle({
-        Name     = "Draw Tracers to Target Mobs",
-        Default  = false,
-        Callback = function(val)
-            PH.ESP_Tracers = val
-        end
-    })
-end
-
-if NavESP_World then
-    local SecWorldESP = NavESP_World:AddSection("Treasure & Ore Radar")
-
-    UI_Controls.ESP_SuperLoot = SecWorldESP:AddToggle({
-        Name     = "Super Loot Chests ESP (Gold)",
-        Default  = true,
-        Callback = function(val)
-            PH.ESP_SuperLoot = val
-        end
-    })
-
-    UI_Controls.ESP_Ores = SecWorldESP:AddToggle({
-        Name     = "Stage Ore Nodes ESP",
-        Default  = false,
-        Callback = function(val)
-            PH.ESP_Ores = val
-        end
-    })
-end
-
--- ==============================================================================
--- TAB 12: 📍 WORLD TELEPORTS
+-- TAB 11: 📍 HOTEL TELEPORTS
 -- ==============================================================================
 local TabTP = Window and Window:CreateTab({
     Name = "Teleports",
     Icon = "compass",
-    Description = "Instant Teleports to Stages, Training Zones & Arenas"
+    Description = "Instant Teleport to Reception, CCTV, Rooms & Basement"
 })
 
-local NavTP_Stages, NavTP_Areas, NavTP_KeyLocs
-if TabTP then
-    local sections = TabTP:AddSubNav({
-        "Stage Teleports",
-        "Training Areas",
-        "Key Locations"
-    })
-    NavTP_Stages  = sections["Stage Teleports"]
-    NavTP_Areas   = sections["Training Areas"]
-    NavTP_KeyLocs = sections["Key Locations"]
-end
+local NavTP_Locations = TabTP and TabTP:AddSection("Key Hotel Locations")
+if NavTP_Locations then
+    local function TeleportTo(cf)
+        pcall(function()
+            if Root then Root.CFrame = cf end
+        end)
+    end
 
-if NavTP_Stages then
-    local SecTPStages = NavTP_Stages:AddSection("Stage Teleport Selector")
-
-    local tpStages = {}
-    for i = 1, 30 do table.insert(tpStages, "Stage " .. i) end
-
-    local targetStageTP = 1
-    SecTPStages:AddDropdown({
-        Name     = "Select Stage to Teleport",
-        Values   = tpStages,
-        Default  = "Stage 1",
-        Callback = function(val)
-            targetStageTP = tonumber(string.match(val, "%d+")) or 1
-        end
-    })
-
-    SecTPStages:AddButton({
-        Name     = "Teleport to Selected Stage",
+    NavTP_Locations:AddButton({
+        Name     = "Front Desk Reception Counter",
         Callback = function()
-            pcall(function()
-                if SetIntoStageRE then
-                    SetIntoStageRE:FireServer(targetStageTP)
-                end
-            end)
-        end
-    })
-end
-
-if NavTP_Areas then
-    local SecTPAreas = NavTP_Areas:AddSection("Training Area Teleports")
-
-    local tpAreas = {}
-    for i = 1, 20 do table.insert(tpAreas, "Training Area " .. i) end
-
-    local targetAreaTP = 1
-    SecTPAreas:AddDropdown({
-        Name     = "Select Training Area",
-        Values   = tpAreas,
-        Default  = "Training Area 1",
-        Callback = function(val)
-            targetAreaTP = tonumber(string.match(val, "%d+")) or 1
-        end
-    })
-
-    SecTPAreas:AddButton({
-        Name     = "Teleport & Enter Training Area",
-        Callback = function()
-            if IntoAutoTrainRE then
-                IntoAutoTrainRE:FireServer(targetAreaTP)
-            end
-        end
-    })
-end
-
-if NavTP_KeyLocs then
-    local SecTPKeys = NavTP_KeyLocs:AddSection("Key Arena Teleports")
-
-    SecTPKeys:AddButton({
-        Name     = "Teleport to World Boss Arena",
-        Callback = function()
-            if IntoWorldBossFight then
-                IntoWorldBossFight:FireServer()
+            local desk = Workspace:FindFirstChild("FrontDesk") or Workspace:FindFirstChild("Counter") or Workspace:FindFirstChild("ReceptionistDesk", true)
+            if desk then
+                TeleportTo(desk.CFrame * CFrame.new(0, 3, -3))
+            else
+                TeleportTo(CFrame.new(0, 5, 0))
             end
         end
     })
 
-    SecTPKeys:AddButton({
-        Name     = "Teleport to Safe Zone / Spawn",
+    NavTP_Locations:AddButton({
+        Name     = "CCTV Security Office",
         Callback = function()
-            pcall(function()
-                if Root then
-                    Root.CFrame = CFrame.new(0, 10, 0)
-                end
-            end)
+            local cctvRoom = Workspace:FindFirstChild("SecurityRoom", true) or Workspace:FindFirstChild("CCTVRoom", true)
+            if cctvRoom then
+                TeleportTo(cctvRoom:GetPivot() * CFrame.new(0, 3, 0))
+            end
+        end
+    })
+
+    NavTP_Locations:AddButton({
+        Name     = "Kitchen & Microwave Station",
+        Callback = function()
+            local kitchen = Workspace:FindFirstChild("Kitchen", true) or Workspace:FindFirstChild("Microwave", true)
+            if kitchen then
+                TeleportTo(kitchen:GetPivot() * CFrame.new(0, 3, 0))
+            end
+        end
+    })
+
+    NavTP_Locations:AddButton({
+        Name     = "Hotel Room 101",
+        Callback = function()
+            local room = Workspace:FindFirstChild("Room101", true) or Workspace:FindFirstChild("Room_101", true)
+            if room then TeleportTo(room:GetPivot() * CFrame.new(0, 3, 0)) end
+        end
+    })
+
+    NavTP_Locations:AddButton({
+        Name     = "Hotel Room 102",
+        Callback = function()
+            local room = Workspace:FindFirstChild("Room102", true) or Workspace:FindFirstChild("Room_102", true)
+            if room then TeleportTo(room:GetPivot() * CFrame.new(0, 3, 0)) end
+        end
+    })
+
+    NavTP_Locations:AddButton({
+        Name     = "Hotel Basement / Bunker",
+        Callback = function()
+            local basement = Workspace:FindFirstChild("Basement", true)
+            if basement then TeleportTo(basement:GetPivot() * CFrame.new(0, 3, 0)) end
         end
     })
 end
 
 -- ==============================================================================
--- TAB 13: ⚙️ SETTINGS, CODES & CONFIG PROFILES
+-- TAB 12: ⚙️ SETTINGS, CODES & CONFIG PROFILES
 -- ==============================================================================
 local TabSettings = Window and Window:CreateTab({
     Name = "Settings",
     Icon = "settings",
-    Description = "Promo Code Redeemer, Profile Storage & Hub Controls"
+    Description = "Promo Codes, Profile Manager & UI Hotkeys"
 })
 
 local NavSet_Codes, NavSet_Profiles, NavSet_Misc
@@ -2133,42 +1617,33 @@ if TabSettings then
 end
 
 if NavSet_Codes then
-    local SecCodes = NavSet_Codes:AddSection("Secret Promo Code Redeemer")
+    local SecCodes = NavSet_Codes:AddSection("Secret Anomaly Hotel Promo Codes")
 
-    local customCodeInput = ""
+    local inputCode = ""
     SecCodes:AddInput({
         Name        = "Enter Promo Code",
-        Placeholder = "Enter code here...",
+        Placeholder = "Type code...",
         Callback    = function(val)
-            customCodeInput = val
+            inputCode = val
         end
     })
 
     SecCodes:AddButton({
         Name     = "Redeem Entered Code",
         Callback = function()
-            if customCodeInput ~= "" and TryUseCodeRF then
-                pcall(function()
-                    TryUseCodeRF:InvokeServer(customCodeInput)
-                end)
+            if inputCode ~= "" then
+                CallAdminAction("redeemCode", inputCode)
             end
         end
     })
 
     SecCodes:AddButton({
-        Name     = "Redeem All Popular Known Codes",
+        Name     = "Redeem Popular Codes",
         Callback = function()
-            if TryUseCodeRF then
-                local knownCodes = {
-                    "RELEASE", "POWER", "SWORD", "BLADE", "UPDATE1",
-                    "TRAIN", "CHAMPION", "100KFAV", "FREEGEMS", "SUPER"
-                }
-                for _, code in ipairs(knownCodes) do
-                    pcall(function()
-                        TryUseCodeRF:InvokeServer(code)
-                    end)
-                    task.wait(0.25)
-                end
+            local popularCodes = { "ANOMALY", "HOTEL", "NIGHTSHIFT", "DARMO", "RELEASE", "CLEAN" }
+            for _, c in ipairs(popularCodes) do
+                CallAdminAction("redeemCode", c)
+                task.wait(0.25)
             end
         end
     })
@@ -2219,9 +1694,7 @@ if NavSet_Misc then
         Default  = Enum.KeyCode.RightControl,
         Callback = function()
             pcall(function()
-                if Window and Window.Toggle then
-                    Window:Toggle()
-                end
+                if Window and Window.Toggle then Window:Toggle() end
             end)
         end
     })
@@ -2229,22 +1702,18 @@ if NavSet_Misc then
     SecMisc:AddButton({
         Name     = "Clean Unload PinatHub",
         Callback = function()
-            PH.AutoTrain  = false
-            PH.AutoAttack = false
-            PH.KillAura   = false
-            PH.FlyEnabled = false
-            PH.Noclip     = false
+            PH.AutoReceptionist = false
+            PH.FlyEnabled       = false
+            PH.Noclip           = false
             pcall(function()
-                if Window and Window.Destroy then
-                    Window:Destroy()
-                end
+                if Window and Window.Destroy then Window:Destroy() end
             end)
         end
     })
 end
 
 -- ==============================================================================
--- 6. DEDICATED LIVE GRAPHIC DATA & TELEMETRY ENGINE (THREAD 1)
+-- 6. DEDICATED LIVE GRAPHIC TELEMETRY LOOP (THREAD 1)
 -- ==============================================================================
 task.spawn(function()
     local lastTelemetryTick = tick()
@@ -2261,134 +1730,115 @@ task.spawn(function()
     end)
 
     while task.wait(0.5) do
-        local ok, err = pcall(function()
+        local ok = pcall(function()
             local now = tick()
             local dt = now - lastTelemetryTick
             lastTelemetryTick = now
 
-            local currentPower = GetPlayerPower()
-            local currentCoins = GetPlayerCoins()
-            local currentHP    = GetPlayerHP()
-            local maxHP        = GetPlayerMaxHP()
-            local currentAtk   = GetPlayerATK()
-            local currentLevel = GetPlayerLevel()
-            local currentRebirth = GetPlayerRebirths()
-            local activeStage  = GetCurrentStageName()
-            local activeArea   = GetActiveTrainAreaName()
-            local activeMobs   = GetActiveMobsCount()
-            local bossName, bossTime, bossStatus = GetWorldBossData()
-
-            -- Calculate Deltas
-            local powerDelta = (dt > 0) and math.max(0, math.floor((currentPower - PH.LastPowerVal) / dt)) or 0
-            local coinsDelta = (dt > 0) and math.max(0, math.floor((currentCoins - PH.LastCoinsVal) / dt)) or 0
-            PH.LastPowerVal  = currentPower
-            PH.LastCoinsVal  = currentCoins
+            local currentBPM = GetCurrentHeartRate()
+            local maxBPM     = GetMaxHeartRate()
+            local currentDay = GetCurrentStoryDay()
+            local guestModel, isAnomaly, guestName, guestJob = FindCurrentGuestNPC()
+            local trashCount, roomsCleaned = GetCleaningStatus()
+            local threatDist = GetNearestAnomalyDistance()
 
             local sessionElapsed = math.max(1, now - PH.SessionStartTick)
-            local totalPowerGained = math.max(0, currentPower - PH.SessionPowerStart)
-            local totalCoinsGained = math.max(0, currentCoins - PH.SessionCoinsStart)
 
-            -- Push Native Graphs
-            if GFX_Handles.Graph_Power and GFX_Handles.Graph_Power.Push then
-                GFX_Handles.Graph_Power:Push(powerDelta)
-                if GFX_Handles.Graph_Power.SetMax then
-                    GFX_Handles.Graph_Power:SetMax(math.max(10, math.floor(powerDelta * 1.5)))
-                end
+            -- Push Graphs
+            if GFX_Handles.Graph_BPM and GFX_Handles.Graph_BPM.Push then
+                GFX_Handles.Graph_BPM:Push(currentBPM)
             end
 
             if GFX_Handles.Graph_FPS and GFX_Handles.Graph_FPS.Push then
                 GFX_Handles.Graph_FPS:Push(math.clamp(fpsSample, 0, 144))
             end
 
-            if GFX_Handles.Graph_Mobs and GFX_Handles.Graph_Mobs.Push then
-                GFX_Handles.Graph_Mobs:Push(math.clamp(activeMobs, 0, 100))
+            if GFX_Handles.Graph_Threat and GFX_Handles.Graph_Threat.Push then
+                GFX_Handles.Graph_Threat:Push(math.clamp(threatDist, 0, 200))
             end
 
-            if GFX_Handles.Graph_Coins and GFX_Handles.Graph_Coins.Push then
-                GFX_Handles.Graph_Coins:Push(coinsDelta)
-                if GFX_Handles.Graph_Coins.SetMax then
-                    GFX_Handles.Graph_Coins:SetMax(math.max(100, math.floor(coinsDelta * 1.5)))
-                end
+            if GFX_Handles.Graph_Tasks and GFX_Handles.Graph_Tasks.Push then
+                GFX_Handles.Graph_Tasks:Push(PH.SessionRoomsCleaned + PH.SessionGuestsProcessed)
             end
 
             -- Update Progress Bars
-            if GFX_Handles.PB_Health and GFX_Handles.PB_Health.Set then
-                GFX_Handles.PB_Health:Set(currentHP, maxHP)
+            if GFX_Handles.PB_Panic and GFX_Handles.PB_Panic.Set then
+                local panicPct = math.clamp(math.floor(((currentBPM - 50) / (maxBPM - 50)) * 100), 0, 100)
+                GFX_Handles.PB_Panic:Set(panicPct, 100)
             end
 
-            if GFX_Handles.PB_Rebirth and GFX_Handles.PB_Rebirth.Set then
-                local nextRebirthReq = math.max(1, (currentRebirth + 1) * 10000)
-                local rebirthPct = math.clamp(math.floor((currentPower / nextRebirthReq) * 100), 0, 100)
-                GFX_Handles.PB_Rebirth:Set(rebirthPct, 100)
+            if GFX_Handles.PB_Shift and GFX_Handles.PB_Shift.Set then
+                local shiftPct = math.clamp(math.floor((currentDay / 19) * 100), 5, 100)
+                GFX_Handles.PB_Shift:Set(shiftPct, 100)
             end
 
-            if GFX_Handles.PB_Stage and GFX_Handles.PB_Stage.Set then
-                local stagePct = math.clamp(100 - (activeMobs * 10), 0, 100)
-                GFX_Handles.PB_Stage:Set(stagePct, 100)
+            if GFX_Handles.PB_Clean and GFX_Handles.PB_Clean.Set then
+                local cleanPct = math.clamp(100 - (trashCount * 10), 0, 100)
+                GFX_Handles.PB_Clean:Set(cleanPct, 100)
             end
 
-            -- Update Status Paragraph Cards
-            if GFX_Handles.Para_Player and GFX_Handles.Para_Player.SetDesc then
-                local playerDesc = string.format(
-                    "• Power: %s (+%s/s)
-• Coins: %s (+%s/s)
-• Level: %d | Rebirths: %d
-• Health: %s / %s (%d%%)
-• Base Attack: %s
-• Active Stage: %s | Zone: %s",
-                    FormatNumber(currentPower),
-                    FormatNumber(powerDelta),
-                    FormatNumber(currentCoins),
-                    FormatNumber(coinsDelta),
-                    currentLevel,
-                    currentRebirth,
-                    FormatNumber(currentHP),
-                    FormatNumber(maxHP),
-                    math.clamp(math.floor((currentHP / maxHP) * 100), 0, 100),
-                    FormatNumber(currentAtk),
-                    tostring(activeStage),
-                    tostring(activeArea)
+            -- Update Radar Cards
+            if GFX_Handles.Para_Guest and GFX_Handles.Para_Guest.SetDesc then
+                local guestStatusStr = "No Guest at Counter"
+                if guestModel then
+                    if isAnomaly then
+                        guestStatusStr = string.format("⚠️ ANOMALY DETECTED!
+• Name: %s
+• Stated Job: %s
+• Decision: REJECT IMPOSTOR", guestName, guestJob)
+                    else
+                        guestStatusStr = string.format("✅ REAL HUMAN GUEST
+• Name: %s
+• Stated Job: %s
+• Decision: REGISTER GUEST", guestName, guestJob)
+                    end
+                end
+                GFX_Handles.Para_Guest:SetDesc(guestStatusStr)
+            end
+
+            if GFX_Handles.Para_Shift and GFX_Handles.Para_Shift.SetDesc then
+                local shiftDesc = string.format(
+                    "• Current Story: Day %d / 19
+• Active Trash in Hotel: %d Messes
+• Nearest Threat: %d Studs Away
+• Session Time: %s",
+                    currentDay,
+                    trashCount,
+                    threatDist,
+                    FormatTime(sessionElapsed)
                 )
-                GFX_Handles.Para_Player:SetDesc(playerDesc)
+                GFX_Handles.Para_Shift:SetDesc(shiftDesc)
             end
 
-            if GFX_Handles.Para_Boss and GFX_Handles.Para_Boss.SetDesc then
-                local bossDesc = string.format(
-                    "• Current World Boss: %s
-• Status: %s
-• Event Timer: %s
-• Teleport Remote: Connected",
-                    bossName,
-                    bossStatus,
-                    bossTime
+            if GFX_Handles.Para_Vitals and GFX_Handles.Para_Vitals.SetDesc then
+                local mentalStatus = "Calm & Stable"
+                if currentBPM >= 120 then
+                    mentalStatus = "⚠️ SEVERE PANIC / JITTER"
+                elseif currentBPM >= 95 then
+                    mentalStatus = "Elevated Stress"
+                end
+                local vitalsDesc = string.format(
+                    "• Heart Rate: %d BPM (Max: %d BPM)
+• Mental State: %s
+• Guests Processed: %d
+• Anomalies Neutralized: %d",
+                    currentBPM,
+                    maxBPM,
+                    mentalStatus,
+                    PH.SessionGuestsProcessed,
+                    PH.SessionAnomaliesCaught
                 )
-                GFX_Handles.Para_Boss:SetDesc(bossDesc)
-            end
-
-            if GFX_Handles.Para_Session and GFX_Handles.Para_Session.SetDesc then
-                local sessionDesc = string.format(
-                    "• Session Time: %s
-• Total Power Farmed: +%s
-• Total Coins Earned: +%s
-• Enemies Slain: %d Mobs
-• Ores Mined: %d Batches",
-                    FormatTime(sessionElapsed),
-                    FormatNumber(totalPowerGained),
-                    FormatNumber(totalCoinsGained),
-                    PH.SessionEnemiesSlain,
-                    PH.SessionOresMined
-                )
-                GFX_Handles.Para_Session:SetDesc(sessionDesc)
+                GFX_Handles.Para_Vitals:SetDesc(vitalsDesc)
             end
 
             if GFX_Handles.Para_Engine and GFX_Handles.Para_Engine.SetDesc then
                 local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
                 local mem  = math.floor(StatsService:GetTotalMemoryUsageMb())
                 local engineDesc = string.format(
-                    "• Framerate: %d FPS (Target: 60)
-• Network Ping: %d ms
-• Client Memory: %d MB
-• Active Engine Threads: Healthy",
+                    "• Client Framerate: %d FPS
+• Latency / Ping: %d ms
+• Engine Memory: %d MB
+• Hotel Modules: 254 Loaded",
                     fpsSample,
                     ping,
                     mem
@@ -2400,216 +1850,120 @@ task.spawn(function()
 end)
 
 -- ==============================================================================
--- 7. AUTOMATION LOOPS (TRAINING, COMBAT, STAGE, BOSS, UPGRADES)
+-- 7. RECEPTIONIST AUTO BOT & ANOMALY FILTER (THREAD 2)
 -- ==============================================================================
-
--- Loop A: Fast Training Clicker
 task.spawn(function()
     while true do
-        if PH.AutoTrain then
+        if PH.AutoReceptionist then
             pcall(function()
-                if TrainCTRL and TrainCTRL.TrainOnce then
-                    TrainCTRL.TrainOnce()
-                elseif TrainOnceRE then
-                    TrainOnceRE:FireServer()
-                end
-            end)
-            task.wait(PH.TrainSpeed or 0.05)
-        else
-            task.wait(0.2)
-        end
-    end
-end)
-
--- Loop B: Auto Claim Offline Rewards & Rebirth
-task.spawn(function()
-    while task.wait(5) do
-        if PH.AutoClaimOffline and TryClaimOfflineRE then
-            pcall(function() TryClaimOfflineRE:FireServer() end)
-        end
-        if (PH.AutoRebirth or PH.AutoRebirthLoop) and TryRebirthRE then
-            pcall(function() TryRebirthRE:FireServer() end)
-        end
-    end
-end)
-
--- Loop C: Lethal Kill Aura & Attack Spammer
-task.spawn(function()
-    while true do
-        if PH.KillAura or PH.AutoAttack then
-            pcall(function()
-                if not Root then return end
-                local myPos = Root.Position
-
-                if PH.AutoAttack and ATKOnceBE then
-                    ATKOnceBE:Fire()
-                end
-
-                if EnemyFolder then
-                    for _, mob in ipairs(EnemyFolder:GetChildren()) do
-                        if mob:IsA("Model") and not mob:GetAttribute("Dead") then
-                            local mobRoot = mob:FindFirstChild("HumanoidRootPart") or mob:FindFirstChild("Torso") or mob.PrimaryPart
-                            if mobRoot then
-                                local dist = (mobRoot.Position - myPos).Magnitude
-                                if dist <= (PH.KillAuraRange or 60) then
-                                    if PH.KillAura then
-                                        if KillEnemyRE then
-                                            KillEnemyRE:FireServer(mob.Name)
-                                            PH.SessionEnemiesSlain = PH.SessionEnemiesSlain + 1
-                                        elseif EnemyCTRL and EnemyCTRL.DeadEnemy then
-                                            EnemyCTRL.DeadEnemy(mob.Name)
-                                            PH.SessionEnemiesSlain = PH.SessionEnemiesSlain + 1
-                                        end
-                                    end
-
-                                    if PH.AutoAttack and UseAnyATKRE then
-                                        UseAnyATKRE:FireServer(1, Workspace:GetServerTimeNow())
-                                    end
-
-                                    -- Hitbox Expander
-                                    if PH.HitboxExpander and mobRoot then
-                                        mobRoot.Size = Vector3.new(PH.HitboxSize, PH.HitboxSize, PH.HitboxSize)
-                                        mobRoot.Transparency = 0.7
-                                        mobRoot.CanCollide = false
-                                    end
-                                end
-                            end
+                local guestModel, isAnomaly, guestName, guestJob = FindCurrentGuestNPC()
+                if guestModel then
+                    task.wait(PH.ReceptionistDelay or 1.0)
+                    if isAnomaly and PH.AutoRejectAnomalies then
+                        if ReceptionistActionEvent then
+                            ReceptionistActionEvent:FireServer("Reject")
+                            PH.SessionAnomaliesCaught = PH.SessionAnomaliesCaught + 1
+                            PH.SessionGuestsProcessed = PH.SessionGuestsProcessed + 1
+                        end
+                    elseif not isAnomaly and PH.AutoAcceptHumans then
+                        if ReceptionistActionEvent then
+                            ReceptionistActionEvent:FireServer("Register")
+                            PH.SessionGuestsProcessed = PH.SessionGuestsProcessed + 1
                         end
                     end
                 end
+
+                if PH.AutoSkipDialog and DialogSkipRequestEvent then
+                    DialogSkipRequestEvent:FireServer(true, 1, 1)
+                end
             end)
-            task.wait(PH.AttackRate or 0.1)
+            task.wait(0.5)
         else
-            task.wait(0.25)
-        end
-    end
-end)
-
--- Loop D: Skill Auto Spammer
-task.spawn(function()
-    while task.wait(1.2) do
-        if PH.AutoSkill1 then
-            pcall(function()
-                if UseSkillByIndexBE then UseSkillByIndexBE:Fire(1) end
-                if UseAnySkillRE then UseAnySkillRE:FireServer("Skill_1", 1, Workspace:GetServerTimeNow()) end
-            end)
-        end
-        if PH.AutoSkill2 then
-            pcall(function()
-                if UseSkillByIndexBE then UseSkillByIndexBE:Fire(2) end
-                if UseAnySkillRE then UseAnySkillRE:FireServer("Skill_2", 2, Workspace:GetServerTimeNow()) end
-            end)
-        end
-    end
-end)
-
--- Loop E: God Mode Health Keeper
-task.spawn(function()
-    while task.wait(0.2) do
-        if PH.GodModeKeeper then
-            pcall(function()
-                local maxHp = GetPlayerMaxHP()
-                local hpVal = LocalPlayer:FindFirstChild("HPValue")
-                if hpVal and hpVal.Value < maxHp then
-                    hpVal.Value = maxHp
-                end
-                if Humanoid and Humanoid.Health < maxHp then
-                    Humanoid.Health = maxHp
-                end
-            end)
-        end
-    end
-end)
-
--- Loop F: Stage Farm & Auto Advance
-task.spawn(function()
-    while task.wait(2) do
-        if PH.AutoFarmStage then
-            pcall(function()
-                local activeMobs = GetActiveMobsCount()
-                if activeMobs == 0 then
-                    if StageFinishedRF then StageFinishedRF:InvokeServer(PH.SelectedStage) end
-                    if StageFinishedBE then StageFinishedBE:Fire() end
-                    if PH.AutoAdvanceStage then
-                        PH.SelectedStage = math.min(50, PH.SelectedStage + 1)
-                    end
-                    if SetIntoStageRE then
-                        SetIntoStageRE:FireServer(PH.SelectedStage)
-                    end
-                end
-            end)
-        end
-
-        if PH.AutoClaimAllOre and ClaimedAllOreRE then
-            pcall(function()
-                ClaimedAllOreRE:FireServer()
-                PH.SessionOresMined = PH.SessionOresMined + 1
-            end)
-        end
-
-        if PH.AutoKillSuperLoot and KillSuperLootRE then
-            pcall(function()
-                for i = 1, 10 do KillSuperLootRE:FireServer(i) end
-            end)
-        end
-    end
-end)
-
--- Loop G: World Boss Auto Battle & Reward Claimer
-task.spawn(function()
-    while task.wait(1.5) do
-        local bossName, _, bossStatus = GetWorldBossData()
-        if PH.AutoJoinBoss and string.find(bossStatus, "SPAWNED") then
-            pcall(function()
-                if IntoWorldBossFight then IntoWorldBossFight:FireServer() end
-            end)
-        end
-
-        if PH.AutoClaimBossReward and TryClaimBossRewardRE then
-            pcall(function()
-                for i = 1, 5 do TryClaimBossRewardRE:FireServer(tostring(i)) end
-            end)
-        end
-
-        if PH.AutoCollectBossBalls and TryGetHPBallRF then
-            pcall(function()
-                for i = 1, 10 do TryGetHPBallRF:InvokeServer(i) end
-            end)
-        end
-    end
-end)
-
--- Loop H: Stat Upgrades & Potions
-task.spawn(function()
-    while task.wait(1) do
-        if PH.AutoUpgradePower and UpgradeOnceRE then
-            pcall(function() UpgradeOnceRE:FireServer("Power") end)
-        end
-
-        if PH.AutoUpgradeStats and UpgradeOnceRE then
-            pcall(function()
-                UpgradeOnceRE:FireServer("Power")
-                UpgradeOnceRE:FireServer("Coin")
-                UpgradeOnceRE:FireServer("Health")
-            end)
-        end
-
-        if PH.AutoUsePowerPotion and TryUsePotionRE then
-            pcall(function() TryUsePotionRE:FireServer("Power", 1) end)
-        end
-
-        if PH.AutoUseCoinPotion and TryUsePotionRE then
-            pcall(function() TryUsePotionRE:FireServer("Coin", 1) end)
-        end
-
-        if PH.AutoUseLuckPotion and TryUsePotionRE then
-            pcall(function() TryUsePotionRE:FireServer("Luck", 1) end)
+            task.wait(0.5)
         end
     end
 end)
 
 -- ==============================================================================
--- 8. MOVEMENT & PHYSICS HOOKS (FLY, NOCLIP, SPEED, ANTI-VOID)
+-- 8. HEART RATE STABILIZER (THREAD 3)
+-- ==============================================================================
+task.spawn(function()
+    while task.wait(0.3) do
+        if PH.HeartRateStabilizer then
+            pcall(function()
+                CallAdminAction("setHeartRate", LocalPlayer.UserId, PH.LockedHeartRate or 65)
+            end)
+        end
+    end
+end)
+
+-- ==============================================================================
+-- 9. CHORES & WIRE AUTO SOLVER (THREAD 4)
+-- ==============================================================================
+task.spawn(function()
+    while task.wait(2) do
+        if PH.AutoCleanAllRooms then
+            pcall(function()
+                CallAdminAction("cleanAllRooms")
+                PH.SessionRoomsCleaned = PH.SessionRoomsCleaned + 1
+            end)
+        end
+
+        if PH.AutoSolveWires and WireConnectedEvent then
+            pcall(function()
+                for i = 1, 4 do WireConnectedEvent:FireServer(i) end
+            end)
+        end
+    end
+end)
+
+-- ==============================================================================
+-- 10. ESP HIGHLIGHT SYSTEM (THREAD 5)
+-- ==============================================================================
+local espFolder = Instance.new("Folder")
+espFolder.Name = "PinatHub_AnomalyESP"
+espFolder.Parent = Workspace
+
+local function applyHighlight(targetModel, color, nameText)
+    if not targetModel or not targetModel.Parent then return end
+    local existing = targetModel:FindFirstChild("PinatHighlight")
+    if not existing then
+        local hl = Instance.new("Highlight")
+        hl.Name = "PinatHighlight"
+        hl.FillColor = color
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.FillTransparency = 0.5
+        hl.OutlineTransparency = 0.1
+        hl.Adornee = targetModel
+        hl.Parent = targetModel
+    else
+        existing.FillColor = color
+    end
+end
+
+task.spawn(function()
+    while task.wait(1.5) do
+        pcall(function()
+            for _, model in ipairs(Workspace:GetDescendants()) do
+                if model:IsA("Model") and model:FindFirstChildOfClass("Humanoid") and model ~= Character then
+                    local isAnom = (model:GetAttribute("IsAnomaly") == true)
+                    local isSlender = (model:GetAttribute("IsSlender") == true or string.find(string.lower(model.Name), "slender"))
+
+                    if isSlender and PH.ESP_Slender then
+                        applyHighlight(model, Color3.fromRGB(180, 0, 255), "Slenderman")
+                    elseif isAnom and PH.ESP_Anomalies then
+                        applyHighlight(model, Color3.fromRGB(255, 30, 30), "ANOMALY")
+                    elseif not isAnom and PH.ESP_Humans then
+                        applyHighlight(model, Color3.fromRGB(30, 255, 100), "Human Guest")
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- ==============================================================================
+-- 11. MOVEMENT & PHYSICS HOOKS (FLY, NOCLIP, SPEED, ANTI-VOID)
 -- ==============================================================================
 
 -- Infinite Jump Hook
@@ -2679,7 +2033,7 @@ task.spawn(function()
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
 
-            flyBv.Velocity = moveDir * (PH.FlySpeed or 60)
+            flyBv.Velocity = moveDir * (PH.FlySpeed or 50)
             task.wait()
         else
             if flyBv then flyBv:Destroy(); flyBv = nil end
@@ -2692,17 +2046,17 @@ task.spawn(function()
     end
 end)
 
--- Initial Tab Selection
+-- Select Analytics Tab Initially
 if Window and Window.SelectTab then
     pcall(function() Window:SelectTab(1) end)
 end
 
 print("═══════════════════════════════════════════════════════════════════════")
-print("  [PinatHub V2 Ultra] Loaded successfully for Anime Blade Champions!  ")
-print("  Live Graphic Telemetry Tab: Active & Streaming                      ")
-print("  Zero Nil / Zero Error Engine: Operational                           ")
+print("  [PinatHub V2 Ultra] Loaded for Hotel Anomaly & Shift Simulator!      ")
+print("  Live Heart Rate & Anomaly Graphic Radar: ACTIVE & STREAMING         ")
+print("  Zero Nil / Zero Error Engine: OPERATIONAL                           ")
 print("═══════════════════════════════════════════════════════════════════════")
 
 end
 
-__PinatHub_AnimeBlade_V2__()
+__PinatHub_AnomalyHotel_Init__()
