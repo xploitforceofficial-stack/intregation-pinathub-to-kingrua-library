@@ -28,11 +28,11 @@ if not LocalPlayer then
     repeat
         task.wait(0.05)
         LocalPlayer = Players.LocalPlayer
-    until LocalPlayer or (tick() - startWait > 5)
+    until LocalPlayer or (tick() - startWait > 3)
 end
 if not LocalPlayer then
     pcall(function()
-        LocalPlayer = Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+        LocalPlayer = Players.PlayerAdded:Wait()
     end)
 end
 
@@ -55,23 +55,30 @@ local function refreshChar(char)
     Root      = Character and (Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChild("Torso") or Character.PrimaryPart)
 end
 
-if LocalPlayer then
-    refreshChar(LocalPlayer.Character)
+local function safeConnectChar(plr)
+    if not plr then return end
     pcall(function()
-        LocalPlayer.CharacterAdded:Connect(refreshChar)
-    end)
-end
-pcall(function()
-    Players.PlayerAdded:Connect(function(plr)
-        if not LocalPlayer then
-            LocalPlayer = plr
-            refreshChar(plr.Character)
-            pcall(function()
-                plr.CharacterAdded:Connect(refreshChar)
+        if typeof(plr) == "Instance" and plr:IsA("Player") and plr.CharacterAdded then
+            plr.CharacterAdded:Connect(function(c)
+                refreshChar(c)
             end)
         end
     end)
-end)
+end
+
+if LocalPlayer then
+    refreshChar(LocalPlayer.Character)
+    safeConnectChar(LocalPlayer)
+else
+    task.spawn(function()
+        while not LocalPlayer do
+            task.wait(0.1)
+            LocalPlayer = Players.LocalPlayer
+        end
+        refreshChar(LocalPlayer.Character)
+        safeConnectChar(LocalPlayer)
+    end)
+end
 
 -- ========================================================================================
 -- 1. SAFE NATIVE SLICE & DATA MODULES RESOLUTION (Pure State Tables, Zero Side Effects)
@@ -107,48 +114,50 @@ local Items                 = SafeRequire(FindModuleByPath("Source", "Game", "It
 local NetworkerPackage      = SafeRequire(FindModuleByPath("Packages", "Networker"))
 
 -- ========================================================================================
--- 2. GAME NETWORKER CLIENT BINDING (Clean, Isolated & Safe from Service Inits)
+-- 2. LAZY ON-DEMAND NETWORKER CLIENT RESOLVER (Zero Startup Execution, Zero Nil Errors)
 -- ========================================================================================
-local NetworkerClients = {
-    Admin = nil,
-    Combat = nil,
-    HeartRate = nil,
-    Inventory = nil,
-    Day = nil,
-    GameOver = nil,
-    Class = nil,
-    Journal = nil,
-    ObjectiveTracker = nil
-}
-
-local function InitNetworkClient(serviceName)
-    if NetworkerPackage and NetworkerPackage.client and NetworkerPackage.client.new then
-        local client = nil
-        local ok = pcall(function()
-            -- Pass an empty table {} so Networker never executes broken service module inits!
-            client = NetworkerPackage.client.new(serviceName, {})
-        end)
-        if ok and client then
-            return client
-        end
+local _NetworkClientCache = {}
+local function GetNetworkClient(serviceName)
+    if _NetworkClientCache[serviceName] then
+        return _NetworkClientCache[serviceName]
+    end
+    if not NetworkerPackage or not NetworkerPackage.client or not NetworkerPackage.client.new then
+        return nil
+    end
+    local ok, client = pcall(function()
+        return NetworkerPackage.client.new(serviceName, {})
+    end)
+    if ok and client then
+        _NetworkClientCache[serviceName] = client
+        return client
     end
     return nil
 end
 
-NetworkerClients.Admin            = InitNetworkClient("AdminService")
-NetworkerClients.Combat           = InitNetworkClient("CombatSystem")
-NetworkerClients.HeartRate        = InitNetworkClient("HeartRateService")
-NetworkerClients.Inventory        = InitNetworkClient("InventoryService")
-NetworkerClients.Day              = InitNetworkClient("DayService")
-NetworkerClients.GameOver         = InitNetworkClient("GameOverService")
-NetworkerClients.Class            = InitNetworkClient("ClassService")
-NetworkerClients.Journal          = InitNetworkClient("JournalService")
-NetworkerClients.ObjectiveTracker = InitNetworkClient("ObjectiveTrackerService")
+local _ServiceAliases = {
+    Admin = "AdminService",
+    Combat = "CombatSystem",
+    HeartRate = "HeartRateService",
+    Inventory = "InventoryService",
+    Day = "DayService",
+    GameOver = "GameOverService",
+    Class = "ClassService",
+    Journal = "JournalService",
+    ObjectiveTracker = "ObjectiveTrackerService"
+}
+
+local NetworkerClients = setmetatable({}, {
+    __index = function(_, key)
+        local svcName = _ServiceAliases[key] or key
+        return GetNetworkClient(svcName)
+    end
+})
 
 local function RequestAdminAction(actionName, ...)
-    if NetworkerClients.Admin and NetworkerClients.Admin.fetch then
+    local adminClient = NetworkerClients.Admin
+    if adminClient and adminClient.fetch then
         local s, res = pcall(function(...)
-            return NetworkerClients.Admin:fetch(actionName, ...)
+            return adminClient:fetch(actionName, ...)
         end, ...)
         if s and res ~= nil then return res end
     end
